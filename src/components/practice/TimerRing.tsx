@@ -1,36 +1,19 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-
 export function TimerRing({
   seconds,
   total,
-  onTimeout,
   paused,
 }: {
   seconds: number;
   total: number;
-  onTimeout: () => void;
+  onTimeout?: () => void;
   paused?: boolean;
 }) {
   const radius = 14;
   const circumference = 2 * Math.PI * radius;
   const progress = seconds / total;
   const offset = circumference * (1 - progress);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    if (paused || seconds <= 0) return;
-
-    timerRef.current = setInterval(() => {
-      if (seconds <= 0) {
-        if (timerRef.current) clearInterval(timerRef.current);
-        onTimeout();
-      }
-    }, 1000);
-
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [paused]);
 
   const isUrgent = seconds <= 5;
 

@@ -196,7 +196,9 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     let correctAnswer: string | number | boolean | string[] = "";
     if (currentExercise.type === "mcq") correctAnswer = currentExercise.correctIndex ?? currentExercise.correctAnswer ?? 0;
     else if (currentExercise.type === "true_false") correctAnswer = currentExercise.correctAnswer!;
-    else correctAnswer = currentExercise.acceptedAnswers!;
+    else correctAnswer = (currentExercise.acceptedAnswers && currentExercise.acceptedAnswers.length > 0)
+      ? currentExercise.acceptedAnswers
+      : (currentExercise.correctAnswer ? [String(currentExercise.correctAnswer)] : []);
 
     try {
       const res = await fetch("/api/practice/check", {

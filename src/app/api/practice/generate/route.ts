@@ -49,10 +49,10 @@ REGLAS ESTRICTAS:
 3. Los ejercicios deben ser practicos y aplicables a la vida real.
 4. Variar entre: mcq (opcion multiple), fill_blank (completar), true_false (verdadero/falso).
 5. Para mcq: incluir 4 opciones y "correctIndex" (numero 0-3) indicando cual es la correcta. NO uses "correctAnswer" para mcq.
-6. Para fill_blank: incluir un array de respuestas aceptables.
-7. Para true_false: incluir la respuesta correcta (true/false).
-8. Los ejercicios "hard" no llevan limite de tiempo (timeLimit: null).
-9. Los ejercicios "easy" y "medium" tienen timeLimit en segundos (20-40s).
+6. Para fill_blank: "acceptedAnswers" es OBLIGATORIO. Incluir un array con todas las respuestas aceptables (ej: ["am", "is", "are"]). NO uses "correctAnswer" ni "correctIndex" para fill_blank.
+7. Para true_false: "correctAnswer" es OBLIGATORIO (true o false).
+8. Los ejercicios "hard" llevan timeLimit: null (sin tiempo).
+9. Los ejercicios "easy" y "medium": "timeLimit" es OBLIGATORIO, un numero entre 20 y 40 segundos.
 10. Alternar tipos: maximo 2 del mismo tipo.
 11. Incluir dificultad variada: al menos 1 easy, 1 medium, 1 hard.
 12. Responde UNICAMENTE con JSON valido. No uses bloques de markdown ni texto adicional. Solo el JSON puro.`;
