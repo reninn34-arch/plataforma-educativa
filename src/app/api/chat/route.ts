@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { verifyToken } from "@/lib/auth";
-import { openai } from "@ai-sdk/openai";
+import { opencodeGoModel } from "@/lib/ai";
 import { streamText, convertToModelMessages } from "ai";
 
 const SYSTEM_PROMPT = `Eres un tutor empatico especializado en andragogia para adultos que retoman sus estudios de bachillerato. Tu objetivo es generar un ejercicio practico corto sobre el tema actual.
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   const { messages, subject } = await request.json();
 
   const result = streamText({
-    model: openai("gpt-4o-mini"),
+    model: opencodeGoModel,
     system: `${SYSTEM_PROMPT}\n\nEl tema actual en el que el estudiante esta trabajando es: ${subject || "Tronco comun"}.`,
     messages: await convertToModelMessages(messages),
     maxOutputTokens: 300,

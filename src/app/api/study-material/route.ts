@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { openai } from "@ai-sdk/openai";
+import { opencodeGoModel } from "@/lib/ai";
 import { generateText } from "ai";
 
 const SUBJECT_CONTEXT: Record<string, string> = {
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   const ctx = SUBJECT_CONTEXT[subject] || SUBJECT_CONTEXT.matematicas;
 
   const result = await generateText({
-    model: openai("gpt-4o-mini"),
+    model: opencodeGoModel,
     system: "Eres un profesor experto en educacion acelerada para adultos (PCEI). Genera contenido educativo claro, con ejemplos practicos y lenguaje sencillo. Usa maximo 250 palabras.",
     prompt: `AREA: ${ctx}${topic ? `\n\nTema especifico: ${topic}.` : ""}\n\nGenera un resumen teorico con:\n- Concepto clave (1 oracion)\n- Explicacion sencilla (2-3 oraciones)\n- 2 ejemplos practicos\n- Dato curioso o aplicacion en la vida real`,
     maxOutputTokens: 400,

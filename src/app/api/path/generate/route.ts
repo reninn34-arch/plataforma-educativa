@@ -1,0 +1,171 @@
+import { NextRequest } from "next/server";
+import { verifyToken } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { subjects, modules, nodes } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { opencodeGoModel } from "@/lib/ai";
+import { generateText } from "ai";
+import { z } from "zod/v4";
+
+const nodeSchema = z.object({
+  title: z.string(),
+  type: z.enum(["concept", "quiz", "challenge"]),
+  aiPromptContext: z.string(),
+});
+
+const pathSchema = z.object({
+  moduleTitle: z.string(),
+  nodes: z.array(nodeSchema),
+});
+
+const SUBJECT_META: Record<string, string> = {
+  matematicas: "Matematicas - Bachillerato Acelerado para Adultos (PCEI)",
+  fisica: "Fisica - Bachillerato Acelerado para Adultos (PCEI)",
+  ingles: "Ingles - Bachillerato Acelerado para Adultos (PCEI)",
+  quimica: "Quimica - Bachillerato Acelerado para Adultos (PCEI)",
+};
+
+const SYSTEM_PROMPT = `Eres un diseñador curricular experto en andragogia para adultos en bachillerato acelerado (PCEI).
+Tu tarea es generar un "Learning Path" (camino de aprendizaje) sobre un tema especifico que el estudiante quiere aprender.
+
+REGLAS ESTRICTAS:
+1. Genera entre 6 y 8 nodos de aprendizaje en total.
+2. Los primeros 3-4 nodos deben ser tipo "concept" (enseñanza teorica, introduccion al tema).
+3. Los ultimos 3-4 nodos deben ser tipo "quiz" o "challenge" (practica y evaluacion).
+4. Cada nodo debe tener:
+   - "title": nombre corto y atractivo del nodo (max 6 palabras).
+   - "type": "concept" para enseñanza, "quiz" para practica, "challenge" para el nodo final mas dificil.
+   - "aiPromptContext": descripcion detallada (2-3 oraciones) de lo que debe cubrir ese nodo. Esto se usara luego para generar ejercicios con IA.
+5. El contenido debe ser apropiado para adultos que retoman sus estudios, con ejemplos practicos de la vida real.
+6. Progresion de dificultad: de lo mas basico a lo mas avanzado.
+7. El "moduleTitle" debe ser un titulo descriptivo del camino completo (ej: "Derivadas: del concepto a la aplicacion").
+ 8. Responde UNICAMENTE con el JSON estructurado, sin texto adicional.`;
+
+function repairJson(text: string): string {
+  text = text.trim();
+  text = text.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
+  let openBraces = 0;
+  let openBrackets = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (escape) { escape = false; continue; }
+    if (c === "\\") { escape = true; continue; }
+    if (c === '"' && !inString) { inString = true; continue; }
+    if (c === '"' && inString) { inString = false; continue; }
+    if (inString) continue;
+    if (c === "{") openBraces++;
+    if (c === "}") openBraces--;
+    if (c === "[") openBrackets++;
+    if (c === "]") openBrackets--;
+  }
+  if (inString) text += '"';
+  text += "]".repeat(Math.max(0, openBrackets));
+  text += "}".repeat(Math.max(0, openBraces));
+  return text;
+}
+
+export async function POST(request: NextRequest) {
+  const token = request.cookies.get("atlas-edu-token")?.value;
+  const user = token ? await verifyToken(token) : null;
+  if (!user) {
+    return Response.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  try {
+    const { subject: subjectSlug, topic } = await request.json();
+    if (!subjectSlug || !topic) {
+      return Response.json({ error: "Se requiere subject y topic" }, { status: 400 });
+    }
+
+    const subjectRecord = await db
+      .select()
+      .from(subjects)
+      .where(eq(subjects.slug, subjectSlug))
+      .limit(1);
+    if (!subjectRecord.length) {
+      return Response.json({ error: "Materia no encontrada" }, { status: 404 });
+    }
+    const subject = subjectRecord[0];
+    const areaContext = SUBJECT_META[subjectSlug] || subject.name;
+
+    const result = await generateText({
+      model: opencodeGoModel,
+      system: SYSTEM_PROMPT + "\n\nIMPORTANTE: Responde UNICAMENTE con JSON valido. No uses bloques de markdown ni texto adicional. Solo el JSON puro.",
+      prompt: `AREA: ${areaContext}
+TEMA SOLICITADO POR EL ESTUDIANTE: "${topic}"
+
+Genera un Learning Path de 6-8 nodos para este tema. Los primeros nodos deben ser de tipo "concept" (enseñanza) y los ultimos de tipo "quiz" o "challenge" (practica).`,
+      temperature: 0.8,
+      maxOutputTokens: 6000,
+    });
+
+    const text = repairJson(result.text);
+    const parsed = pathSchema.parse(JSON.parse(text));
+    const { moduleTitle, nodes: aiNodes } = parsed;
+
+    // Check for duplicate by topic + subject
+    const existingModule = await db
+      .select()
+      .from(modules)
+      .where(eq(modules.topic, topic))
+      .limit(1);
+
+    if (existingModule.length > 0 && existingModule[0].subjectId === subject.id) {
+      // Return existing path instead of creating duplicate
+      const existingNodes = await db
+        .select()
+        .from(nodes)
+        .where(eq(nodes.moduleId, existingModule[0].id))
+        .orderBy(nodes.order);
+      return Response.json({
+        module: existingModule[0],
+        nodes: existingNodes,
+        cached: true,
+      });
+    }
+
+    // Insert module
+    const maxOrder = await db
+      .select({ max: modules.order })
+      .from(modules)
+      .where(eq(modules.subjectId, subject.id))
+      .then(rows => rows.length > 0 ? rows[0].max : 0);
+
+    const [newModule] = await db
+      .insert(modules)
+      .values({
+        subjectId: subject.id,
+        title: moduleTitle,
+        order: (maxOrder ?? 0) + 1,
+        requiredPoints: 0,
+        topic: topic,
+        generated: true,
+      })
+      .returning();
+
+    // Insert nodes
+    const nodeValues = aiNodes.map((n, i) => ({
+      moduleId: newModule.id,
+      title: n.title,
+      order: i + 1,
+      type: n.type,
+      aiPromptContext: n.aiPromptContext,
+    }));
+
+    const createdNodes = await db.insert(nodes).values(nodeValues).returning();
+
+    return Response.json({
+      module: newModule,
+      nodes: createdNodes,
+      cached: false,
+    });
+  } catch (error) {
+    console.error("Path generation error:", error);
+    return Response.json(
+      { error: "Error al generar el camino de aprendizaje. Intenta con otro tema." },
+      { status: 500 }
+    );
+  }
+}

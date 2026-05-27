@@ -45,6 +45,48 @@ export const progress = pgTable("progress", {
   daysInactive: integer("days_inactive").notNull().default(0),
 });
 
+export const modules = pgTable("modules", {
+  id: serial("id").primaryKey(),
+  subjectId: integer("subject_id")
+    .notNull()
+    .references(() => subjects.id),
+  title: varchar("title", { length: 200 }).notNull(),
+  order: integer("order").notNull().default(1),
+  requiredPoints: integer("required_points").notNull().default(0),
+  topic: varchar("topic", { length: 200 }),
+  generated: boolean("generated").notNull().default(false),
+});
+
+export const nodeTypeEnum = pgEnum("node_type", ["concept", "quiz", "challenge"]);
+
+export const nodes = pgTable("nodes", {
+  id: serial("id").primaryKey(),
+  moduleId: integer("module_id")
+    .notNull()
+    .references(() => modules.id),
+  title: varchar("title", { length: 200 }).notNull(),
+  order: integer("order").notNull().default(1),
+  type: nodeTypeEnum("type").notNull().default("quiz"),
+  aiPromptContext: text("ai_prompt_context"),
+  cachedExercises: jsonb("cached_exercises"),
+});
+
+export const nodeStatusEnum = pgEnum("node_status", ["locked", "unlocked", "completed", "mastered"]);
+
+export const userProgress = pgTable("user_progress", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  nodeId: integer("node_id")
+    .notNull()
+    .references(() => nodes.id),
+  status: nodeStatusEnum("status").notNull().default("locked"),
+  starsEarned: integer("stars_earned").notNull().default(0),
+  attempts: integer("attempts").notNull().default(0),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const chatSessions = pgTable("chat_sessions", {
   id: serial("id").primaryKey(),
   userId: integer("user_id")

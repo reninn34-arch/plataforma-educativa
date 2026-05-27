@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { openai } from "@ai-sdk/openai";
+import { opencodeGoModel } from "@/lib/ai";
 import { generateText } from "ai";
 
 const FEEDBACK_PROMPT = `Eres un tutor socratico. Evalua la respuesta del estudiante.
@@ -17,18 +17,20 @@ export async function POST(request: NextRequest) {
     let isCorrect = false;
 
     if (type === "mcq") {
-      isCorrect = studentAnswer === correctAnswer;
+      isCorrect = Number(studentAnswer) === Number(correctAnswer);
     } else if (type === "true_false") {
-      isCorrect = studentAnswer === correctAnswer;
+      const studentBool = studentAnswer === true || studentAnswer === "true";
+      const correctBool = correctAnswer === true || correctAnswer === "true";
+      isCorrect = studentBool === correctBool;
     } else if (type === "fill_blank") {
-      const accepted: string[] = correctAnswer || [];
+      const accepted: string[] = Array.isArray(correctAnswer) ? correctAnswer : [correctAnswer].filter(Boolean);
       isCorrect = accepted.some((a: string) =>
-        a.toLowerCase().trim() === studentAnswer?.toLowerCase().trim()
+        String(a).toLowerCase().trim() === String(studentAnswer).toLowerCase().trim()
       );
     }
 
     const result = await generateText({
-      model: openai("gpt-4o-mini"),
+      model: opencodeGoModel,
       system: FEEDBACK_PROMPT,
       prompt: `Pregunta: ${question}
 Tipo: ${type}

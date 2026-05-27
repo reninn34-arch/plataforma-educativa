@@ -1,11 +1,15 @@
 import { NextRequest } from "next/server";
-import { openai } from "@ai-sdk/openai";
-import { generateObject } from "ai";
+import { opencodeGoModel } from "@/lib/ai";
+import { db } from "@/lib/db";
+import { nodes } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { generateText } from "ai";
 import { z } from "zod/v4";
 
 const exerciseSchema = z.object({
+  concept_bites: z.array(z.string()),
   exercises: z.array(z.object({
-    id: z.number(),
+    id: z.number().optional().default(0),
     type: z.enum(["mcq", "fill_blank", "true_false"]),
     question: z.string(),
     options: z.array(z.string()).optional(),
@@ -22,51 +26,102 @@ const SUBJECT_CONTEXTS: Record<string, { area: string; topics: string[] }> = {
     area: "Matematicas - Bachillerato Acelerado para Adultos",
     topics: ["Ecuaciones lineales", "Porcentajes", "Geometria basica", "Fracciones", "Regla de tres", "Algebra elemental", "Area y perimetro", "Operaciones basicas"],
   },
-  lenguaje: {
-    area: "Lenguaje y Literatura - Bachillerato Acelerado para Adultos",
-    topics: ["Ortografia", "Gramatica basica", "Comprension lectora", "Tipos de textos", "Sinonimos y antonimos", "Sujeto y predicado", "Signos de puntuacion", "Redaccion"],
+  fisica: {
+    area: "Fisica - Bachillerato Acelerado para Adultos",
+    topics: ["Leyes de Newton", "Movimiento rectilineo", "Energia cinetica y potencial", "Ondas y sonido", "Electricidad basica", "Magnetismo", "Calor y temperatura", "Optica"],
   },
-  ciencias: {
-    area: "Ciencias Naturales - Bachillerato Acelerado para Adultos",
-    topics: ["Celula", "Sistema solar", "Fotosintesis", "Estados de la materia", "Cadena alimenticia", "Ciclo del agua", "Cuerpo humano", "Energia"],
+  ingles: {
+    area: "Ingles - Bachillerato Acelerado para Adultos",
+    topics: ["Verbo To Be", "Presente simple", "Pasado simple", "Futuro con Will", "Vocabulario basico", "Preposiciones", "Adjetivos", "Conversacion basica"],
   },
-  sociales: {
-    area: "Ciencias Sociales - Bachillerato Acelerado para Adultos",
-    topics: ["Geografia del Ecuador", "Historia del Ecuador", "Derechos humanos", "Constitucion", "Democracia", "Culturas precolombinas", "Independencia", "Educacion civica"],
+  quimica: {
+    area: "Quimica - Bachillerato Acelerado para Adultos",
+    topics: ["Tabla periodica", "Enlaces quimicos", "Reacciones quimicas", "Estados de la materia", "Acidos y bases", "Balanceo de ecuaciones", "Compuestos organicos", "Estequiometria"],
   },
 };
 
-const PROMPT = `Eres un generador de ejercicios educativos para adultos en bachillerato acelerado (PCEI).
-Genera EXACTAMENTE 5 ejercicios en formato JSON.
+const PROMPT = `Eres un diseñador de niveles educativos (Learning Path) para adultos en bachillerato acelerado (PCEI).
+Tu objetivo es generar una micro-lección (Bite-sized Learning) y EXACTAMENTE 4 ejercicios practicos en formato JSON basados en el contexto proveido.
 
 REGLAS ESTRICTAS:
-1. Lenguaje claro y sencillo, sin jerga tecnica innecesaria.
-2. Los ejercicios deben ser practicos y aplicables a la vida real.
-3. Variar entre: mcq (opcion multiple), fill_blank (completar), true_false (verdadero/falso).
-4. Para mcq: incluir 4 opciones y el indice de la correcta (0-3).
-5. Para fill_blank: incluir un array de respuestas aceptables.
-6. Para true_false: incluir la respuesta correcta (true/false).
-7. Los ejercicios "hard" no llevan limite de tiempo (timeLimit: null).
-8. Los ejercicios "easy" y "medium" tienen timeLimit en segundos (20-40s).
-9. Alternar tipos: maximo 2 del mismo tipo.
-10. Incluir dificultad variada: al menos 1 easy, 1 medium, 1 hard.`;
+1. Genera primero "concept_bites": un arreglo de 2 a 3 oraciones cortas (tarjetas) que expliquen de forma muy sencilla el concepto clave.
+2. Lenguaje claro y sencillo, sin jerga tecnica innecesaria.
+3. Los ejercicios deben ser practicos y aplicables a la vida real.
+4. Variar entre: mcq (opcion multiple), fill_blank (completar), true_false (verdadero/falso).
+5. Para mcq: incluir 4 opciones y "correctIndex" (numero 0-3) indicando cual es la correcta. NO uses "correctAnswer" para mcq.
+6. Para fill_blank: incluir un array de respuestas aceptables.
+7. Para true_false: incluir la respuesta correcta (true/false).
+8. Los ejercicios "hard" no llevan limite de tiempo (timeLimit: null).
+9. Los ejercicios "easy" y "medium" tienen timeLimit en segundos (20-40s).
+10. Alternar tipos: maximo 2 del mismo tipo.
+11. Incluir dificultad variada: al menos 1 easy, 1 medium, 1 hard.
+12. Responde UNICAMENTE con JSON valido. No uses bloques de markdown ni texto adicional. Solo el JSON puro.`;
+
+function repairJson(text: string): string {
+  text = text.trim();
+  text = text.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
+  let openBraces = 0;
+  let openBrackets = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (escape) { escape = false; continue; }
+    if (c === "\\") { escape = true; continue; }
+    if (c === '"' && !inString) { inString = true; continue; }
+    if (c === '"' && inString) { inString = false; continue; }
+    if (inString) continue;
+    if (c === "{") openBraces++;
+    if (c === "}") openBraces--;
+    if (c === "[") openBrackets++;
+    if (c === "]") openBrackets--;
+  }
+  if (inString) text += '"';
+  text += "]".repeat(Math.max(0, openBrackets));
+  text += "}".repeat(Math.max(0, openBraces));
+  return text;
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const { subject, topic } = await request.json();
+    const { subject, topic, aiPromptContext, nodeId, retry } = await request.json();
+
+    if (nodeId && !retry) {
+      const nodeRecord = await db
+        .select({ cachedExercises: nodes.cachedExercises })
+        .from(nodes)
+        .where(eq(nodes.id, nodeId))
+        .limit(1);
+
+      if (nodeRecord.length > 0 && nodeRecord[0].cachedExercises) {
+        return Response.json({ ...nodeRecord[0].cachedExercises, cached: true } as any);
+      }
+    }
 
     const ctx = SUBJECT_CONTEXTS[subject] || SUBJECT_CONTEXTS.matematicas;
-    const topicStr = topic ? `\nTema especifico: ${topic}.` : `\nTemas sugeridos: ${ctx.topics.slice(0, 4).join(", ")}.`;
+    const contextInfo = aiPromptContext 
+      ? `\nContexto Especifico del Nodo: ${aiPromptContext}`
+      : (topic ? `\nTema especifico: ${topic}.` : `\nTemas sugeridos: ${ctx.topics.slice(0, 4).join(", ")}.`);
 
-    const result = await generateObject({
-      model: openai("gpt-4o-mini"),
-      schema: exerciseSchema,
-      prompt: `${PROMPT}\n\nAREA: ${ctx.area}${topicStr}`,
+    const result = await generateText({
+      model: opencodeGoModel,
+      prompt: `${PROMPT}\n\nAREA: ${ctx.area}${contextInfo}`,
       temperature: 0.8,
-      maxOutputTokens: 1500,
+      maxOutputTokens: 6000,
     });
 
-    return Response.json(result.object);
+    const text = repairJson(result.text);
+    const parsed = exerciseSchema.parse(JSON.parse(text));
+    parsed.exercises = parsed.exercises.map((ex, i) => ({ ...ex, id: i + 1 }));
+
+    if (nodeId) {
+      await db
+        .update(nodes)
+        .set({ cachedExercises: parsed as any })
+        .where(eq(nodes.id, nodeId));
+    }
+
+    return Response.json(parsed);
   } catch (error) {
     console.error("Generate exercises error:", error);
     return Response.json(

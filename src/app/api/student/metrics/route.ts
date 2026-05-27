@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { practiceSessions, practiceAnswers, subjects } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import {
+  practiceSessions,
+  practiceAnswers,
+  assignmentSubmissions,
+  subjects,
+} from "@/lib/db/schema";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
@@ -9,7 +14,7 @@ export async function GET(request: NextRequest) {
   const user = token ? await verifyToken(token) : null;
   if (!user || user.role !== "student") return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  // Overall stats
+  // Overall practice stats
   const sessions = await db
     .select()
     .from(practiceSessions)
@@ -23,7 +28,7 @@ export async function GET(request: NextRequest) {
   const totalQuestions = sessions.reduce((s, r) => s + r.totalCount, 0);
   const bestScore = sessions.length > 0 ? Math.max(...sessions.map(s => s.score)) : 0;
 
-  // Per subject
+  // Per subject practice stats
   const answers = await db
     .select({
       subjectName: subjects.name,
@@ -57,6 +62,25 @@ export async function GET(request: NextRequest) {
     topMistakes: s.wrongQuestions.slice(0, 3),
   }));
 
+  // Grade average from real assignments
+  const gradedSubmissions = await db
+    .select({ grade: assignmentSubmissions.grade })
+    .from(assignmentSubmissions)
+    .where(
+      and(
+        eq(assignmentSubmissions.studentId, user.id),
+        eq(assignmentSubmissions.status, "graded")
+      )
+    );
+
+  const grades = gradedSubmissions
+    .map(s => s.grade)
+    .filter((g): g is number => g != null);
+
+  const gradeAverage = grades.length > 0
+    ? Math.round(grades.reduce((a, b) => a + b, 0) / grades.length)
+    : null;
+
   return NextResponse.json({
     totalSessions,
     totalQuestions,
@@ -65,6 +89,8 @@ export async function GET(request: NextRequest) {
     bestScore,
     avgScore: totalSessions > 0 ? Math.round(totalScore / totalSessions) : 0,
     accuracy: totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0,
+    gradeAverage,
+    gradedCount: grades.length,
     bySubject,
     recentSessions: sessions.slice(0, 5),
   });

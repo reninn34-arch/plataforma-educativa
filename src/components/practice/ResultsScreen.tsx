@@ -1,6 +1,6 @@
 "use client";
 
-import { Trophy, Star, Zap, Flame, Target, ArrowRight, RefreshCw, BookOpen } from "lucide-react";
+import { Trophy, Star, Zap, Flame, Target, ArrowRight, RefreshCw, BookOpen, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ResultsScreenProps {
@@ -9,8 +9,11 @@ interface ResultsScreenProps {
   xpEarned: number;
   maxCombo: number;
   wasPerfect: boolean;
+  starsEarned: number;
   onRetry: () => void;
   onBack: () => void;
+  onNextNode?: () => void;
+  hasNextNode?: boolean;
 }
 
 export function ResultsScreen({
@@ -19,8 +22,11 @@ export function ResultsScreen({
   xpEarned,
   maxCombo,
   wasPerfect,
+  starsEarned,
   onRetry,
   onBack,
+  onNextNode,
+  hasNextNode,
 }: ResultsScreenProps) {
   const percentage = Math.round((correct / total) * 100);
   const stars = correct >= total ? 3 : correct >= total * 0.6 ? 2 : correct > 0 ? 1 : 0;
@@ -55,6 +61,11 @@ export function ResultsScreen({
             />
           ))}
         </div>
+        {starsEarned > 0 && (
+          <p className="text-sm text-yellow-600 font-semibold mt-2">
+            ⭐ Ganaste {starsEarned} {starsEarned === 1 ? "estrella" : "estrellas"} en este nodo
+          </p>
+        )}
       </div>
 
       {/* Score */}
@@ -116,6 +127,15 @@ export function ResultsScreen({
 
       {/* Actions */}
       <div className="space-y-3">
+        {hasNextNode && onNextNode && (
+          <button
+            onClick={onNextNode}
+            className="flex items-center justify-center gap-2 w-full rounded-xl bg-emerald-500 py-4 text-base font-bold text-white hover:bg-emerald-600 transition-all active:scale-[0.98] shadow-sm"
+          >
+            Siguiente nodo
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        )}
         <button
           onClick={onRetry}
           className="flex items-center justify-center gap-2 w-full rounded-xl bg-primary py-4 text-base font-bold text-primary-foreground hover:bg-primary/90 transition-all active:scale-[0.98] shadow-sm"
