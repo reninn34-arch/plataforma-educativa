@@ -61,74 +61,74 @@ const SUBJECT_CONTEXTS: Record<string, { area: string; topics: string[]; diagram
   matematicas: {
     area: "Matematicas - Bachillerato Acelerado para Adultos",
     topics: ["Ecuaciones lineales", "Porcentajes", "Geometria basica", "Fracciones", "Regla de tres", "Algebra elemental", "Area y perimetro", "Operaciones basicas"],
-    diagramHints: "Genera diagramas SVG para: graficas de funciones, figuras geometricas con medidas, rectas numericas, representacion de fracciones, diagramas de conjuntos.",
+    diagramHints: "SOLO genera diagrama si el tema es GEOMETRIA (figuras, angulos, areas). Para algebra, ecuaciones, fracciones, porcentajes: OMITE el diagrama.",
   },
   fisica: {
     area: "Fisica - Bachillerato Acelerado para Adultos",
     topics: ["Leyes de Newton", "Movimiento rectilineo", "Energia cinetica y potencial", "Ondas y sonido", "Electricidad basica", "Magnetismo", "Calor y temperatura", "Optica"],
-    diagramHints: "Genera diagramas SVG para: diagramas de fuerzas (cuerpo libre), circuitos electricos, ondas sinusoidales, trayectoria de proyectiles, diagramas de reflexion/refraccion.",
+    diagramHints: "NO generes diagramas SVG para fisica. Las explicaciones con texto y ejemplos numericos son suficientes. Omite el campo 'diagram'.",
   },
   ingles: {
     area: "Ingles - Bachillerato Acelerado para Adultos",
     topics: ["Verbo To Be", "Presente simple", "Pasado simple", "Futuro con Will", "Vocabulario basico", "Preposiciones", "Adjetivos", "Conversacion basica"],
-    diagramHints: "NO generes diagramas SVG para ingles. El ingles no se beneficia de graficos tecnicos. Omite el campo 'diagram'.",
+    diagramHints: "NO generes diagramas SVG para ingles. Omite el campo 'diagram'.",
   },
   quimica: {
     area: "Quimica - Bachillerato Acelerado para Adultos",
     topics: ["Tabla periodica", "Enlaces quimicos", "Reacciones quimicas", "Estados de la materia", "Acidos y bases", "Balanceo de ecuaciones", "Compuestos organicos", "Estequiometria"],
-    diagramHints: "Genera diagramas SVG para: estructuras de Lewis, enlaces quimicos (NaCl, H2O), configuracion electronica, tabla periodica simplificada, diagramas de reacciones, escalas de pH.",
+    diagramHints: "NO generes diagramas SVG para quimica. Las explicaciones con texto y ejemplos son suficientes. Omite el campo 'diagram'.",
   },
 };
 
-const PROMPT = `Eres un profesor experto en andragogia para adultos en bachillerato acelerado (PCEI). Tu tarea es generar una leccion interactiva completa y 4 ejercicios de practica.
+const PROMPT = `Eres un profesor experto en andragogia para adultos en bachillerato acelerado (PCEI). Genera EXCLUSIVAMENTE un JSON valido con una leccion y 4 ejercicios.
 
-ESTRUCTURA DE LA RESPUESTA (JSON):
+ESTRUCTURA JSON OBLIGATORIA:
 {
   "lesson": {
-    "title": "Titulo atractivo de la leccion (max 8 palabras)",
-    "explanation": "Explicacion clara del concepto con analogias de la vida real. Usa lenguaje sencillo. 4-6 oraciones.",
+    "title": "Titulo atractivo (max 6 palabras)",
+    "explanation": "Explicacion con analogia de la vida real. 3-4 oraciones breves.",
     "example": {
-      "problem": "Enunciado del ejemplo practico",
-      "steps": ["Paso 1: ...", "Paso 2: ...", "Paso 3: ..."], 
-      "answer": "Respuesta final del ejemplo"
+      "problem": "Enunciado del ejemplo con numeros/datos concretos",
+      "steps": ["Paso 1: ...", "Paso 2: ..."],
+      "answer": "Respuesta final"
     },
     "commonMistake": {
-      "description": "Error tipico que cometen los estudiantes",
-      "correction": "Por que esta mal y como evitarlo"
+      "description": "Error tipico en UNA oracion",
+      "correction": "Como evitarlo en UNA oracion"
     },
-    "diagram": OPCIONAL. Solo incluirlo si el tema se beneficia de un grafico (matematicas, fisica, quimica). Si no, omitir completamente.
+    "diagram": INCLUIR SOLO PARA GEOMETRIA PURA. Para el resto de temas, OMITIR este campo completamente. Si incluyes, SVG extremadamente simple: maximo 2 formas geometricas y texto. NADA de tablas, circuitos ni estructuras complejas.
     {
-      "svg": "<svg viewBox='0 0 400 200' xmlns='http://www.w3.org/2000/svg'>...</svg>",
-      "caption": "Descripcion breve del grafico"
+      "svg": "<svg viewBox='0 0 200 120' xmlns='http://www.w3.org/2000/svg'><circle cx='60' cy='60' r='30' fill='#e0f0ff' stroke='#333'/><text x='60' y='65' text-anchor='middle' font-size='14'>X</text></svg>",
+      "caption": "Descripcion breve"
     },
     "quickCheck": {
-      "question": "Pregunta corta de comprobacion (1 oracion)",
+      "question": "Pregunta corta (1 oracion)",
       "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
       "correctIndex": 0,
-      "feedback": "Explicacion de por que esa es la respuesta correcta (1-2 oraciones)"
+      "feedback": "Explicacion en 1 oracion"
     }
   },
-  "exercises": [ ... 4 ejercicios ... ]
+  "exercises": [EJERCICIO1, EJERCICIO2, EJERCICIO3, EJERCICIO4]
 }
 
-REGLAS PARA LA LECCION:
-1. "explanation": Explica el concepto DESDE CERO, asumiendo que el estudiante no sabe nada del tema.
-2. "example": Usa un ejemplo CONCRETO con numeros/datos reales. Los pasos deben ser logicos y progresivos.
-3. "commonMistake": Describe un error REAL que cometen los adultos al aprender este tema.
-4. "diagram": SOLO para temas visuales (geometria, fuerzas, tabla periodica, circuitos, graficas). Usa SVG inline valido. Colores suaves. NO uses scripts ni eventos. Si no aplica, OMITE el campo "diagram" completamente.
-5. "quickCheck": Pregunta FACIL que verifica comprension basica. NO uses la misma pregunta que en los ejercicios.
+REGLAS LECCION (SE BREVE, CADA TOKEN CUENTA):
+1. "explanation": 3-4 oraciones cortas maximo. Desde cero, con analogia de vida real.
+2. "example": 2-3 pasos. Concisos. "answer" en 1 oracion.
+3. "commonMistake": 1 oracion description, 1 oracion correction.
+4. "diagram": OMITELO COMPLETAMENTE a menos que el tema sea GEOMETRIA de figuras. Si lo incluyes: SVG ultra-simple, max 3 elementos (viewBox 200x120). NUNCA incluyas diagramas para: tabla periodica, reacciones, formulas, graficas de funciones, circuitos electricos, ondas, diagramas de cuerpo libre. Esos temas NO llevan diagrama.
+5. "quickCheck": 1 oracion question, feedback en 1 oracion.
 
-REGLAS PARA LOS EJERCICIOS:
-1. EXACTAMENTE 4 ejercicios.
+REGLAS EJERCICIOS:
+1. EXACTAMENTE 4 ejercicios. NUNCA menos de 4.
 2. Variar tipos: maximo 2 del mismo tipo (mcq, fill_blank, true_false).
 3. Dificultad variada: al menos 1 easy, 1 medium, 1 hard.
-4. MCQ: 4 opciones, "correctIndex" (0-3). NO uses "correctAnswer".
-5. FILL_BLANK: "acceptedAnswers" OBLIGATORIO (array de strings con todas las respuestas aceptables).
+4. MCQ: 4 opciones, "correctIndex" (0-3). NO usar "correctAnswer".
+5. FILL_BLANK: "acceptedAnswers" OBLIGATORIO (array de strings).
 6. TRUE_FALSE: "correctAnswer" OBLIGATORIO (true o false).
-7. Hard: "timeLimit": null. Easy/Medium: "timeLimit" entre 20 y 40 segundos.
-8. Lenguaje claro, ejemplos de la vida real, sin jerga innecesaria.
+7. Hard: "timeLimit": null. Easy/Medium: "timeLimit" entre 20 y 40.
+8. Lenguaje claro, ejemplos de la vida real.
 
-IMPORTANTE: Responde UNICAMENTE con el JSON valido. Sin markdown, sin texto adicional.`;
+CRITICO: Responde UNICAMENTE con el JSON. Sin markdown, sin explicaciones, sin texto antes o despues del JSON.`;
 
 function repairJson(text: string): string {
   text = text.trim();
@@ -156,6 +156,20 @@ function repairJson(text: string): string {
   text += "]".repeat(Math.max(0, openBrackets));
   text += "}".repeat(Math.max(0, openBraces));
   return text;
+}
+
+function tryParseJson(text: string): any {
+  // Attempt 1: direct parse
+  try { return JSON.parse(text); } catch {}
+  // Attempt 2: strip markdown + repair brackets
+  try { return JSON.parse(repairJson(text)); } catch {}
+  // Attempt 3: extract first { ... } block
+  const firstBrace = text.indexOf("{");
+  const lastBrace = text.lastIndexOf("}");
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    try { return JSON.parse(repairJson(text.slice(firstBrace, lastBrace + 1))); } catch {}
+  }
+  throw new Error("No se pudo extraer JSON valido de la respuesta");
 }
 
 export async function POST(request: NextRequest) {
@@ -199,8 +213,8 @@ export async function POST(request: NextRequest) {
     const result = await generateText({
       model: opencodeGoModel,
       prompt: `${PROMPT}\n\nAREA: ${ctx.area}${contextInfo}${diagramInfo}`,
-      temperature: 0.8,
-      maxOutputTokens: 8000,
+      temperature: 0.6,
+      maxOutputTokens: 16000,
     });
 
     logAiCall({
@@ -210,8 +224,8 @@ export async function POST(request: NextRequest) {
       usage: { inputTokens: result.usage?.inputTokens, outputTokens: result.usage?.outputTokens, totalTokens: (result.usage?.inputTokens ?? 0) + (result.usage?.outputTokens ?? 0) },
     });
 
-    const text = repairJson(result.text);
-    const parsed = practiceResponseSchema.parse(JSON.parse(text));
+    const jsonData = tryParseJson(result.text);
+    const parsed = practiceResponseSchema.parse(jsonData);
     parsed.exercises = parsed.exercises.map((ex, i) => ({ ...ex, id: i + 1 }));
 
     if (nodeId) {
