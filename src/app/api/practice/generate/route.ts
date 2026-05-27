@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { opencodeGoModel, diagramModel, logAiCall } from "@/lib/ai";
+import { opencodeGoModel, logAiCall } from "@/lib/ai";
 import { db } from "@/lib/db";
 import { nodes } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -12,7 +12,7 @@ import { practiceGenerateSchema } from "@/lib/api-helpers";
 export const CACHED_EXERCISES_VERSION = 2;
 
 const diagramSchema = z.object({
-  svg: z.string(),
+  mermaid: z.string(),
   caption: z.string(),
 });
 
@@ -128,23 +128,27 @@ REGLAS EJERCICIOS:
 
 CRITICO: Responde UNICAMENTE con el JSON. Sin markdown, sin explicaciones, sin texto antes o despues del JSON.`;
 
-// ── Diagram prompt: only the SVG ──
+// ── Diagram prompt: Mermaid syntax ──
 
-const DIAGRAM_PROMPT = `Eres un disenador grafico educativo. Genera EXCLUSIVAMENTE un objeto JSON con un diagrama SVG.
+const DIAGRAM_PROMPT = `Eres un disenador grafico educativo. Genera EXCLUSIVAMENTE un objeto JSON con un diagrama en sintaxis Mermaid.js.
 
-Tu respuesta DEBE empezar con el caracter { y terminar con }. NUNCA empieces con <svg ni con texto libre. El formato exacto es:
+Tu respuesta DEBE empezar con { y terminar con }. El formato exacto es:
 
-{"svg":"<svg viewBox='0 0 500 300' xmlns='http://www.w3.org/2000/svg'><circle cx='250' cy='150' r='80' fill='#e0f0ff' stroke='#333' stroke-width='2'/><text x='250' y='155' text-anchor='middle' font-size='18' fill='#333'>Elem</text></svg>","caption":"Descripcion breve"}
+{"mermaid":"graph TD\\n    A[Concepto] --> B[Explicacion]\\n    B --> C[Ejemplo]","caption":"Flujo del concepto"}
 
 REGLAS:
 1. Empieza SIEMPRE con { y termina con }.
-2. El SVG debe ir como string dentro de "svg", con comillas escapadas si es necesario.
-3. SVG valido, usa viewBox (ej: 0 0 500 300), NO width/height fijos.
-4. Colores suaves (#e0f0ff, #c8e6c9, #fff3e0). Fondo blanco o transparente.
-5. Incluye etiquetas de texto claras. Usa formas simples.
-6. NO scripts, NO eventos, NO CSS externo, NO gradientes complejos.
-7. "caption": maximo 6 palabras.
-8. IMPORTANTISIMO: JSON puro. La respuesta empieza con { y termina con }. Nada antes ni despues.`;
+2. "mermaid": string con sintaxis Mermaid.js. Usa \\n para saltos de linea.
+3. Tipos de diagrama segun el tema:
+   - Quimica: graph TD/LR para reacciones, enlaces, estructura atomica
+   - Fisica: graph TD/LR para fuerzas, flujo de energia. flowchart para circuitos.
+   - Matematicas: graph TD/LR para jerarquia de conceptos, flowchart para pasos de resolucion
+4. Usa nodos con texto descriptivo: A[Enunciado del problema], B[Identificar variables]
+5. Usa formas: () rectangulo redondeado, [] rectangulo, {} rombo, (()) circulo
+6. Colores con style: style A fill:#e0f0ff. NO abuses de colores.
+7. "caption": maximo 6 palabras descriptivas.
+8. IMPORTANTISIMO: JSON puro. La respuesta empieza con { y termina con }.
+9. El texto de los nodos debe ser en espanol, claro y educativo.`;
 
 // ── JSON repair utilities ──
 
@@ -239,14 +243,14 @@ export async function POST(request: NextRequest) {
     if (ctx.canHaveDiagram) {
       const diagramStart = performance.now();
       diagramPromise = generateText({
-        model: diagramModel,
-        prompt: `${DIAGRAM_PROMPT}\n\nAREA: ${ctx.area}\nTema: ${topicContext}\n\nGenera un diagrama educativo SVG para este tema.`,
-        temperature: 0.2,
-        maxOutputTokens: 4000,
+        model: opencodeGoModel,
+        prompt: `${DIAGRAM_PROMPT}\n\nAREA: ${ctx.area}\nTema: ${topicContext}\n\nGenera un diagrama Mermaid.js educativo para este tema.`,
+        temperature: 0.3,
+        maxOutputTokens: 1500,
       }).then((r) => {
         logAiCall({
           route: "practice-diagram",
-          model: "deepseek-v4-pro",
+          model: "kimi-k2.5",
           durationMs: Math.round(performance.now() - diagramStart),
           usage: { inputTokens: r.usage?.inputTokens, outputTokens: r.usage?.outputTokens, totalTokens: (r.usage?.inputTokens ?? 0) + (r.usage?.outputTokens ?? 0) },
         });
@@ -255,18 +259,14 @@ export async function POST(request: NextRequest) {
           return diagramSchema.parse(json);
         } catch (e) {
           console.error("[diagram] JSON parse/schema error:", e);
-          const svgMatch = r.text.match(/<svg\b[\s\S]*?<\/svg>/i);
-          if (svgMatch) {
-            console.log("[diagram] Extracted raw SVG from response");
-            return { svg: svgMatch[0], caption: "Diagrama" };
-          }
+          console.log("[diagram] raw output (first 300 chars):", r.text.substring(0, 300));
           return null;
         }
       }).catch((err) => {
         console.error("[diagram] generateText failed:", err?.message || err);
         logAiCall({
           route: "practice-diagram",
-          model: "deepseek-v4-pro",
+          model: "kimi-k2.5",
           durationMs: Math.round(performance.now() - diagramStart),
           error: err?.message || "unknown",
         });

@@ -36,7 +36,8 @@ interface LessonData {
     correction: string;
   };
   diagram?: {
-    svg: string;
+    mermaid?: string;
+    svg?: string;
     caption: string;
   };
   quickCheck: {

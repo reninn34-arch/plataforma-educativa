@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn, formatNotation } from "@/lib/utils";
 import {
   BookOpen, Lightbulb, AlertTriangle, ChevronDown,
-  ChevronUp, Check, X, ArrowRight, Target, Image,
+  ChevronUp, Check, X, ArrowRight, Target, Image, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -21,7 +21,8 @@ interface LessonData {
     correction: string;
   };
   diagram?: {
-    svg: string;
+    mermaid?: string;
+    svg?: string;
     caption: string;
   };
   quickCheck: {
@@ -37,8 +38,51 @@ interface LessonViewProps {
   onStartPractice: () => void;
 }
 
-function DiagramView({ svg, caption }: { svg: string; caption: string }) {
+function MermaidDiagram({ code }: { code: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [svg, setSvg] = useState<string | null>(null);
+  const [error, setError] = useState(false);
+  const idRef = useRef(`mermaid-${Math.random().toString(36).slice(2, 8)}`);
+
+  useEffect(() => {
+    let cancelled = false;
+    import("mermaid").then((mermaid) => {
+      if (cancelled) return;
+      mermaid.default.initialize({ startOnLoad: false, theme: "neutral" });
+      mermaid.default.render(idRef.current, code).then(({ svg: rendered }) => {
+        if (!cancelled) setSvg(rendered);
+      }).catch(() => {
+        if (!cancelled) setError(true);
+      });
+    }).catch(() => {
+      if (!cancelled) setError(true);
+    });
+    return () => { cancelled = true; };
+  }, [code]);
+
+  if (error) return <p className="text-sm text-red-500 p-4">No se pudo renderizar el diagrama</p>;
+  if (!svg) return <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-blue-500" /></div>;
+  return <div className="flex justify-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: svg }} />;
+}
+
+function DiagramView({ diagram }: { diagram: NonNullable<LessonData["diagram"]> }) {
   const [expanded, setExpanded] = useState(true);
+
+  const renderContent = () => {
+    if (diagram.mermaid) {
+      return <MermaidDiagram code={diagram.mermaid} />;
+    }
+    if (diagram.svg) {
+      return (
+        <div
+          className="max-w-full overflow-x-auto [&_svg]:max-w-full [&_svg]:h-auto"
+          dangerouslySetInnerHTML={{ __html: diagram.svg }}
+        />
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white overflow-hidden shadow-sm">
       <button
@@ -48,16 +92,13 @@ function DiagramView({ svg, caption }: { svg: string; caption: string }) {
         <div className="flex items-center gap-2">
           {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <Image className="h-4 w-4 text-blue-600" aria-hidden="true" />
-          <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">{caption}</span>
+          <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">{diagram.caption}</span>
         </div>
         {expanded ? <ChevronUp className="h-4 w-4 text-blue-500" /> : <ChevronDown className="h-4 w-4 text-blue-500" />}
       </button>
       {expanded && (
-        <div className="px-5 pb-5 flex justify-center">
-          <div
-            className="max-w-full overflow-x-auto [&_svg]:max-w-full [&_svg]:h-auto"
-            dangerouslySetInnerHTML={{ __html: svg }}
-          />
+        <div className="px-5 pb-5">
+          {renderContent()}
         </div>
       )}
     </div>
@@ -175,7 +216,7 @@ export function LessonView({ lesson, onStartPractice }: LessonViewProps) {
 
       {/* Diagram */}
       {lesson.diagram && (
-        <DiagramView svg={lesson.diagram.svg} caption={lesson.diagram.caption} />
+        <DiagramView diagram={lesson.diagram} />
       )}
 
       {/* Example */}
