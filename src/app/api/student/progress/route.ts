@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
   const allSubjects = await db.select().from(subjects);
 
-  const result: Record<string, { percentage: number; completedNodes: number; totalNodes: number }> = {};
+  const result: Record<string, { percentage: number; completedNodes: number; totalNodes: number; totalStars: number }> = {};
 
   for (const subject of allSubjects) {
     // Count total nodes for this subject
@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     const moduleIds = subjectModules.map(m => m.id);
     let totalNodes = 0;
     let completedNodes = 0;
+    let totalStars = 0;
 
     if (moduleIds.length > 0) {
       const subjectNodes = await db
@@ -31,9 +32,9 @@ export async function GET(request: NextRequest) {
         .where(inArray(nodes.moduleId, moduleIds));
 
       totalNodes = subjectNodes.length;
+      const nodeIds = subjectNodes.map(n => n.id);
 
       if (totalNodes > 0) {
-        const nodeIds = subjectNodes.map(n => n.id);
         const completedRecords = await db
           .select()
           .from(userProgress)
@@ -47,6 +48,18 @@ export async function GET(request: NextRequest) {
 
         completedNodes = completedRecords.length;
       }
+
+      // Stars calculation
+      const starRecords = await db
+        .select({ stars: userProgress.starsEarned })
+        .from(userProgress)
+        .where(
+          and(
+            eq(userProgress.userId, user.id),
+            inArray(userProgress.nodeId, nodeIds)
+          )
+        );
+      totalStars = starRecords.reduce((sum, r) => sum + (r.stars || 0), 0);
     }
 
     const percentage = totalNodes > 0 ? Math.round((completedNodes / totalNodes) * 100) : 0;
@@ -75,7 +88,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    result[subject.slug] = { percentage, completedNodes, totalNodes };
+    result[subject.slug] = { percentage, completedNodes, totalNodes, totalStars };
   }
 
   return NextResponse.json(result);

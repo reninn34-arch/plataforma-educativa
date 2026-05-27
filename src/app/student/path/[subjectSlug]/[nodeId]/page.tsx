@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { subjects, nodes, modules } from "@/lib/db/schema";
+import { subjects, nodes, modules, userProgress } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
@@ -20,7 +20,29 @@ export default async function NodePracticePage({ params }: { params: Promise<{ s
   if (!nodeRecord.length) redirect(`/student/path/${subject.slug}`);
   const node = nodeRecord[0];
 
+  // Check if node is locked (not first node in module)
   const moduleRecord = await db.select().from(modules).where(eq(modules.id, node.moduleId)).limit(1);
+  if (moduleRecord.length > 0) {
+    const firstNodeInModule = await db
+      .select({ id: nodes.id })
+      .from(nodes)
+      .where(and(eq(nodes.moduleId, node.moduleId), eq(nodes.order, 1)))
+      .limit(1);
+    const isFirstNode = firstNodeInModule.length > 0 && firstNodeInModule[0].id === nodeId;
+
+    if (!isFirstNode) {
+      const prog = await db
+        .select({ status: userProgress.status })
+        .from(userProgress)
+        .where(and(eq(userProgress.userId, session.id), eq(userProgress.nodeId, nodeId)))
+        .limit(1);
+
+      if (prog.length === 0 || prog[0].status === "locked") {
+        redirect(`/student/path/${subject.slug}`);
+      }
+    }
+  }
+
   const moduleTitle = moduleRecord.length > 0 ? moduleRecord[0].title : "";
 
   // Find next node in same module

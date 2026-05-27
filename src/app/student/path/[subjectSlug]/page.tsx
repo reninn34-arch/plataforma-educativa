@@ -34,28 +34,26 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
     progressMap.set(p.nodeId, p);
   }
 
-  // Extract suggested topics from static (non-generated) modules' nodes
-  const staticModules = subjectModules.filter(m => !m.generated);
-  const staticModuleIds = staticModules.map(m => m.id);
-  const staticNodes = allNodes.filter(n => staticModuleIds.includes(n.moduleId));
-  const suggestedTopics = [...new Set(staticNodes.map(n => n.title))];
-
-  // Separate generated modules for visual distinction
-  const generatedModules = subjectModules.filter(m => m.generated);
-
-  // Build a list: static modules first (in original order), then generated modules (newest first via order DESC)
-  const orderedModules = [
-    ...staticModules,
-    ...generatedModules.sort((a, b) => b.order - a.order),
-  ];
-
-  // Calculate real progress
+  // Calculate stats
   const completedNodes = allNodes.filter(n => {
     const p = progressMap.get(n.id);
     return p?.status === "completed" || p?.status === "mastered";
   }).length;
   const totalNodes = allNodes.length;
   const subjectProgress = totalNodes > 0 ? Math.round((completedNodes / totalNodes) * 100) : 0;
+  const totalStars = progressRecords.reduce((sum, p) => sum + (p.starsEarned || 0), 0);
+
+  // Suggested topics from static nodes
+  const staticModules = subjectModules.filter(m => !m.generated);
+  const staticModuleIds = staticModules.map(m => m.id);
+  const staticNodes = allNodes.filter(n => staticModuleIds.includes(n.moduleId));
+  const suggestedTopics = [...new Set(staticNodes.map(n => n.title))];
+
+  const generatedModules = subjectModules.filter(m => m.generated);
+  const orderedModules = [
+    ...staticModules,
+    ...generatedModules.sort((a, b) => b.order - a.order),
+  ];
 
   return (
     <div className="flex min-h-screen flex-col bg-[#F8FAFC]">
@@ -64,20 +62,22 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
           <Link href="/student/dashboard" className="text-[#475569] hover:bg-slate-100 p-2 rounded-full transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <div className="flex items-center gap-2 flex-1">
-            <span className="text-xl">{subject.emoji}</span>
-            <div>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <span className="text-xl shrink-0">{subject.emoji}</span>
+            <div className="min-w-0">
               <span className="text-base font-bold text-[#1A2332]">{subject.name}</span>
               <p className="text-xs text-[#94A3B8]">Camino de Aprendizaje</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-right shrink-0">
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-1">
+              <span className="text-sm font-bold text-yellow-600">{totalStars}</span>
+              <Star size={14} className="text-yellow-500 fill-yellow-500" />
+            </div>
+            <div className="w-px h-6 bg-slate-200" />
             <div>
               <p className="text-sm font-bold text-slate-700">{subjectProgress}%</p>
-              <p className="text-[10px] text-slate-400">{completedNodes}/{totalNodes} nodos</p>
-            </div>
-            <div className="h-8 w-8 rounded-full border-2 border-primary/30 flex items-center justify-center">
-              <Star className="h-4 w-4 text-primary" />
+              <p className="text-[10px] text-slate-400">{completedNodes}/{totalNodes}</p>
             </div>
           </div>
         </div>
@@ -85,26 +85,33 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
 
       <main className="flex-1 py-8 px-4 max-w-2xl mx-auto w-full overflow-hidden">
         <div className="space-y-6">
-          {/* Search bar + suggested topics */}
           <PathSearch subjectSlug={subject.slug} suggestedTopics={suggestedTopics} />
 
-          {/* Module / Node tree */}
           <div className="space-y-12 pt-4">
             {orderedModules.map((mod, modIndex) => {
               const modNodes = allNodes.filter(n => n.moduleId === mod.id);
               if (modNodes.length === 0) return null;
 
+              const modCompleted = modNodes.filter(n => {
+                const p = progressMap.get(n.id);
+                return p?.status === "completed" || p?.status === "mastered";
+              }).length;
+              const modPct = modNodes.length > 0 ? Math.round((modCompleted / modNodes.length) * 100) : 0;
+              const isModLocked = mod.requiredPoints > totalStars;
+
               return (
                 <div key={mod.id} className="relative">
                   <div className={`
                     border-2 rounded-2xl p-5 mb-8 shadow-sm
-                    ${mod.generated
-                      ? 'bg-gradient-to-r from-purple-50 to-white border-purple-200'
-                      : 'bg-white border-slate-200'
+                    ${isModLocked
+                      ? 'bg-slate-50 border-slate-200 opacity-60'
+                      : mod.generated
+                        ? 'bg-gradient-to-r from-purple-50 to-white border-purple-200'
+                        : 'bg-white border-slate-200'
                     }
                   `}>
                     <div className="flex justify-between items-center">
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           {mod.generated ? (
                             <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700">
@@ -116,12 +123,26 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                               Unidad {modIndex + 1}
                             </span>
                           )}
+                          {isModLocked && (
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-slate-500">
+                              <Lock size={10} />
+                              {mod.requiredPoints} ★ requeridas
+                            </span>
+                          )}
                         </div>
                         <h2 className="text-xl font-bold text-slate-800 mt-1">{mod.title}</h2>
                         {mod.topic && (
                           <p className="text-xs text-purple-600 mt-0.5">Tema: {mod.topic}</p>
                         )}
-                        <p className="text-sm text-slate-500 mt-1">Completa los nodos para ganar experiencia.</p>
+                        <div className="flex items-center gap-3 mt-2">
+                          <div className="flex-1 max-w-[200px] h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-primary rounded-full transition-all duration-500"
+                              style={{ width: `${modPct}%` }}
+                            />
+                          </div>
+                          <p className="text-[11px] text-slate-500">{modCompleted}/{modNodes.length} nodos</p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -129,36 +150,45 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                   <div className="flex flex-col items-center gap-6 py-4">
                     {modNodes.map((node, i) => {
                       const prog = progressMap.get(node.id);
-                      const status = prog?.status || (i === 0 ? "unlocked" : "locked");
+                      const status = isModLocked ? "locked" : (prog?.status || (i === 0 ? "unlocked" : "locked"));
                       const isLocked = status === "locked";
                       const isCompleted = status === "completed" || status === "mastered";
                       const isCurrent = status === "unlocked";
+
+                      // Check if previous node is completed for golden line
+                      const prevNode = i > 0 ? modNodes[i - 1] : null;
+                      const prevProg = prevNode ? progressMap.get(prevNode.id) : null;
+                      const prevCompleted = prevProg?.status === "completed" || prevProg?.status === "mastered";
+                      const currentCompleted = isCompleted;
 
                       const offset = i % 2 !== 0 ? "translate-x-12" : "-translate-x-12";
 
                       return (
                         <div key={node.id} className={`relative flex flex-col items-center ${offset}`}>
-                          {i < modNodes.length - 1 && (
-                            <div className="absolute top-16 h-12 w-2 bg-slate-200 -z-10" />
+                          {i > 0 && (
+                            <div className={`
+                              absolute top-16 h-12 w-2 -z-10
+                              ${prevCompleted ? 'bg-yellow-400' : 'bg-slate-200'}
+                            `} />
                           )}
 
                           <div className="relative group">
-                            {isCurrent && (
+                            {isCurrent && !isModLocked && (
                               <div className="absolute -inset-4 bg-primary/20 rounded-full animate-ping -z-10" />
                             )}
 
-                            <Link href={isLocked ? "#" : `/student/path/${subject.slug}/${node.id}`}>
+                            <Link href={(isLocked || isModLocked) ? "#" : `/student/path/${subject.slug}/${node.id}`}>
                               <button
-                                disabled={isLocked}
+                                disabled={isLocked || isModLocked}
                                 className={`
                                   h-20 w-20 rounded-full flex items-center justify-center border-b-4 transition-all
-                                  ${isLocked ? 'bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed' :
+                                  ${(isLocked || isModLocked) ? 'bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed' :
                                     isCompleted ? 'bg-yellow-400 border-yellow-500 text-white hover:-translate-y-1' :
                                     'bg-primary border-primary/80 text-white hover:-translate-y-1 scale-110 shadow-lg'
                                   }
                                 `}
                               >
-                                {isLocked ? <Lock size={28} /> : isCompleted ? <Check size={32} /> : <Play size={28} className="ml-1" />}
+                                {isLocked || isModLocked ? <Lock size={28} /> : isCompleted ? <Check size={32} /> : <Play size={28} className="ml-1" />}
                               </button>
                             </Link>
 
@@ -174,10 +204,10 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                             <span className={`text-sm font-bold ${isLocked ? 'text-slate-400' : 'text-slate-700'}`}>
                               {node.title}
                             </span>
-                            {node.type === "concept" && (
+                            {node.type === "concept" && !isLocked && (
                               <span className="block text-[10px] text-blue-500 mt-0.5">Ensenianza</span>
                             )}
-                            {node.type === "challenge" && (
+                            {node.type === "challenge" && !isLocked && (
                               <span className="block text-[10px] text-orange-500 mt-0.5">Desafio</span>
                             )}
                           </div>

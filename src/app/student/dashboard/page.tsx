@@ -30,7 +30,7 @@ function ProgressBar({ percentage }: { percentage: number }) {
 
 export default function StudentDashboard() {
   const [userName, setUserName] = useState("");
-  const [progress, setProgress] = useState<Record<string, { percentage: number; completedNodes: number; totalNodes: number }>>({});
+  const [progress, setProgress] = useState<Record<string, { percentage: number; completedNodes: number; totalNodes: number; totalStars: number }>>({});
   const [streakDays, setStreakDays] = useState(0);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<any>(null);
@@ -244,6 +244,7 @@ export default function StudentDashboard() {
             const pct = p?.percentage ?? 0;
             const completed = p?.completedNodes ?? 0;
             const total = p?.totalNodes ?? 0;
+            const stars = p?.totalStars ?? 0;
             return (
               <Link
                 key={subject.id}
@@ -261,11 +262,16 @@ export default function StudentDashboard() {
                   <div className="mt-2">
                     <ProgressBar percentage={pct} />
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    {total > 0
-                      ? `${completed}/${total} nodos · ${pct}%`
-                      : "Sin progreso aun"}
-                  </p>
+                  <div className="flex items-center gap-3 mt-1">
+                    <p className="text-[11px] text-muted-foreground">
+                      {total > 0 ? `${completed}/${total} nodos` : "Sin progreso"}
+                    </p>
+                    {stars > 0 && (
+                      <span className="text-[11px] text-yellow-600 font-medium flex items-center gap-0.5">
+                        ⭐ {stars}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </Link>
             );
