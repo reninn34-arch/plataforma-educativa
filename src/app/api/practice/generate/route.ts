@@ -240,28 +240,36 @@ export async function POST(request: NextRequest) {
     let diagramPromise: Promise<z.infer<typeof diagramSchema> | null> = Promise.resolve(null);
 
     if (ctx.canHaveDiagram) {
-      diagramPromise = Promise.race([
-        generateText({
-          model: diagramModel,
-          prompt: `${DIAGRAM_PROMPT}\n\nAREA: ${ctx.area}\nTema: ${topicContext}\n\nGenera un diagrama educativo SVG para este tema.`,
-          temperature: 0.4,
-          maxOutputTokens: 4000,
-        }).then((r) => {
-          logAiCall({
-            route: "practice-diagram",
-            model: "deepseek-v4-pro",
-            durationMs: 0,
-            usage: { inputTokens: r.usage?.inputTokens, outputTokens: r.usage?.outputTokens, totalTokens: (r.usage?.inputTokens ?? 0) + (r.usage?.outputTokens ?? 0) },
-          });
-          try {
-            const json = tryParseJson(r.text);
-            return diagramSchema.parse(json);
-          } catch {
-            return null;
-          }
-        }).catch(() => null),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 20000)),
-      ]);
+      const diagramStart = performance.now();
+      diagramPromise = generateText({
+        model: diagramModel,
+        prompt: `${DIAGRAM_PROMPT}\n\nAREA: ${ctx.area}\nTema: ${topicContext}\n\nGenera un diagrama educativo SVG para este tema.`,
+        temperature: 0.4,
+        maxOutputTokens: 4000,
+      }).then((r) => {
+        logAiCall({
+          route: "practice-diagram",
+          model: "deepseek-v4-pro",
+          durationMs: Math.round(performance.now() - diagramStart),
+          usage: { inputTokens: r.usage?.inputTokens, outputTokens: r.usage?.outputTokens, totalTokens: (r.usage?.inputTokens ?? 0) + (r.usage?.outputTokens ?? 0) },
+        });
+        try {
+          const json = tryParseJson(r.text);
+          return diagramSchema.parse(json);
+        } catch (e) {
+          console.error("[diagram] JSON parse/schema error:", e);
+          return null;
+        }
+      }).catch((err) => {
+        console.error("[diagram] generateText failed:", err?.message || err);
+        logAiCall({
+          route: "practice-diagram",
+          model: "deepseek-v4-pro",
+          durationMs: Math.round(performance.now() - diagramStart),
+          error: err?.message || "unknown",
+        });
+        return null;
+      });
     }
 
     const startTime = performance.now();
