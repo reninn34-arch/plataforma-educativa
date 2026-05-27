@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { opencodeGoModel, logAiCall } from "@/lib/ai";
+import { opencodeGoModel, diagramModel, logAiCall } from "@/lib/ai";
 import { db } from "@/lib/db";
 import { nodes } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -242,14 +242,14 @@ export async function POST(request: NextRequest) {
     if (ctx.canHaveDiagram) {
       diagramPromise = Promise.race([
         generateText({
-          model: opencodeGoModel,
+          model: diagramModel,
           prompt: `${DIAGRAM_PROMPT}\n\nAREA: ${ctx.area}\nTema: ${topicContext}\n\nGenera un diagrama educativo SVG para este tema.`,
-          temperature: 0.6,
-          maxOutputTokens: 2000,
+          temperature: 0.4,
+          maxOutputTokens: 4000,
         }).then((r) => {
           logAiCall({
             route: "practice-diagram",
-            model: "kimi-k2.5",
+            model: "deepseek-v4-pro",
             durationMs: 0,
             usage: { inputTokens: r.usage?.inputTokens, outputTokens: r.usage?.outputTokens, totalTokens: (r.usage?.inputTokens ?? 0) + (r.usage?.outputTokens ?? 0) },
           });

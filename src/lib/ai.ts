@@ -12,6 +12,8 @@ export const opencodeGo = createOpenAI({
 
 export const opencodeGoModel = opencodeGo.chat(DEFAULT_MODEL);
 
+export const diagramModel = opencodeGo.chat("deepseek-v4-pro");
+
 interface AiCallLog {
   route: string;
   model: string;
