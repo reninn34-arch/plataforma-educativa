@@ -130,24 +130,21 @@ CRITICO: Responde UNICAMENTE con el JSON. Sin markdown, sin explicaciones, sin t
 
 // ── Diagram prompt: only the SVG ──
 
-const DIAGRAM_PROMPT = `Eres un disenador grafico educativo. Genera EXCLUSIVAMENTE un JSON con un diagrama SVG para un estudiante adulto.
+const DIAGRAM_PROMPT = `Eres un disenador grafico educativo. Genera EXCLUSIVAMENTE un objeto JSON con un diagrama SVG.
 
-{
-  "svg": "<svg viewBox='0 0 500 300' xmlns='http://www.w3.org/2000/svg'>...</svg>",
-  "caption": "Descripcion breve del diagrama"
-}
+Tu respuesta DEBE empezar con el caracter { y terminar con }. NUNCA empieces con <svg ni con texto libre. El formato exacto es:
+
+{"svg":"<svg viewBox='0 0 500 300' xmlns='http://www.w3.org/2000/svg'><circle cx='250' cy='150' r='80' fill='#e0f0ff' stroke='#333' stroke-width='2'/><text x='250' y='155' text-anchor='middle' font-size='18' fill='#333'>Elem</text></svg>","caption":"Descripcion breve"}
 
 REGLAS:
-1. SVG inline valido, responsive (usa viewBox, no width/height fijos).
-2. Colores suaves y profesionales. Fondo blanco o transparente.
-3. Incluye etiquetas de texto claras con los nombres de los elementos.
-4. Usa formas simples: circulos, rectangulos, lineas, flechas, texto.
-5. NO uses scripts, eventos, ni CSS externo.
-6. NO uses gradientes complejos ni animaciones.
-7. El diagrama debe ser auto-contenido y entendible sin contexto adicional.
-8. "caption": maximo 6 palabras descriptivas.
-
-CRITICO: Responde UNICAMENTE con el JSON. Sin markdown, sin explicaciones.`;
+1. Empieza SIEMPRE con { y termina con }.
+2. El SVG debe ir como string dentro de "svg", con comillas escapadas si es necesario.
+3. SVG valido, usa viewBox (ej: 0 0 500 300), NO width/height fijos.
+4. Colores suaves (#e0f0ff, #c8e6c9, #fff3e0). Fondo blanco o transparente.
+5. Incluye etiquetas de texto claras. Usa formas simples.
+6. NO scripts, NO eventos, NO CSS externo, NO gradientes complejos.
+7. "caption": maximo 6 palabras.
+8. IMPORTANTISIMO: JSON puro. La respuesta empieza con { y termina con }. Nada antes ni despues.`;
 
 // ── JSON repair utilities ──
 
@@ -244,7 +241,7 @@ export async function POST(request: NextRequest) {
       diagramPromise = generateText({
         model: diagramModel,
         prompt: `${DIAGRAM_PROMPT}\n\nAREA: ${ctx.area}\nTema: ${topicContext}\n\nGenera un diagrama educativo SVG para este tema.`,
-        temperature: 0.4,
+        temperature: 0.2,
         maxOutputTokens: 4000,
       }).then((r) => {
         logAiCall({
@@ -258,6 +255,11 @@ export async function POST(request: NextRequest) {
           return diagramSchema.parse(json);
         } catch (e) {
           console.error("[diagram] JSON parse/schema error:", e);
+          const svgMatch = r.text.match(/<svg\b[\s\S]*?<\/svg>/i);
+          if (svgMatch) {
+            console.log("[diagram] Extracted raw SVG from response");
+            return { svg: svgMatch[0], caption: "Diagrama" };
+          }
           return null;
         }
       }).catch((err) => {
