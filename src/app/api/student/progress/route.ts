@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   const user = token ? await verifyToken(token) : null;
   if (!user || user.role !== "student") return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+  try {
   const allSubjects = await db.select().from(subjects);
 
   const result: Record<string, { percentage: number; completedNodes: number; totalNodes: number; totalStars: number }> = {};
@@ -92,4 +93,7 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json(result);
+  } catch {
+    return NextResponse.json({ error: "Error al cargar progreso" }, { status: 500 });
+  }
 }

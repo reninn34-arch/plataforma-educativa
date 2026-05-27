@@ -42,7 +42,7 @@ export function StudyMaterial({ subjectId }: { subjectId: string }) {
 
       {content && !loading && (
         <div className="animate-scale-in space-y-3">
-          <Card className="shadow-sm border-primary/20 bg-gradient-to-br from-primary/5 to-accent">
+          <Card aria-label="Material de estudio generado por IA" className="shadow-sm border-primary/20 bg-gradient-to-br from-primary/5 to-accent">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles className="h-4 w-4 text-primary" />

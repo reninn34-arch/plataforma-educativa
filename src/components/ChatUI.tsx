@@ -47,7 +47,7 @@ export function ChatUI({ subject }: { subject: string }) {
     <div className="flex flex-col h-full bg-card">
       {/* Messages Area */}
       <ScrollArea className="flex-1">
-        <div className="px-4 py-4 space-y-4 min-h-full">
+        <div role="log" aria-live="polite" className="px-4 py-4 space-y-4 min-h-full">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent mb-4 shadow-sm">
@@ -114,6 +114,7 @@ export function ChatUI({ subject }: { subject: string }) {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Escribe tu respuesta..."
             className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
+            aria-label="Mensaje"
             disabled={isLoading}
             autoComplete="off"
             onKeyDown={(e) => {
@@ -126,6 +127,7 @@ export function ChatUI({ subject }: { subject: string }) {
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
+            aria-label="Enviar mensaje"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 shadow-sm"
           >
             <Send className="h-4 w-4" />

@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   const user = token ? await verifyToken(token) : null;
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+  try {
   if (user.role === "teacher") {
     // Unread submissions count
     const [result] = await db
@@ -43,4 +44,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     unreadCount: (newAssignments?.count || 0) + (newGrades?.count || 0),
   });
+  } catch {
+    return NextResponse.json({ error: "Error al cargar notificaciones" }, { status: 500 });
+  }
 }

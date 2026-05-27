@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
   const user = token ? await verifyToken(token) : null;
   if (!user || user.role !== "student") return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+  try {
   const allSessions = await db
     .select()
     .from(practiceSessions)
@@ -156,4 +157,7 @@ export async function GET(request: NextRequest) {
     bySubject,
     recentSessions: validSessions.slice(0, 5),
   });
+  } catch {
+    return NextResponse.json({ error: "Error al cargar metricas" }, { status: 500 });
+  }
 }

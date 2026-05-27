@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   const user = token ? await verifyToken(token) : null;
   if (!user || user.role !== "student") return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+  try {
   const data = await db
     .select({
       id: assignmentSubmissions.id,
@@ -75,4 +76,7 @@ export async function GET(request: NextRequest) {
     summary,
     generalAvg,
   });
+  } catch {
+    return NextResponse.json({ error: "Error al cargar calificaciones" }, { status: 500 });
+  }
 }

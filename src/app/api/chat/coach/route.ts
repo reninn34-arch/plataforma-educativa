@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import { verifyToken } from "@/lib/auth";
-import { opencodeGoModel } from "@/lib/ai";
+import { opencodeGoModel, logAiCall } from "@/lib/ai";
 import { generateText } from "ai";
+import { coachSchema } from "@/lib/api-helpers";
 
 const STATIC_TIPS = [
   "Lee la pregunta con atencion. A veces la clave esta en los detalles.",
@@ -28,12 +29,17 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { question, studentAnswer, topic, wasTimeout } = await request.json();
+    const parsed = coachSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return Response.json({ error: "Datos invalidos" }, { status: 400 });
+    }
+    const { question, studentAnswer, topic, wasTimeout } = parsed.data;
 
     const contextLine = wasTimeout
       ? "El estudiante no respondio a tiempo."
       : `El estudiante respondio: "${studentAnswer}".`;
 
+    const startTime = performance.now();
     const result = await Promise.race([
       generateText({
         model: opencodeGoModel,
@@ -45,6 +51,14 @@ ${contextLine}
 Genera una mini-ayuda motivadora para el estudiante:`,
         maxOutputTokens: 120,
         temperature: 0.7,
+      }).then(async (r) => {
+        logAiCall({
+          route: "coach",
+          model: "kimi-k2.5",
+          durationMs: Math.round(performance.now() - startTime),
+          usage: { inputTokens: r.usage?.inputTokens, outputTokens: r.usage?.outputTokens, totalTokens: (r.usage?.inputTokens ?? 0) + (r.usage?.outputTokens ?? 0) },
+        });
+        return r;
       }),
       new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
     ]);

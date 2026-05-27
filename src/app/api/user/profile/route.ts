@@ -4,17 +4,22 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { verifyToken, createToken } from "@/lib/auth";
+import { profileSchema } from "@/lib/api-helpers";
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
   const user = token ? await verifyToken(token) : null;
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+  try {
   return NextResponse.json({
     cedula: user.cedula,
     fullName: user.fullName,
     role: user.role,
   });
+  } catch {
+    return NextResponse.json({ error: "Error al cargar perfil" }, { status: 500 });
+  }
 }
 
 export async function PUT(request: NextRequest) {
@@ -22,14 +27,16 @@ export async function PUT(request: NextRequest) {
   const user = token ? await verifyToken(token) : null;
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const { newPin, currentPin } = await request.json();
+  try {
+  const body = await request.json();
+  const parsed = profileSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Datos invalidos" }, { status: 400 });
+  }
+  const { newPin, currentPin } = parsed.data;
 
   if (!newPin || !currentPin) {
     return NextResponse.json({ error: "PIN actual y nuevo requeridos" }, { status: 400 });
-  }
-
-  if (!/^\d{4}$/.test(newPin)) {
-    return NextResponse.json({ error: "El PIN nuevo debe ser 4 digitos" }, { status: 400 });
   }
 
   const [row] = await db.select({ pin: users.pin }).from(users).where(eq(users.id, user.id));
@@ -52,4 +59,7 @@ export async function PUT(request: NextRequest) {
   });
 
   return response;
+  } catch {
+    return NextResponse.json({ error: "Error al actualizar perfil" }, { status: 500 });
+  }
 }

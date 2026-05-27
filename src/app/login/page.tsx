@@ -70,6 +70,7 @@ function LoginForm() {
               </Label>
               <Input
                 id="cedula"
+                aria-label="Cedula"
                 type="tel"
                 inputMode="numeric"
                 maxLength={10}
@@ -92,6 +93,7 @@ function LoginForm() {
               <div className="relative">
                 <Input
                   id="pin"
+                  aria-label="PIN"
                   type={showPin ? "text" : "password"}
                   inputMode="numeric"
                   maxLength={4}
@@ -108,6 +110,7 @@ function LoginForm() {
                 <button
                   type="button"
                   onClick={() => setShowPin(!showPin)}
+                  aria-label="Mostrar u ocultar PIN"
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   tabIndex={-1}
                 >

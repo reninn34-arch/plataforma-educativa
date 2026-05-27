@@ -4,38 +4,27 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { createToken, setSessionCookie } from "@/lib/auth";
+import { rateLimit } from "@/lib/rate-limit";
+import { loginSchema } from "@/lib/api-helpers";
 
 export async function POST(request: NextRequest) {
   try {
-    const { cedula, pin } = await request.json();
+    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    const rl = rateLimit({ key: `login:${ip}`, maxRequests: 10, windowMs: 60_000 });
+    if (rl) return rl;
 
-    if (!cedula || !pin) {
-      return NextResponse.json({ error: "Cedula y PIN requeridos" }, { status: 400 });
+    const parsed = loginSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Cedula (10 digitos) y PIN (4 digitos) requeridos" }, { status: 400 });
     }
-
-    if (!/^\d{10}$/.test(cedula)) {
-      return NextResponse.json({ error: "Cedula invalida: 10 digitos requeridos" }, { status: 400 });
-    }
-
-    if (!/^\d{4}$/.test(pin)) {
-      return NextResponse.json({ error: "PIN invalido: 4 digitos requeridos" }, { status: 400 });
-    }
+    const { cedula, pin } = parsed.data;
 
     const [user] = await db.select().from(users).where(eq(users.cedula, cedula)).limit(1);
-
-    if (!user) {
+    if (!user || !await bcrypt.compare(pin, user.pin)) {
       return NextResponse.json({ error: "Credenciales incorrectas" }, { status: 401 });
     }
 
-    const valid = await bcrypt.compare(pin, user.pin);
-    if (!valid) {
-      return NextResponse.json({ error: "Credenciales incorrectas" }, { status: 401 });
-    }
-
-    await db
-      .update(users)
-      .set({ lastLogin: new Date() })
-      .where(eq(users.id, user.id));
+    await db.update(users).set({ lastLogin: new Date() }).where(eq(users.id, user.id));
 
     const token = await createToken({
       id: user.id,

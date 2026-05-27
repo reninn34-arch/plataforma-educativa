@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { opencodeGoModel } from "@/lib/ai";
+import { opencodeGoModel, logAiCall } from "@/lib/ai";
 import { db } from "@/lib/db";
 import { nodes } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { generateText } from "ai";
 import { z } from "zod/v4";
 import { verifyToken } from "@/lib/auth";
+import { rateLimit } from "@/lib/rate-limit";
+import { practiceGenerateSchema } from "@/lib/api-helpers";
+
+export const CACHED_EXERCISES_VERSION = 1;
 
 const exerciseSchema = z.object({
   concept_bites: z.array(z.string()),
@@ -20,6 +24,11 @@ const exerciseSchema = z.object({
     timeLimit: z.number().nullable(),
     difficulty: z.enum(["easy", "medium", "hard"]),
   })),
+});
+
+const cachedExercisesSchema = z.object({
+  version: z.number(),
+  data: exerciseSchema,
 });
 
 const SUBJECT_CONTEXTS: Record<string, { area: string; topics: string[] }> = {
@@ -92,7 +101,11 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   try {
-    const { subject, topic, aiPromptContext, nodeId, retry } = await request.json();
+    const inputParsed = practiceGenerateSchema.safeParse(await request.json());
+    if (!inputParsed.success) {
+      return Response.json({ error: "Materia requerida" }, { status: 400 });
+    }
+    const { subject, topic, aiPromptContext, nodeId, retry } = inputParsed.data;
 
     if (nodeId && !retry) {
       const nodeRecord = await db
@@ -102,19 +115,23 @@ export async function POST(request: NextRequest) {
         .limit(1);
 
       if (nodeRecord.length > 0 && nodeRecord[0].cachedExercises) {
-        const cached = nodeRecord[0].cachedExercises as any;
-        const validated = exerciseSchema.safeParse(cached);
-        if (validated.success) {
-          return Response.json({ ...validated.data, cached: true });
+        const raw = nodeRecord[0].cachedExercises as any;
+        const envelope = cachedExercisesSchema.safeParse(raw);
+        if (envelope.success && envelope.data.version === CACHED_EXERCISES_VERSION) {
+          return Response.json({ ...envelope.data.data, cached: true });
         }
       }
     }
+
+    const rl = rateLimit({ key: `practice-gen:${user.id}`, maxRequests: 10, windowMs: 60_000 });
+    if (rl) return rl;
 
     const ctx = SUBJECT_CONTEXTS[subject] || SUBJECT_CONTEXTS.matematicas;
     const contextInfo = aiPromptContext 
       ? `\nContexto Especifico del Nodo: ${aiPromptContext}`
       : (topic ? `\nTema especifico: ${topic}.` : `\nTemas sugeridos: ${ctx.topics.slice(0, 4).join(", ")}.`);
 
+    const startTime = performance.now();
     const result = await generateText({
       model: opencodeGoModel,
       prompt: `${PROMPT}\n\nAREA: ${ctx.area}${contextInfo}`,
@@ -122,14 +139,26 @@ export async function POST(request: NextRequest) {
       maxOutputTokens: 6000,
     });
 
+    logAiCall({
+      route: "practice-generate",
+      model: "kimi-k2.5",
+      durationMs: Math.round(performance.now() - startTime),
+      usage: { inputTokens: result.usage?.inputTokens, outputTokens: result.usage?.outputTokens, totalTokens: (result.usage?.inputTokens ?? 0) + (result.usage?.outputTokens ?? 0) },
+    });
+
     const text = repairJson(result.text);
     const parsed = exerciseSchema.parse(JSON.parse(text));
-    parsed.exercises = parsed.exercises.map((ex, i) => ({ ...ex, id: i + 1 }));
+    parsed.exercises = parsed.exercises.map((ex: z.infer<typeof exerciseSchema>["exercises"][number], i: number) => ({ ...ex, id: i + 1 }));
 
     if (nodeId) {
       await db
         .update(nodes)
-        .set({ cachedExercises: parsed as any })
+        .set({
+          cachedExercises: {
+            version: CACHED_EXERCISES_VERSION,
+            data: parsed,
+          } as any,
+        })
         .where(eq(nodes.id, nodeId));
     }
 

@@ -60,11 +60,13 @@ export function PathSearch({ subjectSlug, suggestedTopics }: PathSearchProps) {
           onKeyDown={(e) => { if (e.key === "Enter") handleGenerate(); }}
           placeholder={`Ej: derivadas, verbos irregulares, celula...`}
           className="flex-1 rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm focus:border-primary focus:outline-none transition-colors"
+          aria-label="Buscar tema"
           disabled={loading}
         />
         <Button
           onClick={() => handleGenerate()}
           disabled={loading || topic.trim().length < 3}
+          aria-label="Generar ruta de aprendizaje"
           className="rounded-xl gap-2 shrink-0"
         >
           {loading ? (

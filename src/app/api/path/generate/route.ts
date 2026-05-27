@@ -3,9 +3,11 @@ import { verifyToken } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { subjects, modules, nodes } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { opencodeGoModel } from "@/lib/ai";
+import { opencodeGoModel, logAiCall } from "@/lib/ai";
 import { generateText } from "ai";
 import { z } from "zod/v4";
+import { rateLimit } from "@/lib/rate-limit";
+import { pathGenerateSchema } from "@/lib/api-helpers";
 
 const nodeSchema = z.object({
   title: z.string(),
@@ -77,10 +79,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { subject: subjectSlug, topic } = await request.json();
-    if (!subjectSlug || !topic) {
-      return Response.json({ error: "Se requiere subject y topic" }, { status: 400 });
+    const inputParsed = pathGenerateSchema.safeParse(await request.json());
+    if (!inputParsed.success) {
+      return Response.json({ error: "Materia y tema (min 3 caracteres) requeridos" }, { status: 400 });
     }
+    const { subject: subjectSlug, topic } = inputParsed.data;
+
+    const rl = rateLimit({ key: `path-gen:${user.id}`, maxRequests: 10, windowMs: 60_000 });
+    if (rl) return rl;
 
     const subjectRecord = await db
       .select()
@@ -93,6 +99,7 @@ export async function POST(request: NextRequest) {
     const subject = subjectRecord[0];
     const areaContext = SUBJECT_META[subjectSlug] || subject.name;
 
+    const startTime = performance.now();
     const result = await generateText({
       model: opencodeGoModel,
       system: SYSTEM_PROMPT + "\n\nIMPORTANTE: Responde UNICAMENTE con JSON valido. No uses bloques de markdown ni texto adicional. Solo el JSON puro.",
@@ -104,9 +111,16 @@ Genera un Learning Path de 6-8 nodos para este tema. Los primeros nodos deben se
       maxOutputTokens: 6000,
     });
 
+    logAiCall({
+      route: "path-generate",
+      model: "kimi-k2.5",
+      durationMs: Math.round(performance.now() - startTime),
+      usage: { inputTokens: result.usage?.inputTokens, outputTokens: result.usage?.outputTokens, totalTokens: (result.usage?.inputTokens ?? 0) + (result.usage?.outputTokens ?? 0) },
+    });
+
     const text = repairJson(result.text);
-    const parsed = pathSchema.parse(JSON.parse(text));
-    const { moduleTitle, nodes: aiNodes } = parsed;
+    const outputParsed = pathSchema.parse(JSON.parse(text));
+    const { moduleTitle, nodes: aiNodes } = outputParsed;
 
     // Check for duplicate by topic + subject
     const existingModule = await db
@@ -149,7 +163,7 @@ Genera un Learning Path de 6-8 nodos para este tema. Los primeros nodos deben se
       .returning();
 
     // Insert nodes
-    const nodeValues = aiNodes.map((n, i) => ({
+    const nodeValues = aiNodes.map((n: z.infer<typeof nodeSchema>, i: number) => ({
       moduleId: newModule.id,
       title: n.title,
       order: i + 1,

@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   const user = token ? await verifyToken(token) : null;
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+  try {
   let data: any[] = [];
 
   if (user.role === "student") {
@@ -49,4 +50,7 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({ events: data });
+  } catch {
+    return NextResponse.json({ error: "Error al cargar calendario" }, { status: 500 });
+  }
 }

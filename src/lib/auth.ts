@@ -1,7 +1,8 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { getEnv } from "@/lib/env";
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET! || "fallback-secret");
+const JWT_SECRET = new TextEncoder().encode(getEnv().JWT_SECRET);
 const TOKEN_NAME = "atlas-edu-token";
 
 export interface SessionUser {

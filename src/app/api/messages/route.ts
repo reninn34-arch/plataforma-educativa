@@ -3,12 +3,14 @@ import { db } from "@/lib/db";
 import { directMessages, users } from "@/lib/db/schema";
 import { eq, and, desc, or } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
+import { messageSchema } from "@/lib/api-helpers";
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
   const user = token ? await verifyToken(token) : null;
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
+  try {
   const contactId = parseInt(request.nextUrl.searchParams.get("contactId") || "0");
 
   if (contactId) {
@@ -56,6 +58,9 @@ export async function GET(request: NextRequest) {
   });
 
   return NextResponse.json({ contacts: Array.from(contactMap.values()) });
+  } catch {
+    return NextResponse.json({ error: "Error al cargar mensajes" }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -63,16 +68,22 @@ export async function POST(request: NextRequest) {
   const user = token ? await verifyToken(token) : null;
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const { receiverId, content } = await request.json();
-  if (!receiverId || !content?.trim()) {
-    return NextResponse.json({ error: "Destinatario y mensaje requeridos" }, { status: 400 });
+  try {
+  const body = await request.json();
+  const parsed = messageSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
+  const { receiverId, content } = parsed.data;
 
   const [msg] = await db.insert(directMessages).values({
     senderId: user.id,
     receiverId,
-    content: content.trim(),
+    content,
   } as any).returning();
 
   return NextResponse.json({ message: msg });
+  } catch {
+    return NextResponse.json({ error: "Error al enviar mensaje" }, { status: 500 });
+  }
 }

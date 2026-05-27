@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import {
   practiceSessions,
@@ -14,12 +14,15 @@ import { verifyToken } from "@/lib/auth";
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
   const user = token ? await verifyToken(token) : null;
-  if (!user) return new Response(JSON.stringify({ error: "No autorizado" }), { status: 401, headers: { "Content-Type": "application/json" } });
+  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   try {
     const body = await request.json();
     const { subjectId, correctCount, totalCount, score, maxCombo, answers, nodeId } = body;
-    console.log("[save-session] Received:", { subjectId, nodeId, correctCount, totalCount, score, maxCombo });
+
+    if (subjectId == null) {
+      return NextResponse.json({ error: "subjectId requerido" }, { status: 400 });
+    }
 
     const [session] = await db
       .insert(practiceSessions)
@@ -166,13 +169,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log("[save-session] Success. Returning saved=true, sessionId=", session.id);
-    return new Response(JSON.stringify({ saved: true, sessionId: session.id }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return NextResponse.json({ saved: true, sessionId: session.id });
   } catch (error) {
     console.error("Save session error:", error);
-    return new Response(JSON.stringify({ error: "Error al guardar sesion" }), { status: 500, headers: { "Content-Type": "application/json" } });
+    return NextResponse.json({ error: "Error al guardar sesion" }, { status: 500 });
   }
 }
