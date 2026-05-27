@@ -22,6 +22,20 @@
       "when": 1779841585627,
       "tag": "0002_nifty_inhumans",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779843200000,
+      "tag": "0003_breezy_corsair",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779844000000,
+      "tag": "0004_warm_maestro",
+      "breakpoints": true
     }
   ]
 }

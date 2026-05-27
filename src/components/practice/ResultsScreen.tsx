@@ -29,7 +29,7 @@ export function ResultsScreen({
   hasNextNode,
 }: ResultsScreenProps) {
   const percentage = Math.round((correct / total) * 100);
-  const stars = correct >= total ? 3 : correct >= total * 0.6 ? 2 : correct > 0 ? 1 : 0;
+  const stars = starsEarned;
 
   return (
     <div className="animate-scale-in space-y-6">

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import {
   practiceSessions,
@@ -8,16 +8,18 @@ import {
   modules,
   progress,
 } from "@/lib/db/schema";
-import { eq, and, inArray, lt } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
   const user = token ? await verifyToken(token) : null;
-  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  if (!user) return new Response(JSON.stringify({ error: "No autorizado" }), { status: 401, headers: { "Content-Type": "application/json" } });
 
   try {
-    const { subjectId, correctCount, totalCount, score, maxCombo, answers, nodeId } = await request.json();
+    const body = await request.json();
+    const { subjectId, correctCount, totalCount, score, maxCombo, answers, nodeId } = body;
+    console.log("[save-session] Received:", { subjectId, nodeId, correctCount, totalCount, score, maxCombo });
 
     const [session] = await db
       .insert(practiceSessions)
@@ -39,7 +41,7 @@ export async function POST(request: NextRequest) {
           subjectId,
           question: a.question,
           type: a.type,
-          topic: a.topic || null,
+          topic: a.topic ? a.topic.substring(0, 100) : null,
           studentAnswer: a.studentAnswer,
           isCorrect: a.isCorrect,
         }))
@@ -164,9 +166,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ saved: true, sessionId: session.id });
+    console.log("[save-session] Success. Returning saved=true, sessionId=", session.id);
+    return new Response(JSON.stringify({ saved: true, sessionId: session.id }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Save session error:", error);
-    return NextResponse.json({ error: "Error al guardar sesion" }, { status: 500 });
+    return new Response(JSON.stringify({ error: "Error al guardar sesion" }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }

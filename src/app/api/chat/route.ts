@@ -13,18 +13,10 @@ REGLAS ESTRICTAS:
 5. Manten tus respuestas concisas, maximo 3-4 oraciones por intervencion.`;
 
 export async function POST(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "No autorizado" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  const token = authHeader.slice(7);
-  const user = await verifyToken(token);
+  const token = request.cookies.get("atlas-edu-token")?.value;
+  const user = token ? await verifyToken(token) : null;
   if (!user) {
-    return new Response(JSON.stringify({ error: "Token invalido" }), {
+    return new Response(JSON.stringify({ error: "No autorizado" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });

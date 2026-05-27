@@ -60,6 +60,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
   const gameOverRef = useRef(false);
   const answersLogRef = useRef<{ question: string; type: string; topic?: string; studentAnswer: string; isCorrect: boolean }[]>([]);
   const sessionSavedRef = useRef(false);
+  const savePromiseRef = useRef<Promise<void> | null>(null);
 
   const currentExercise = exercises[currentIndex];
 
@@ -104,7 +105,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
   useEffect(() => {
     if (gameState === "results" && !sessionSavedRef.current) {
       sessionSavedRef.current = true;
-      fetch("/api/practice/save-session", {
+      savePromiseRef.current = fetch("/api/practice/save-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -116,7 +117,15 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
           maxCombo,
           answers: answersLogRef.current,
         }),
-      }).catch(() => {});
+      })
+        .then(async (r) => {
+          const text = await r.text();
+          console.log("[save-session client] status:", r.status, "headers:", Object.fromEntries(r.headers.entries()));
+          console.log("[save-session client] raw body:", text);
+          return JSON.parse(text);
+        })
+        .then((data) => { if (!data.saved) console.error("Save failed:", data); })
+        .catch((err) => { console.error("Error saving session:", err); });
     }
   }, [gameState, subjectId, nodeId, correctCount, exercises.length, xpEarned, maxCombo]);
 
@@ -216,12 +225,10 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
 
       if (data.isCorrect) {
         setCorrectCount((c) => c + 1);
-        setCombo((c) => {
-          const newCombo = c + 1;
-          setMaxCombo((m) => Math.max(m, newCombo));
-          return newCombo;
-        });
-        setXpEarned((x) => x + 100 + (combo >= 2 ? combo * 25 : 0));
+        const newCombo = combo + 1;
+        setCombo(newCombo);
+        setMaxCombo((m) => Math.max(m, newCombo));
+        setXpEarned((x) => x + 100 + (newCombo >= 2 ? newCombo * 25 : 0));
         setShowCoach(false);
       } else {
         setCombo(0);
@@ -252,7 +259,6 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
 
   const handleContinue = () => {
     setFeedback(null);
-    setTimerSeconds(0);
     setShowCoach(false);
 
     if (gameOverRef.current || currentIndex >= exercises.length - 1) {
@@ -275,13 +281,24 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     setTimerSeconds(0);
     gameOverRef.current = false;
     sessionSavedRef.current = false;
+    savePromiseRef.current = null;
     answersLogRef.current = [];
     setRetryGenerating(true);
     fetchExercises(true);
   };
 
-  const handleBackToStudy = () => {
+  const handleBackToStudy = async () => {
+    if (savePromiseRef.current) {
+      try { await savePromiseRef.current; } catch {}
+    }
     router.push(`/student/path/${subjectSlug}`);
+  };
+
+  const handleNextNode = async () => {
+    if (savePromiseRef.current) {
+      try { await savePromiseRef.current; } catch {}
+    }
+    if (nextNodeId) router.push(`/student/path/${subjectSlug}/${nextNodeId}`);
   };
 
   return (
@@ -433,7 +450,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
             onRetry={handleRetry}
             onBack={handleBackToStudy}
             hasNextNode={nextNodeId !== null}
-            onNextNode={nextNodeId ? () => router.push(`/student/path/${subjectSlug}/${nextNodeId}`) : undefined}
+            onNextNode={nextNodeId ? handleNextNode : undefined}
           />
         )}
       </main>

@@ -32,13 +32,44 @@ export default async function NodePracticePage({ params }: { params: Promise<{ s
 
     if (!isFirstNode) {
       const prog = await db
-        .select({ status: userProgress.status })
+        .select({ id: userProgress.id, status: userProgress.status })
         .from(userProgress)
         .where(and(eq(userProgress.userId, session.id), eq(userProgress.nodeId, nodeId)))
         .limit(1);
 
       if (prog.length === 0 || prog[0].status === "locked") {
-        redirect(`/student/path/${subject.slug}`);
+        // Auto-unlock: if user completed the previous node, unlock this one
+        const prevNode = await db
+          .select({ id: nodes.id })
+          .from(nodes)
+          .where(and(eq(nodes.moduleId, node.moduleId), eq(nodes.order, node.order - 1)))
+          .limit(1);
+
+        if (prevNode.length > 0) {
+          const prevProg = await db
+            .select({ status: userProgress.status })
+            .from(userProgress)
+            .where(and(eq(userProgress.userId, session.id), eq(userProgress.nodeId, prevNode[0].id)))
+            .limit(1);
+
+          if (prevProg.length > 0 && (prevProg[0].status === "completed" || prevProg[0].status === "mastered")) {
+            if (prog.length > 0) {
+              await db.update(userProgress).set({ status: "unlocked" }).where(eq(userProgress.id, prog[0].id));
+            } else {
+              await db.insert(userProgress).values({
+                userId: session.id,
+                nodeId,
+                status: "unlocked",
+                starsEarned: 0,
+                attempts: 0,
+              });
+            }
+          } else {
+            redirect(`/student/path/${subject.slug}`);
+          }
+        } else {
+          redirect(`/student/path/${subject.slug}`);
+        }
       }
     }
   }

@@ -47,18 +47,21 @@ function repairJson(text: string): string {
   let openBraces = 0;
   let openBrackets = 0;
   let inString = false;
-  let escape = false;
+  let prevChar = "";
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
-    if (escape) { escape = false; continue; }
-    if (c === "\\") { escape = true; continue; }
-    if (c === '"' && !inString) { inString = true; continue; }
-    if (c === '"' && inString) { inString = false; continue; }
-    if (inString) continue;
+    if (inString) {
+      if (c === "\\" && prevChar !== "\\") { prevChar = c; continue; }
+      if (c === '"' && prevChar !== "\\") { inString = false; prevChar = c; continue; }
+      prevChar = c;
+      continue;
+    }
+    if (c === '"') { inString = true; prevChar = c; continue; }
     if (c === "{") openBraces++;
     if (c === "}") openBraces--;
     if (c === "[") openBrackets++;
     if (c === "]") openBrackets--;
+    prevChar = c;
   }
   if (inString) text += '"';
   text += "]".repeat(Math.max(0, openBrackets));

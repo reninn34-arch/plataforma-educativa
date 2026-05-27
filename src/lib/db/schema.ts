@@ -9,6 +9,7 @@ import {
   boolean,
   date,
   jsonb,
+  unique,
 } from "drizzle-orm/pg-core";
 
 export const roleEnum = pgEnum("role", ["student", "teacher"]);
@@ -69,7 +70,9 @@ export const nodes = pgTable("nodes", {
   type: nodeTypeEnum("type").notNull().default("quiz"),
   aiPromptContext: text("ai_prompt_context"),
   cachedExercises: jsonb("cached_exercises"),
-});
+}, (table) => ({
+  uniqueModuleOrder: unique("nodes_module_order_unique").on(table.moduleId, table.order),
+}));
 
 export const nodeStatusEnum = pgEnum("node_status", ["locked", "unlocked", "completed", "mastered"]);
 
@@ -173,7 +176,7 @@ export const practiceAnswers = pgTable("practice_answers", {
     .references(() => subjects.id),
   question: text("question").notNull(),
   type: varchar("type", { length: 20 }).notNull(),
-  topic: varchar("topic", { length: 100 }),
+  topic: text("topic"),
   studentAnswer: text("student_answer"),
   isCorrect: boolean("is_correct").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

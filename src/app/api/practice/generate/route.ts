@@ -1,10 +1,11 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { opencodeGoModel } from "@/lib/ai";
 import { db } from "@/lib/db";
 import { nodes } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { generateText } from "ai";
 import { z } from "zod/v4";
+import { verifyToken } from "@/lib/auth";
 
 const exerciseSchema = z.object({
   concept_bites: z.array(z.string()),
@@ -63,18 +64,21 @@ function repairJson(text: string): string {
   let openBraces = 0;
   let openBrackets = 0;
   let inString = false;
-  let escape = false;
+  let prevChar = "";
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
-    if (escape) { escape = false; continue; }
-    if (c === "\\") { escape = true; continue; }
-    if (c === '"' && !inString) { inString = true; continue; }
-    if (c === '"' && inString) { inString = false; continue; }
-    if (inString) continue;
+    if (inString) {
+      if (c === "\\" && prevChar !== "\\") { prevChar = c; continue; }
+      if (c === '"' && prevChar !== "\\") { inString = false; prevChar = c; continue; }
+      prevChar = c;
+      continue;
+    }
+    if (c === '"') { inString = true; prevChar = c; continue; }
     if (c === "{") openBraces++;
     if (c === "}") openBraces--;
     if (c === "[") openBrackets++;
     if (c === "]") openBrackets--;
+    prevChar = c;
   }
   if (inString) text += '"';
   text += "]".repeat(Math.max(0, openBrackets));
@@ -83,6 +87,10 @@ function repairJson(text: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  const token = request.cookies.get("atlas-edu-token")?.value;
+  const user = token ? await verifyToken(token) : null;
+  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+
   try {
     const { subject, topic, aiPromptContext, nodeId, retry } = await request.json();
 
