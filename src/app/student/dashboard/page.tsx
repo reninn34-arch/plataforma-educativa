@@ -52,7 +52,7 @@ export default function StudentDashboard() {
       .then(r => r.json())
       .then(d => {
         setMetrics(d);
-        if (d.totalSessions > 0) setStreakDays(Math.min(d.totalSessions, 7));
+        if (d.totalSessions > 0) setStreakDays(d.streakDays ?? 0);
       })
       .catch(() => {});
   }, []);
@@ -232,6 +232,7 @@ export default function StudentDashboard() {
                 <BookOpen className="h-4 w-4 text-emerald-500 mx-auto mb-1" />
                 <p className="text-lg font-bold">{accuracy}%</p>
                 <p className="text-[10px] text-muted-foreground">Precision</p>
+                <p className="text-[9px] text-muted-foreground/60">Aciertos / Total</p>
               </CardContent>
             </Card>
           </div>

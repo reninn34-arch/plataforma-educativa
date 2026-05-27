@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatNotation } from "@/lib/utils";
 import { Check, X, ArrowRight, Lightbulb } from "lucide-react";
 
 interface Exercise {
@@ -75,9 +75,10 @@ export function QuestionCard({
 
       {/* Question */}
       <div className="rounded-2xl border bg-card p-6 shadow-sm">
-        <h3 className="text-lg font-bold text-foreground leading-relaxed">
-          {exercise.question}
-        </h3>
+        <h3
+          className="text-lg font-bold text-foreground leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: formatNotation(exercise.question) }}
+        />
       </div>
 
       {/* MCQ Options */}
@@ -121,7 +122,7 @@ export function QuestionCard({
                    answered && i === selected ? <X className="h-4 w-4" /> :
                    String.fromCharCode(65 + i)}
                 </span>
-                <span className="text-sm font-medium text-foreground">{opt}</span>
+                <span className="text-sm font-medium text-foreground" dangerouslySetInnerHTML={{ __html: formatNotation(opt) }} />
               </button>
             );
           })}
@@ -185,7 +186,7 @@ export function QuestionCard({
           />
           {answered && (
             <p className="text-sm text-muted-foreground">
-              Respuesta esperada: <span className="font-semibold text-foreground">{String(getCorrectAnswer())}</span>
+              Respuesta esperada: <span className="font-semibold text-foreground" dangerouslySetInnerHTML={{ __html: formatNotation(String(getCorrectAnswer())) }} />
             </p>
           )}
         </div>
@@ -216,7 +217,7 @@ export function QuestionCard({
             )}>
               {feedback.isCorrect ? <Check className="h-4 w-4" /> : <Lightbulb className="h-4 w-4" />}
             </div>
-            <p className="text-sm font-medium text-foreground leading-relaxed">{feedback.feedback}</p>
+            <p className="text-sm font-medium text-foreground leading-relaxed" dangerouslySetInnerHTML={{ __html: formatNotation(feedback.feedback) }} />
           </div>
 
           <button

@@ -5,6 +5,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { Bot, User, Send } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { formatNotation } from "@/lib/utils";
 
 function TypingIndicator() {
   return (
@@ -82,7 +83,7 @@ export function ChatUI({ subject }: { subject: string }) {
                 }`}
               >
                 {msg.parts.map((part, i) => {
-                  if (part.type === "text") return <span key={i}>{part.text}</span>;
+                  if (part.type === "text") return <span key={i} dangerouslySetInnerHTML={{ __html: formatNotation(part.text) }} />;
                   return null;
                 })}
               </div>

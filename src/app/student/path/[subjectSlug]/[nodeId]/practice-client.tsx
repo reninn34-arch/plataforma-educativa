@@ -9,6 +9,7 @@ import { ResultsScreen } from "@/components/practice/ResultsScreen";
 import { Hearts } from "@/components/practice/Hearts";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { formatNotation } from "@/lib/utils";
 
 interface Exercise {
   id: number;
@@ -340,9 +341,10 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
             <div className="bg-white border-2 border-slate-200 shadow-md rounded-2xl p-8 max-w-md w-full text-center relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-primary" />
               <h2 className="text-xs font-bold uppercase text-primary tracking-widest mb-6">Concepto Clave</h2>
-              <p className="text-lg font-medium text-slate-700 leading-relaxed">
-                {conceptBites[currentConceptIndex]}
-              </p>
+              <p
+                className="text-lg font-medium text-slate-700 leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: formatNotation(conceptBites[currentConceptIndex]) }}
+              />
             </div>
             <div className="flex gap-4 w-full max-w-md">
               <Button
@@ -430,7 +432,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-blue-900">Coach IA</h4>
-                    <p className="text-sm text-blue-800 mt-0.5 leading-snug">{coachMessage}</p>
+                    <p className="text-sm text-blue-800 mt-0.5 leading-snug" dangerouslySetInnerHTML={{ __html: formatNotation(coachMessage) }} />
                   </div>
                 </div>
               </div>

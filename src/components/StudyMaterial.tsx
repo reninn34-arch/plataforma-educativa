@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Sparkles, Loader2, BookOpen, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatNotation } from "@/lib/utils";
 
 export function StudyMaterial({ subjectId }: { subjectId: string }) {
   const [content, setContent] = useState("");
@@ -50,13 +51,14 @@ export function StudyMaterial({ subjectId }: { subjectId: string }) {
               <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
                 {content.split("\n").map((line, i) => {
                   if (line.startsWith("**") && line.includes("**")) {
-                    return <h4 key={i} className="font-bold text-foreground mt-3 mb-1">{line.replace(/\*\*/g, "")}</h4>;
+                    const clean = line.replace(/\*\*/g, "");
+                    return <h4 key={i} className="font-bold text-foreground mt-3 mb-1" dangerouslySetInnerHTML={{ __html: formatNotation(clean) }} />;
                   }
                   if (line.startsWith("-")) {
-                    return <li key={i} className="ml-4 text-muted-foreground">{line.slice(1)}</li>;
+                    return <li key={i} className="ml-4 text-muted-foreground" dangerouslySetInnerHTML={{ __html: formatNotation(line) }} />;
                   }
                   if (line.trim() === "") return <br key={i} />;
-                  return <p key={i} className="text-muted-foreground">{line}</p>;
+                  return <p key={i} className="text-muted-foreground" dangerouslySetInnerHTML={{ __html: formatNotation(line) }} />;
                 })}
               </div>
             </CardContent>

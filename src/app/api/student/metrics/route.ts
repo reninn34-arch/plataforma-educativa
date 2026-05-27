@@ -6,27 +6,88 @@ import {
   assignmentSubmissions,
   subjects,
 } from "@/lib/db/schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
+
+function calculateStreak(dates: string[]): number {
+  if (dates.length === 0) return 0;
+  const uniqueDays = [...new Set(dates)].sort().reverse();
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const mostRecent = new Date(uniqueDays[0]);
+  const diffFromToday = (today.getTime() - mostRecent.getTime()) / (1000 * 60 * 60 * 24);
+
+  if (diffFromToday > 1) return 0;
+
+  let streak = 1;
+  for (let i = 1; i < uniqueDays.length; i++) {
+    const prev = new Date(uniqueDays[i - 1]);
+    const curr = new Date(uniqueDays[i]);
+    const diff = (prev.getTime() - curr.getTime()) / (1000 * 60 * 60 * 24);
+    if (Math.round(diff) === 1) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
   const user = token ? await verifyToken(token) : null;
   if (!user || user.role !== "student") return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  // Overall practice stats
-  const sessions = await db
+  const allSessions = await db
     .select()
     .from(practiceSessions)
     .where(eq(practiceSessions.userId, user.id))
     .orderBy(desc(practiceSessions.createdAt))
-    .limit(20);
+    .limit(100);
 
-  const totalSessions = sessions.length;
-  const totalScore = sessions.reduce((s, r) => s + r.score, 0);
-  const totalCorrect = sessions.reduce((s, r) => s + r.correctCount, 0);
-  const totalQuestions = sessions.reduce((s, r) => s + r.totalCount, 0);
-  const bestScore = sessions.length > 0 ? Math.max(...sessions.map(s => s.score)) : 0;
+  if (allSessions.length === 0) {
+    return NextResponse.json({
+      totalSessions: 0,
+      totalQuestions: 0,
+      totalCorrect: 0,
+      totalScore: 0,
+      bestScore: 0,
+      avgScore: 0,
+      accuracy: 0,
+      streakDays: 0,
+      gradeAverage: null,
+      gradedCount: 0,
+      bySubject: [],
+      recentSessions: [],
+    });
+  }
+
+  const sessionIds = allSessions.map(s => s.id);
+
+  const answersWithSession = await db
+    .select({ sessionId: practiceAnswers.sessionId })
+    .from(practiceAnswers)
+    .where(
+      and(
+        eq(practiceAnswers.userId, user.id),
+        inArray(practiceAnswers.sessionId, sessionIds)
+      )
+    );
+
+  const validSessionIds = new Set(answersWithSession.map(a => a.sessionId));
+  const validSessions = allSessions.filter(s => validSessionIds.has(s.id));
+
+  const totalSessions = validSessions.length;
+  const totalScore = validSessions.reduce((s, r) => s + r.score, 0);
+  const totalCorrect = validSessions.reduce((s, r) => s + r.correctCount, 0);
+  const totalQuestions = validSessions.reduce((s, r) => s + r.totalCount, 0);
+  const bestScore = validSessions.length > 0 ? Math.max(...validSessions.map(s => s.score)) : 0;
+
+  const sessionDates = validSessions.map(s =>
+    new Date(s.createdAt).toISOString().slice(0, 10)
+  );
+  const streakDays = calculateStreak(sessionDates);
 
   // Per subject practice stats
   const answers = await db
@@ -89,9 +150,10 @@ export async function GET(request: NextRequest) {
     bestScore,
     avgScore: totalSessions > 0 ? Math.round(totalScore / totalSessions) : 0,
     accuracy: totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0,
+    streakDays,
     gradeAverage,
     gradedCount: grades.length,
     bySubject,
-    recentSessions: sessions.slice(0, 5),
+    recentSessions: validSessions.slice(0, 5),
   });
 }
