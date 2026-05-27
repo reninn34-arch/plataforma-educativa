@@ -85,6 +85,9 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
         } else {
           setGameState("countdown");
         }
+      } else if (data.error) {
+        setFeedback({ isCorrect: false, feedback: data.error });
+        setGameState("results");
       }
     } catch {
       // Error handled silently
@@ -251,7 +254,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     setShowCoach(false);
 
     if (gameOverRef.current || currentIndex >= exercises.length - 1) {
-      const perfect = correctCount + (feedback?.isCorrect ? 0 : 0) >= exercises.length;
+      const perfect = correctCount >= exercises.length;
       setXpEarned((prev) => prev + (perfect ? 200 : 0));
       setGameState("results");
     } else {

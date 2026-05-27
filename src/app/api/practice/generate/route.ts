@@ -94,7 +94,11 @@ export async function POST(request: NextRequest) {
         .limit(1);
 
       if (nodeRecord.length > 0 && nodeRecord[0].cachedExercises) {
-        return Response.json({ ...nodeRecord[0].cachedExercises, cached: true } as any);
+        const cached = nodeRecord[0].cachedExercises as any;
+        const validated = exerciseSchema.safeParse(cached);
+        if (validated.success) {
+          return Response.json({ ...validated.data, cached: true });
+        }
       }
     }
 

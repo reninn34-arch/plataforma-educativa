@@ -151,13 +151,14 @@ export async function POST(request: NextRequest) {
         if (progressRecord.length > 0) {
           await db
             .update(progress)
-            .set({ percentage })
+            .set({ percentage, lastActivity: new Date() })
             .where(eq(progress.id, progressRecord[0].id));
         } else {
           await db.insert(progress).values({
             userId: user.id,
             subjectId,
             percentage,
+            lastActivity: new Date(),
           });
         }
       }
