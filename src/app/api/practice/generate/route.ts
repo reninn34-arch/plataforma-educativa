@@ -11,6 +11,11 @@ import { practiceGenerateSchema } from "@/lib/api-helpers";
 
 export const CACHED_EXERCISES_VERSION = 2;
 
+const diagramSchema = z.object({
+  svg: z.string(),
+  caption: z.string(),
+});
+
 const lessonSchema = z.object({
   title: z.string(),
   explanation: z.string(),
@@ -23,10 +28,7 @@ const lessonSchema = z.object({
     description: z.string(),
     correction: z.string(),
   }),
-  diagram: z.object({
-    svg: z.string(),
-    caption: z.string(),
-  }).optional(),
+  diagram: diagramSchema.optional(),
   quickCheck: z.object({
     question: z.string(),
     options: z.array(z.string()).length(4),
@@ -57,30 +59,32 @@ const cachedExercisesSchema = z.object({
   data: practiceResponseSchema,
 });
 
-const SUBJECT_CONTEXTS: Record<string, { area: string; topics: string[]; diagramHints: string }> = {
+const SUBJECT_CONTEXTS: Record<string, { area: string; topics: string[]; canHaveDiagram: boolean }> = {
   matematicas: {
     area: "Matematicas - Bachillerato Acelerado para Adultos",
     topics: ["Ecuaciones lineales", "Porcentajes", "Geometria basica", "Fracciones", "Regla de tres", "Algebra elemental", "Area y perimetro", "Operaciones basicas"],
-    diagramHints: "SOLO genera diagrama si el tema es GEOMETRIA (figuras, angulos, areas). Para algebra, ecuaciones, fracciones, porcentajes: OMITE el diagrama.",
+    canHaveDiagram: true,
   },
   fisica: {
     area: "Fisica - Bachillerato Acelerado para Adultos",
     topics: ["Leyes de Newton", "Movimiento rectilineo", "Energia cinetica y potencial", "Ondas y sonido", "Electricidad basica", "Magnetismo", "Calor y temperatura", "Optica"],
-    diagramHints: "NO generes diagramas SVG para fisica. Las explicaciones con texto y ejemplos numericos son suficientes. Omite el campo 'diagram'.",
+    canHaveDiagram: true,
   },
   ingles: {
     area: "Ingles - Bachillerato Acelerado para Adultos",
     topics: ["Verbo To Be", "Presente simple", "Pasado simple", "Futuro con Will", "Vocabulario basico", "Preposiciones", "Adjetivos", "Conversacion basica"],
-    diagramHints: "NO generes diagramas SVG para ingles. Omite el campo 'diagram'.",
+    canHaveDiagram: false,
   },
   quimica: {
     area: "Quimica - Bachillerato Acelerado para Adultos",
     topics: ["Tabla periodica", "Enlaces quimicos", "Reacciones quimicas", "Estados de la materia", "Acidos y bases", "Balanceo de ecuaciones", "Compuestos organicos", "Estequiometria"],
-    diagramHints: "NO generes diagramas SVG para quimica. Las explicaciones con texto y ejemplos son suficientes. Omite el campo 'diagram'.",
+    canHaveDiagram: true,
   },
 };
 
-const PROMPT = `Eres un profesor experto en andragogia para adultos en bachillerato acelerado (PCEI). Genera EXCLUSIVAMENTE un JSON valido con una leccion y 4 ejercicios.
+// ── Main prompt: lesson + 4 exercises (NO diagram) ──
+
+const LESSON_PROMPT = `Eres un profesor experto en andragogia para adultos en bachillerato acelerado (PCEI). Genera EXCLUSIVAMENTE un JSON valido con una leccion y 4 ejercicios.
 
 ESTRUCTURA JSON OBLIGATORIA:
 {
@@ -96,11 +100,6 @@ ESTRUCTURA JSON OBLIGATORIA:
       "description": "Error tipico en UNA oracion",
       "correction": "Como evitarlo en UNA oracion"
     },
-    "diagram": INCLUIR SOLO PARA GEOMETRIA PURA. Para el resto de temas, OMITIR este campo completamente. Si incluyes, SVG extremadamente simple: maximo 2 formas geometricas y texto. NADA de tablas, circuitos ni estructuras complejas.
-    {
-      "svg": "<svg viewBox='0 0 200 120' xmlns='http://www.w3.org/2000/svg'><circle cx='60' cy='60' r='30' fill='#e0f0ff' stroke='#333'/><text x='60' y='65' text-anchor='middle' font-size='14'>X</text></svg>",
-      "caption": "Descripcion breve"
-    },
     "quickCheck": {
       "question": "Pregunta corta (1 oracion)",
       "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
@@ -111,12 +110,11 @@ ESTRUCTURA JSON OBLIGATORIA:
   "exercises": [EJERCICIO1, EJERCICIO2, EJERCICIO3, EJERCICIO4]
 }
 
-REGLAS LECCION (SE BREVE, CADA TOKEN CUENTA):
+REGLAS LECCION (SE BREVE):
 1. "explanation": 3-4 oraciones cortas maximo. Desde cero, con analogia de vida real.
-2. "example": 2-3 pasos. Concisos. "answer" en 1 oracion.
+2. "example": 2-3 pasos. "answer" en 1 oracion.
 3. "commonMistake": 1 oracion description, 1 oracion correction.
-4. "diagram": OMITELO COMPLETAMENTE a menos que el tema sea GEOMETRIA de figuras. Si lo incluyes: SVG ultra-simple, max 3 elementos (viewBox 200x120). NUNCA incluyas diagramas para: tabla periodica, reacciones, formulas, graficas de funciones, circuitos electricos, ondas, diagramas de cuerpo libre. Esos temas NO llevan diagrama.
-5. "quickCheck": 1 oracion question, feedback en 1 oracion.
+4. "quickCheck": 1 oracion question, feedback en 1 oracion.
 
 REGLAS EJERCICIOS:
 1. EXACTAMENTE 4 ejercicios. NUNCA menos de 4.
@@ -129,6 +127,29 @@ REGLAS EJERCICIOS:
 8. Lenguaje claro, ejemplos de la vida real.
 
 CRITICO: Responde UNICAMENTE con el JSON. Sin markdown, sin explicaciones, sin texto antes o despues del JSON.`;
+
+// ── Diagram prompt: only the SVG ──
+
+const DIAGRAM_PROMPT = `Eres un disenador grafico educativo. Genera EXCLUSIVAMENTE un JSON con un diagrama SVG para un estudiante adulto.
+
+{
+  "svg": "<svg viewBox='0 0 500 300' xmlns='http://www.w3.org/2000/svg'>...</svg>",
+  "caption": "Descripcion breve del diagrama"
+}
+
+REGLAS:
+1. SVG inline valido, responsive (usa viewBox, no width/height fijos).
+2. Colores suaves y profesionales. Fondo blanco o transparente.
+3. Incluye etiquetas de texto claras con los nombres de los elementos.
+4. Usa formas simples: circulos, rectangulos, lineas, flechas, texto.
+5. NO uses scripts, eventos, ni CSS externo.
+6. NO uses gradientes complejos ni animaciones.
+7. El diagrama debe ser auto-contenido y entendible sin contexto adicional.
+8. "caption": maximo 6 palabras descriptivas.
+
+CRITICO: Responde UNICAMENTE con el JSON. Sin markdown, sin explicaciones.`;
+
+// ── JSON repair utilities ──
 
 function repairJson(text: string): string {
   text = text.trim();
@@ -159,11 +180,8 @@ function repairJson(text: string): string {
 }
 
 function tryParseJson(text: string): any {
-  // Attempt 1: direct parse
   try { return JSON.parse(text); } catch {}
-  // Attempt 2: strip markdown + repair brackets
   try { return JSON.parse(repairJson(text)); } catch {}
-  // Attempt 3: extract first { ... } block
   const firstBrace = text.indexOf("{");
   const lastBrace = text.lastIndexOf("}");
   if (firstBrace >= 0 && lastBrace > firstBrace) {
@@ -171,6 +189,8 @@ function tryParseJson(text: string): any {
   }
   throw new Error("No se pudo extraer JSON valido de la respuesta");
 }
+
+// ── POST handler ──
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
@@ -204,29 +224,66 @@ export async function POST(request: NextRequest) {
     if (rl) return rl;
 
     const ctx = SUBJECT_CONTEXTS[subject] || SUBJECT_CONTEXTS.matematicas;
-    const contextInfo = aiPromptContext 
-      ? `\nContexto Especifico del Nodo: ${aiPromptContext}`
-      : (topic ? `\nTema especifico: ${topic}.` : `\nTemas sugeridos: ${ctx.topics.slice(0, 4).join(", ")}.`);
-    const diagramInfo = ctx.diagramHints ? `\n\nINDICACIONES PARA DIAGRAMAS: ${ctx.diagramHints}` : "";
+    const topicContext = aiPromptContext
+      ? `${aiPromptContext}`
+      : (topic || ctx.topics.slice(0, 1).join(", "));
+
+    // ── Llamada 1: Leccion + ejercicios ──
+    const lessonPromise = generateText({
+      model: opencodeGoModel,
+      prompt: `${LESSON_PROMPT}\n\nAREA: ${ctx.area}\nTema: ${topicContext}`,
+      temperature: 0.6,
+      maxOutputTokens: 8000,
+    });
+
+    // ── Llamada 2: Diagrama (solo si la materia lo permite, en paralelo) ──
+    let diagramPromise: Promise<z.infer<typeof diagramSchema> | null> = Promise.resolve(null);
+
+    if (ctx.canHaveDiagram) {
+      diagramPromise = Promise.race([
+        generateText({
+          model: opencodeGoModel,
+          prompt: `${DIAGRAM_PROMPT}\n\nAREA: ${ctx.area}\nTema: ${topicContext}\n\nGenera un diagrama educativo SVG para este tema.`,
+          temperature: 0.6,
+          maxOutputTokens: 2000,
+        }).then((r) => {
+          logAiCall({
+            route: "practice-diagram",
+            model: "kimi-k2.5",
+            durationMs: 0,
+            usage: { inputTokens: r.usage?.inputTokens, outputTokens: r.usage?.outputTokens, totalTokens: (r.usage?.inputTokens ?? 0) + (r.usage?.outputTokens ?? 0) },
+          });
+          try {
+            const json = tryParseJson(r.text);
+            return diagramSchema.parse(json);
+          } catch {
+            return null;
+          }
+        }).catch(() => null),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 20000)),
+      ]);
+    }
 
     const startTime = performance.now();
-    const result = await generateText({
-      model: opencodeGoModel,
-      prompt: `${PROMPT}\n\nAREA: ${ctx.area}${contextInfo}${diagramInfo}`,
-      temperature: 0.6,
-      maxOutputTokens: 16000,
-    });
+
+    const [lessonResult, diagram] = await Promise.all([lessonPromise, diagramPromise]);
+
+    const durationMs = Math.round(performance.now() - startTime);
 
     logAiCall({
       route: "practice-generate",
       model: "kimi-k2.5",
-      durationMs: Math.round(performance.now() - startTime),
-      usage: { inputTokens: result.usage?.inputTokens, outputTokens: result.usage?.outputTokens, totalTokens: (result.usage?.inputTokens ?? 0) + (result.usage?.outputTokens ?? 0) },
+      durationMs,
+      usage: { inputTokens: lessonResult.usage?.inputTokens, outputTokens: lessonResult.usage?.outputTokens, totalTokens: (lessonResult.usage?.inputTokens ?? 0) + (lessonResult.usage?.outputTokens ?? 0) },
     });
 
-    const jsonData = tryParseJson(result.text);
+    const jsonData = tryParseJson(lessonResult.text);
     const parsed = practiceResponseSchema.parse(jsonData);
     parsed.exercises = parsed.exercises.map((ex, i) => ({ ...ex, id: i + 1 }));
+
+    if (diagram) {
+      parsed.lesson.diagram = diagram;
+    }
 
     if (nodeId) {
       await db
