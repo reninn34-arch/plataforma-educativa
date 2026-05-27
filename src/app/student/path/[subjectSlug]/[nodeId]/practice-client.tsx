@@ -7,7 +7,7 @@ import { QuestionCard } from "@/components/practice/QuestionCard";
 import { TimerRing } from "@/components/practice/TimerRing";
 import { ResultsScreen } from "@/components/practice/ResultsScreen";
 import { Hearts } from "@/components/practice/Hearts";
-import { Button } from "@/components/ui/button";
+import { LessonView } from "@/components/practice/LessonView";
 import { useRouter } from "next/navigation";
 import { formatNotation } from "@/lib/utils";
 
@@ -23,7 +23,31 @@ interface Exercise {
   difficulty: "easy" | "medium" | "hard";
 }
 
-type GameState = "loading" | "concept" | "countdown" | "playing" | "results";
+interface LessonData {
+  title: string;
+  explanation: string;
+  example: {
+    problem: string;
+    steps: string[];
+    answer: string;
+  };
+  commonMistake: {
+    description: string;
+    correction: string;
+  };
+  diagram?: {
+    svg: string;
+    caption: string;
+  };
+  quickCheck: {
+    question: string;
+    options: string[];
+    correctIndex: number;
+    feedback: string;
+  };
+}
+
+type GameState = "loading" | "lesson" | "countdown" | "playing" | "results";
 
 interface PracticeClientProps {
   subjectSlug: string;
@@ -39,8 +63,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
 
   const [gameState, setGameState] = useState<GameState>("loading");
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [conceptBites, setConceptBites] = useState<string[]>([]);
-  const [currentConceptIndex, setCurrentConceptIndex] = useState(0);
+  const [lesson, setLesson] = useState<LessonData | null>(null);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [lives, setLives] = useState(3);
@@ -81,9 +104,11 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
       const data = await res.json();
       if (data.exercises) {
         setExercises(data.exercises);
-        if (data.concept_bites && data.concept_bites.length > 0) {
-          setConceptBites(data.concept_bites);
-          setGameState("concept");
+        if (data.lesson) {
+          setLesson(data.lesson);
+          setGameState("lesson");
+        } else if (data.concept_bites && data.concept_bites.length > 0) {
+          setGameState("countdown");
         } else {
           setGameState("countdown");
         }
@@ -280,12 +305,17 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     setFeedback(null);
     setXpEarned(0);
     setTimerSeconds(0);
+    setLesson(null);
     gameOverRef.current = false;
     sessionSavedRef.current = false;
     savePromiseRef.current = null;
     answersLogRef.current = [];
     setRetryGenerating(true);
     fetchExercises(true);
+  };
+
+  const handleStartPractice = () => {
+    setGameState("countdown");
   };
 
   const handleBackToStudy = async () => {
@@ -335,45 +365,9 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
           </div>
         )}
 
-        {/* CONCEPT (Bite-sized lesson) */}
-        {gameState === "concept" && (
-          <div className="flex flex-col items-center justify-center py-12 space-y-8 animate-fade-in-up">
-            <div className="bg-white border-2 border-slate-200 shadow-md rounded-2xl p-8 max-w-md w-full text-center relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-primary" />
-              <h2 className="text-xs font-bold uppercase text-primary tracking-widest mb-6">Concepto Clave</h2>
-              <p
-                className="text-lg font-medium text-slate-700 leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: formatNotation(conceptBites[currentConceptIndex]) }}
-              />
-            </div>
-            <div className="flex gap-4 w-full max-w-md">
-              <Button
-                variant="outline"
-                className="flex-1"
-                disabled={currentConceptIndex === 0}
-                onClick={() => setCurrentConceptIndex(i => i - 1)}
-              >
-                Anterior
-              </Button>
-              <Button
-                className="flex-1"
-                onClick={() => {
-                  if (currentConceptIndex === conceptBites.length - 1) {
-                    setGameState("countdown");
-                  } else {
-                    setCurrentConceptIndex(i => i + 1);
-                  }
-                }}
-              >
-                {currentConceptIndex === conceptBites.length - 1 ? "A practicar!" : "Siguiente"}
-              </Button>
-            </div>
-            <div className="flex gap-1.5 mt-4">
-              {conceptBites.map((_, idx) => (
-                <div key={idx} className={`h-2 w-2 rounded-full ${idx === currentConceptIndex ? 'bg-primary' : 'bg-slate-200'}`} />
-              ))}
-            </div>
-          </div>
+        {/* LESSON (Enriched teaching phase) */}
+        {gameState === "lesson" && lesson && (
+          <LessonView lesson={lesson} onStartPractice={handleStartPractice} />
         )}
 
         {/* COUNTDOWN */}
