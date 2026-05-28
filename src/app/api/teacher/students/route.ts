@@ -117,6 +117,7 @@ export async function GET(request: NextRequest) {
         status: assignmentSubmissions.status,
         submittedAt: assignmentSubmissions.submittedAt,
         assignmentId: assignmentSubmissions.assignmentId,
+        puntos: assignments.puntos,
       })
       .from(assignmentSubmissions)
       .innerJoin(assignments, eq(assignmentSubmissions.assignmentId, assignments.id))
@@ -135,11 +136,12 @@ export async function GET(request: NextRequest) {
       gradesByStudent[sid] = { average: null, pending: totalAssignments, lastSubmission: null };
     }
 
-    const studentGradesMap = new Map<number, number[]>();
+    const studentGradesMap = new Map<number, { grades: number[]; puntos: number[] }>();
     for (const g of gradesData) {
-      if (!studentGradesMap.has(g.studentId)) studentGradesMap.set(g.studentId, []);
+      if (!studentGradesMap.has(g.studentId)) studentGradesMap.set(g.studentId, { grades: [], puntos: [] });
       if (g.grade !== null && g.grade !== undefined) {
-        studentGradesMap.get(g.studentId)!.push(g.grade);
+        studentGradesMap.get(g.studentId)!.grades.push(g.grade);
+        studentGradesMap.get(g.studentId)!.puntos.push(g.puntos || 10);
       }
     }
 
@@ -150,8 +152,12 @@ export async function GET(request: NextRequest) {
     }
 
     for (const sid of studentIds) {
-      const gr = studentGradesMap.get(sid) || [];
-      gradesByStudent[sid].average = gr.length > 0 ? Math.round((gr.reduce((a, b) => a + b, 0) / gr.length) * 10) / 10 : null;
+      const gr = studentGradesMap.get(sid) || { grades: [], puntos: [] };
+      if (gr.grades.length > 0) {
+        const totalPts = gr.puntos.reduce((a, b) => a + b, 0);
+        const avg = gr.grades.reduce((sum, g, i) => sum + g * gr.puntos[i], 0) / totalPts;
+        gradesByStudent[sid].average = Math.round(avg * 10) / 10;
+      }
       gradesByStudent[sid].pending = totalAssignments > 0 ? totalAssignments - (submittedByStudent[sid]?.size || 0) : 0;
     }
 

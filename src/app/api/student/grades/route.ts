@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
       feedback: assignmentSubmissions.feedback,
       status: assignmentSubmissions.status,
       submittedAt: assignmentSubmissions.submittedAt,
+      puntos: assignments.puntos,
     })
     .from(assignmentSubmissions)
     .leftJoin(assignments, eq(assignmentSubmissions.assignmentId, assignments.id))
@@ -33,38 +34,41 @@ export async function GET(request: NextRequest) {
   const pending = data.filter(r => r.status === "submitted" && r.grade === null);
   const notSubmitted = data.filter(r => r.status === "pending");
 
-  const subjectMap = new Map<string, { name: string; emoji: string; t1: number[]; t2: number[]; t3: number[]; all: number[] }>();
+  const subjectMap = new Map<string, { name: string; emoji: string; t1: { grades: number[]; puntos: number[] }; t2: { grades: number[]; puntos: number[] }; t3: { grades: number[]; puntos: number[] }; all: { grades: number[]; puntos: number[] } }>();
   graded.forEach(row => {
     const key = row.subjectName || "Sin materia";
-    if (!subjectMap.has(key)) subjectMap.set(key, { name: row.subjectName || "", emoji: row.subjectEmoji || "", t1: [], t2: [], t3: [], all: [] });
+    if (!subjectMap.has(key)) subjectMap.set(key, { name: row.subjectName || "", emoji: row.subjectEmoji || "", t1: { grades: [], puntos: [] }, t2: { grades: [], puntos: [] }, t3: { grades: [], puntos: [] }, all: { grades: [], puntos: [] } });
     const s = subjectMap.get(key)!;
     if (row.grade !== null) {
-      s.all.push(row.grade);
-      if (row.trimester === 1) s.t1.push(row.grade);
-      if (row.trimester === 2) s.t2.push(row.grade);
-      if (row.trimester === 3) s.t3.push(row.grade);
+      const pt = row.puntos || 10;
+      s.all.grades.push(row.grade);
+      s.all.puntos.push(pt);
+      if (row.trimester === 1) { s.t1.grades.push(row.grade); s.t1.puntos.push(pt); }
+      if (row.trimester === 2) { s.t2.grades.push(row.grade); s.t2.puntos.push(pt); }
+      if (row.trimester === 3) { s.t3.grades.push(row.grade); s.t3.puntos.push(pt); }
     }
   });
 
-  const avg = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+  const weightedAvg = (grades: number[], puntos: number[]) => {
+    if (grades.length === 0) return null;
+    const totalPts = puntos.reduce((a, b) => a + b, 0);
+    if (totalPts === 0) return null;
+    return Math.round((grades.reduce((sum, g, i) => sum + g * puntos[i], 0) / totalPts) * 100) / 100;
+  };
 
   const summary = Array.from(subjectMap.entries()).map(([_, s]) => ({
     subjectName: s.name,
     subjectEmoji: s.emoji,
-    t1Avg: avg(s.t1),
-    t2Avg: avg(s.t2),
-    t3Avg: avg(s.t3),
+    t1Avg: weightedAvg(s.t1.grades, s.t1.puntos),
+    t2Avg: weightedAvg(s.t2.grades, s.t2.puntos),
+    t3Avg: weightedAvg(s.t3.grades, s.t3.puntos),
     yearlyAvg: (() => {
-      const t1 = avg(s.t1);
-      const t2 = avg(s.t2);
-      const t3 = avg(s.t3);
-      const t1Val = s.t1.length > 0 ? (t1 ?? 0) : null;
-      const t2Val = s.t2.length > 0 ? (t2 ?? 0) : null;
-      const t3Val = s.t3.length > 0 ? (t3 ?? 0) : null;
-      const valid = [t1Val, t2Val, t3Val].filter(t => t !== null);
-      return valid.length > 0 ? Math.round(((t1Val ?? 0) + (t2Val ?? 0) + (t3Val ?? 0)) / 3 * 100) / 100 : null;
+      const t1 = weightedAvg(s.t1.grades, s.t1.puntos);
+      const t2 = weightedAvg(s.t2.grades, s.t2.puntos);
+      const t3 = weightedAvg(s.t3.grades, s.t3.puntos);
+      const vals = [t1, t2, t3].filter(v => v !== null);
+      return vals.length > 0 ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100) / 100 : null;
     })(),
-    totalGraded: s.all.length,
   }));
 
   const allAvgs = summary.flatMap(g => [g.t1Avg, g.t2Avg, g.t3Avg].filter(v => v !== null));

@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
         studentId: assignmentSubmissions.studentId,
         grade: assignmentSubmissions.grade,
         status: assignmentSubmissions.status,
+        puntos: assignments.puntos,
       })
       .from(assignmentSubmissions)
       .innerJoin(assignments, eq(assignmentSubmissions.assignmentId, assignments.id))
@@ -80,10 +81,10 @@ export async function GET(request: NextRequest) {
         inArray(assignments.subjectId, subjectIds),
       ));
 
-    const studentData = new Map<number, { grades: number[]; pending: number }>();
+    const studentData = new Map<number, { grades: number[]; puntosArr: number[]; pending: number }>();
 
     for (const s of uniqueIds) {
-      studentData.set(s, { grades: [], pending: 0 });
+      studentData.set(s, { grades: [], puntosArr: [], pending: 0 });
     }
 
     for (const g of grades) {
@@ -91,6 +92,7 @@ export async function GET(request: NextRequest) {
       if (!sd) continue;
       if (g.grade !== null && g.grade !== undefined) {
         sd.grades.push(g.grade);
+        sd.puntosArr.push(g.puntos || 10);
       }
     }
 
@@ -132,7 +134,8 @@ export async function GET(request: NextRequest) {
 
     for (const [_, sd] of studentData) {
       if (sd.grades.length > 0) {
-        const avg = sd.grades.reduce((a, b) => a + b, 0) / sd.grades.length;
+        const totalPts = sd.puntosArr.reduce((a, b) => a + b, 0);
+        const avg = sd.grades.reduce((sum, g, i) => sum + g * sd.puntosArr[i], 0) / totalPts;
         avgs.push(avg);
         if (avg < 7) bajoRendimiento++;
       }

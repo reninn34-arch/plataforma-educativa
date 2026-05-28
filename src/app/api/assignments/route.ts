@@ -125,6 +125,7 @@ export async function POST(request: NextRequest) {
         description,
         dueDate: dueDate ? new Date(dueDate) : null,
         trimester: trimester || 1,
+        puntos: parsed.data.puntos || 10,
       } as any)
       .returning();
 

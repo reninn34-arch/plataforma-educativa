@@ -75,6 +75,7 @@ export const assignmentSchema = z.object({
   description: z.string().min(1),
   subjectId: z.number().int().positive(),
   cursoId: z.number().int().positive().optional(),
+  puntos: z.number().int().min(1).optional(),
   dueDate: z.string().optional(),
   trimester: z.number().int().min(1).max(3).optional(),
   questions: z.array(z.object({

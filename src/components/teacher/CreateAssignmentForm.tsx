@@ -83,6 +83,7 @@ export function CreateAssignmentForm() {
   const [cursoId, setCursoId] = useState<number | null>(null);
   const [dueDate, setDueDate] = useState("");
   const [trimester, setTrimester] = useState(1);
+  const [puntos, setPuntos] = useState(10);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -293,7 +294,7 @@ export function CreateAssignmentForm() {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...body, subjectId, cursoId: cursoId || undefined }),
+        body: JSON.stringify({ ...body, subjectId, puntos, cursoId: cursoId || undefined }),
       });
 
       if (res.ok) {
@@ -574,6 +575,12 @@ export function CreateAssignmentForm() {
                         <option value={2}>Trimestre 2</option>
                         <option value={3}>Trimestre 3</option>
                       </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-foreground mb-1.5 block">Puntaje maximo</label>
+                      <input type="number" value={puntos} min={1} onChange={(e) => setPuntos(Math.max(1, parseInt(e.target.value) || 10))}
+                        className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm" />
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Cuanto vale esta tarea sobre el total</p>
                     </div>
                   </div>
                   <div>

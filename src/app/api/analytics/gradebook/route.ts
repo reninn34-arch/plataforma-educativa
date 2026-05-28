@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
         grade: assignmentSubmissions.grade,
         status: assignmentSubmissions.status,
         submittedAt: assignmentSubmissions.submittedAt,
+        puntos: assignments.puntos,
         cursoId: assignments.cursoId,
         cursoNombre: cursos.nombre,
       })
@@ -113,46 +114,58 @@ export async function GET(request: NextRequest) {
           t1Grades: [],
           t2Grades: [],
           t3Grades: [],
-        });
+          t1Puntos: [],
+          t2Puntos: [],
+          t3Puntos: [],
+        } as any);
       }
 
       if (row.grade !== null && row.grade !== undefined && row.subjectId) {
-        const subj = student.subjects.get(row.subjectId)!;
+        const subj = student.subjects.get(row.subjectId)! as any;
         subj.grades.push(row.grade);
-        if (row.trimester === 1) subj.t1Grades.push(row.grade);
-        if (row.trimester === 2) subj.t2Grades.push(row.grade);
-        if (row.trimester === 3) subj.t3Grades.push(row.grade);
+        const pt = row.puntos || 10;
+        if (row.trimester === 1) { subj.t1Grades.push(row.grade); subj.t1Puntos.push(pt); }
+        if (row.trimester === 2) { subj.t2Grades.push(row.grade); subj.t2Puntos.push(pt); }
+        if (row.trimester === 3) { subj.t3Grades.push(row.grade); subj.t3Puntos.push(pt); }
       }
     }
 
     const avg = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+    const weightedAvg = (grades: number[], puntos: number[]) => {
+      if (grades.length === 0) return null;
+      const totalPts = puntos.reduce((a, b) => a + b, 0);
+      if (totalPts === 0) return null;
+      const total = grades.reduce((sum, g, i) => sum + g * puntos[i], 0);
+      return Math.round((total / totalPts) * 100) / 100;
+    };
 
     const gradebook = Array.from(studentMap.values()).map(s => ({
       studentId: s.studentId,
       studentName: s.studentName,
       studentCedula: s.studentCedula,
       studentCursoNombre: s.studentCursoNombre,
-      subjects: Array.from(s.subjects.values()).map(subj => ({
-        subjectId: subj.subjectId,
-        subjectName: subj.subjectName,
-        subjectEmoji: subj.subjectEmoji,
-        t1Avg: avg(subj.t1Grades),
-        t2Avg: avg(subj.t2Grades),
-        t3Avg: avg(subj.t3Grades),
-        yearlyAvg: (() => {
-          const t1 = avg(subj.t1Grades);
-          const t2 = avg(subj.t2Grades);
-          const t3 = avg(subj.t3Grades);
-          const t1Val = subj.t1Grades.length > 0 ? (t1 ?? 0) : null;
-          const t2Val = subj.t2Grades.length > 0 ? (t2 ?? 0) : null;
-          const t3Val = subj.t3Grades.length > 0 ? (t3 ?? 0) : null;
-          const valid = [t1Val, t2Val, t3Val].filter(t => t !== null);
-          if (valid.length === 0) return null;
-          return Math.round(((t1Val ?? 0) + (t2Val ?? 0) + (t3Val ?? 0)) / 3 * 100) / 100;
-        })(),
-        totalGrades: subj.grades.length,
-        overallAvg: avg(subj.grades),
-      })),
+      subjects: Array.from(s.subjects.values()).map((subj: any) => {
+        const allPts = [...(subj.t1Puntos || []), ...(subj.t2Puntos || []), ...(subj.t3Puntos || [])];
+        const allGrades = subj.grades;
+        return {
+          subjectId: subj.subjectId,
+          subjectName: subj.subjectName,
+          subjectEmoji: subj.subjectEmoji,
+          t1Avg: weightedAvg(subj.t1Grades, subj.t1Puntos || []),
+          t2Avg: weightedAvg(subj.t2Grades, subj.t2Puntos || []),
+          t3Avg: weightedAvg(subj.t3Grades, subj.t3Puntos || []),
+          yearlyAvg: (() => {
+            const t1 = weightedAvg(subj.t1Grades, subj.t1Puntos || []);
+            const t2 = weightedAvg(subj.t2Grades, subj.t2Puntos || []);
+            const t3 = weightedAvg(subj.t3Grades, subj.t3Puntos || []);
+            const vals = [t1, t2, t3].filter(v => v !== null);
+            if (vals.length === 0) return null;
+            return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100) / 100;
+          })(),
+          totalGrades: subj.grades.length,
+          overallAvg: weightedAvg(subj.grades, allPts),
+        };
+      }),
     }));
 
     return NextResponse.json({ gradebook });

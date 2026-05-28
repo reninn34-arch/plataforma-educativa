@@ -129,6 +129,7 @@ export const assignments = pgTable("assignments", {
   description: text("description").notNull(),
   dueDate: timestamp("due_date"),
   trimester: integer("trimester").notNull().default(1),
+  puntos: integer("puntos").notNull().default(10),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
