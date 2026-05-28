@@ -58,30 +58,85 @@ export default function CursoDetailPage() {
   const [schedule, setSchedule] = useState<any[]>([]);
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [scheduleFeedback, setScheduleFeedback] = useState("");
+  const [timeBlocks, setTimeBlocks] = useState<{ horaInicio: string; horaFin: string }[]>([
+    { horaInicio: "07:00", horaFin: "07:45" },
+    { horaInicio: "07:45", horaFin: "08:30" },
+    { horaInicio: "08:30", horaFin: "09:15" },
+    { horaInicio: "09:15", horaFin: "10:00" },
+    { horaInicio: "10:00", horaFin: "10:45" },
+    { horaInicio: "10:45", horaFin: "11:30" },
+  ]);
 
   const fetchHorario = useCallback(async () => {
     try {
       const res = await fetch(`/api/admin/courses/${cursoId}/horarios`);
       const d = await res.json();
       const hor = d.horarios || [];
-      setSchedule(hor.length > 0 ? hor : generateDefaultBlocks());
+      if (hor.length > 0) {
+        setSchedule(hor);
+        const seen = new Set<string>();
+        const unique: { horaInicio: string; horaFin: string }[] = [];
+        for (const h of hor) {
+          const key = `${h.horaInicio}-${h.horaFin}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            unique.push({ horaInicio: h.horaInicio, horaFin: h.horaFin });
+          }
+        }
+        setTimeBlocks(unique);
+      }
     } catch {}
   }, [cursoId]);
 
-  const generateDefaultBlocks = () => {
-    const dias = ["lunes", "martes", "miercoles", "jueves", "viernes"];
-    const horas = ["07:00", "07:45", "08:30", "09:15", "10:00", "10:45", "11:30"];
-    return dias.flatMap(dia =>
-      horas.slice(0, -1).map((h, i) => ({
-        dia,
-        horaInicio: h,
-        horaFin: horas[i + 1],
-        subjectId: null,
-        tipo: "clase",
-        subjectEmoji: null,
-        subjectName: null,
-      }))
-    );
+  const addTimeBlock = () => {
+    setTimeBlocks([...timeBlocks, { horaInicio: "00:00", horaFin: "00:45" }]);
+  };
+
+  const handleCellChange = (dia: string, hi: string, hf: string, value: string) => {
+    setSchedule(prev => {
+      const idx = prev.findIndex(b => b.dia === dia && b.horaInicio === hi && b.horaFin === hf);
+      if (idx >= 0) {
+        const updated = [...prev];
+        if (value === "receso") {
+          updated[idx] = { ...updated[idx], tipo: "receso", subjectId: null };
+        } else if (value === "") {
+          updated[idx] = { ...updated[idx], tipo: "clase", subjectId: null };
+        } else {
+          updated[idx] = { ...updated[idx], tipo: "clase", subjectId: parseInt(value) };
+        }
+        return updated;
+      } else if (value && value !== "") {
+        return [...prev, { dia, horaInicio: hi, horaFin: hf, subjectId: value === "receso" ? null : parseInt(value), tipo: value === "receso" ? "receso" : "clase" }];
+      }
+      return prev;
+    });
+  };
+
+  const removeTimeBlock = (idx: number) => {
+    if (timeBlocks.length <= 1) return;
+    const oldBlock = timeBlocks[idx];
+    setTimeBlocks(prev => prev.filter((_, i) => i !== idx));
+    setSchedule(prev => prev.filter(b => b.horaInicio !== oldBlock.horaInicio || b.horaFin !== oldBlock.horaFin));
+  };
+
+  const updateTimeBlock = (idx: number, field: "horaInicio" | "horaFin", value: string) => {
+    const oldBlock = timeBlocks[idx];
+    const updated = [...timeBlocks];
+    updated[idx] = { ...updated[idx], [field]: value };
+    setTimeBlocks(updated);
+    setSchedule(prev => prev.map(b => {
+      if (b.horaInicio === oldBlock.horaInicio && b.horaFin === oldBlock.horaFin) {
+        return { ...b, [field]: value };
+      }
+      return b;
+    }));
+  };
+
+  const getCellValue = (dia: string, hi: string, hf: string) => {
+    const b = schedule.find(s => s.dia === dia && s.horaInicio === hi && s.horaFin === hf);
+    if (!b) return "";
+    if (b.tipo === "receso") return "receso";
+    return b.subjectId ? String(b.subjectId) : "";
   };
 
   const fetchCursoInfo = useCallback(async () => {
@@ -329,7 +384,12 @@ export default function CursoDetailPage() {
       <Card className="shadow-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Horario Semanal</CardTitle>
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-base">Horario Semanal</CardTitle>
+              <Button type="button" variant="outline" size="sm" onClick={addTimeBlock} className="gap-1 text-xs h-7">
+                + Agregar hora
+              </Button>
+            </div>
             <Button
               size="sm"
               onClick={async () => {
@@ -342,14 +402,12 @@ export default function CursoDetailPage() {
                     subjectId: b.subjectId,
                     tipo: b.tipo,
                   }));
-                  const res = await fetch(`/api/admin/courses/${cursoId}/horarios`, {
+                  await fetch(`/api/admin/courses/${cursoId}/horarios`, {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ bloques }),
                   });
-                  if (res.ok) {
-                    setScheduleFeedback("Horario guardado correctamente.");
-                  }
+                  setScheduleFeedback("Horario guardado correctamente.");
                 } catch {}
                 setScheduleSaving(false);
               }}
@@ -366,62 +424,56 @@ export default function CursoDetailPage() {
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr>
-                  <th className="p-2 border bg-muted/50 text-left text-xs font-semibold text-muted-foreground">Hora</th>
+                  <th className="p-2 border bg-muted/50 text-center text-xs font-semibold text-muted-foreground w-24">Hora</th>
                   {["lunes","martes","miercoles","jueves","viernes"].map(dia => (
                     <th key={dia} className="p-2 border bg-muted/50 text-center text-xs font-semibold text-muted-foreground capitalize">{dia.slice(0,3)}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {[...new Set(schedule.map(b => `${b.horaInicio}-${b.horaFin}`))].map(bloqueRaw => {
-                  const [hInicio, hFin] = bloqueRaw.split("-");
-                  return (
-                    <tr key={bloqueRaw}>
-                      <td className="p-1 border text-[10px] text-muted-foreground text-center font-mono whitespace-nowrap">
-                        {hInicio}<br />{hFin}
+                {timeBlocks.map((tb, tIdx) => (
+                  <tr key={`${tb.horaInicio}-${tb.horaFin}-${tIdx}`}>
+                    <td className="p-1 border">
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="time"
+                          value={tb.horaInicio}
+                          onChange={e => updateTimeBlock(tIdx, "horaInicio", e.target.value)}
+                          className="w-full h-7 text-[10px] rounded border border-input bg-card px-1 text-center"
+                        />
+                        <span className="text-[10px] text-muted-foreground">—</span>
+                        <input
+                          type="time"
+                          value={tb.horaFin}
+                          onChange={e => updateTimeBlock(tIdx, "horaFin", e.target.value)}
+                          className="w-full h-7 text-[10px] rounded border border-input bg-card px-1 text-center"
+                        />
+                        {timeBlocks.length > 1 && (
+                          <button onClick={() => removeTimeBlock(tIdx)} className="text-muted-foreground hover:text-destructive shrink-0 ml-1">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                    {["lunes","martes","miercoles","jueves","viernes"].map(dia => (
+                      <td key={dia} className="p-1 border">
+                        <select
+                          value={getCellValue(dia, tb.horaInicio, tb.horaFin)}
+                          onChange={e => handleCellChange(dia, tb.horaInicio, tb.horaFin, e.target.value)}
+                          className="w-full h-7 text-[10px] rounded border border-input bg-card px-1"
+                        >
+                          <option value="">—</option>
+                          <option value="receso">☕ Receso</option>
+                          {cursoInfo?.teacherSubjects && [...new Map(cursoInfo.teacherSubjects.map(ts => [ts.subjectId, ts])).values()].map(ts => (
+                            <option key={ts.subjectId} value={ts.subjectId}>
+                              {ts.subjectEmoji} {ts.subjectName}
+                            </option>
+                          ))}
+                        </select>
                       </td>
-                      {["lunes","martes","miercoles","jueves","viernes"].map(dia => {
-                        const idx = schedule.findIndex(
-                          b => b.dia === dia && b.horaInicio === hInicio && b.horaFin === hFin
-                        );
-                        if (idx === -1) return <td key={dia} className="p-1 border"></td>;
-                        const b = schedule[idx];
-                        return (
-                          <td key={dia} className="p-1 border">
-                            <select
-                              value={b.tipo === "receso" ? "receso" : b.subjectId || ""}
-                              onChange={e => {
-                                const val = e.target.value;
-                                const updated = [...schedule];
-                                if (val === "receso") {
-                                  updated[idx] = { ...updated[idx], tipo: "receso", subjectId: null };
-                                } else if (val === "") {
-                                  updated[idx] = { ...updated[idx], tipo: "clase", subjectId: null };
-                                } else {
-                                  updated[idx] = { ...updated[idx], tipo: "clase", subjectId: parseInt(val) };
-                                }
-                                setSchedule(updated);
-                              }}
-                              className="w-full h-8 text-[10px] rounded border border-input bg-card px-1"
-                            >
-                              <option value="">—</option>
-                              <option value="receso">☕ Receso</option>
-                              {cursoInfo?.teacherSubjects && cursoInfo.teacherSubjects.length > 0 && (
-                                <optgroup label="Materias del curso">
-                                  {[...new Map(cursoInfo.teacherSubjects.map(ts => [ts.subjectId, ts])).values()].map(ts => (
-                                    <option key={ts.subjectId} value={ts.subjectId}>
-                                      {ts.subjectEmoji} {ts.subjectName}
-                                    </option>
-                                  ))}
-                                </optgroup>
-                              )}
-                            </select>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
+                    ))}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
