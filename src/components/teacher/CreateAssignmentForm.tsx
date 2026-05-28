@@ -320,15 +320,17 @@ export function CreateAssignmentForm() {
             <CardContent>
               {loadingSubs ? (
                 <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-              ) : submissions.length === 0 ? (
-                <div className="py-8 text-center">
-                  <FileText className="mx-auto h-8 w-8 text-muted-foreground/30" />
-                  <p className="mt-2 text-sm text-muted-foreground">Sin entregas aun</p>
-                </div>
               ) : (
-                <div className="space-y-4">
-                  {submissions.map((s, i) => (
-                    <Card key={i} className="shadow-sm">
+                <>
+                  {submissions.length === 0 ? (
+                    <div className="py-8 text-center">
+                      <FileText className="mx-auto h-8 w-8 text-muted-foreground/30" />
+                      <p className="mt-2 text-sm text-muted-foreground">Sin entregas aun</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {submissions.map((s, i) => (
+                        <Card key={i} className="shadow-sm">
                       <CardContent className="p-4 space-y-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
@@ -472,6 +474,8 @@ export function CreateAssignmentForm() {
                     </div>
                   ))}
                 </div>
+              )}
+              </>
               )}
             </CardContent>
           </Card>
