@@ -65,7 +65,16 @@ export async function GET(request: NextRequest) {
 
     const studentIds = [...new Set(studentRows.map(s => s.id))];
 
-    const progressData = studentIds.length > 0 ? await db
+    const teacherSubjects = await db
+      .select({ subjectId: cursoProfesores.subjectId })
+      .from(cursoProfesores)
+      .where(and(
+        eq(cursoProfesores.teacherId, teacher.id),
+        inArray(cursoProfesores.cursoId, targetCursoIds)
+      ));
+    const subjectIds = [...new Set(teacherSubjects.map(s => s.subjectId))];
+
+    const progressData = studentIds.length > 0 && subjectIds.length > 0 ? await db
       .select({
         userId: progress.userId,
         subjectId: progress.subjectId,
@@ -78,7 +87,10 @@ export async function GET(request: NextRequest) {
       })
       .from(progress)
       .innerJoin(subjects, eq(progress.subjectId, subjects.id))
-      .where(inArray(progress.userId, studentIds)) : [];
+      .where(and(
+        inArray(progress.userId, studentIds),
+        inArray(progress.subjectId, subjectIds),
+      )) : [];
 
     const progressByStudent: Record<number, {
       subjectId: number; subjectName: string; subjectEmoji: string;

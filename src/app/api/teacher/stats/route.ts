@@ -62,6 +62,25 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const teacherSubjects = await db
+      .select({ subjectId: cursoProfesores.subjectId })
+      .from(cursoProfesores)
+      .where(and(
+        eq(cursoProfesores.teacherId, teacher.id),
+        inArray(cursoProfesores.cursoId, targetIds)
+      ));
+    const subjectIds = [...new Set(teacherSubjects.map(s => s.subjectId))];
+
+    if (subjectIds.length === 0) {
+      return NextResponse.json({
+        totalEstudiantes,
+        enRiesgo: 0,
+        inactivos: 0,
+        promedio: 0,
+        totalCursos: targetIds.length,
+      });
+    }
+
     const risikoData = await db
       .select({
         userId: progress.userId,
@@ -70,7 +89,10 @@ export async function GET(request: NextRequest) {
         percentage: progress.percentage,
       })
       .from(progress)
-      .where(inArray(progress.userId, uniqueStudentIds));
+      .where(and(
+        inArray(progress.userId, uniqueStudentIds),
+        inArray(progress.subjectId, subjectIds),
+      ));
 
     const enRiesgoSet = new Set<number>();
     const inactivosSet = new Set<number>();
