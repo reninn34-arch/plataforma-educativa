@@ -89,21 +89,46 @@ export default function TeacherCursosPage() {
                 {schedule[c.id] && schedule[c.id].length > 0 && (
                   <div>
                     <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                      🕐 Tu horario en este curso
+                      🕐 Tu horario
                     </p>
-                    <div className="space-y-1">
-                      {schedule[c.id].slice(0, 5).map((h: any, i: number) => (
-                        <div key={i} className="flex items-center gap-2 text-xs">
-                          <span className="text-muted-foreground capitalize w-8">{h.dia.slice(0, 3)}</span>
-                          <span className="text-muted-foreground font-mono w-20">{h.horaInicio}-{h.horaFin}</span>
-                          <span>{h.subjectEmoji} {h.subjectName}</span>
-                        </div>
-                      ))}
-                      {schedule[c.id].length > 5 && (
-                        <p className="text-[10px] text-muted-foreground pl-28">
-                          +{schedule[c.id].length - 5} bloques mas
-                        </p>
-                      )}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-[10px] border-collapse">
+                        <thead>
+                          <tr>
+                            {["lun","mar","mie","jue","vie"].map(d => {
+                              const diaBloques = schedule[c.id].filter((h: any) => h.dia.startsWith(d));
+                              return (
+                                <th key={d} className="p-1 border bg-muted/30 text-center font-semibold capitalize">
+                                  {d}
+                                </th>
+                              );
+                            })}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            {["lunes","martes","miercoles","jueves","viernes"].map(dia => {
+                              const bloques = schedule[c.id].filter((h: any) => h.dia === dia);
+                              return (
+                                <td key={dia} className="p-1 border align-top">
+                                  {bloques.length === 0 ? (
+                                    <span className="text-muted-foreground/40">—</span>
+                                  ) : (
+                                    <div className="space-y-0.5">
+                                      {bloques.map((b: any, i: number) => (
+                                        <div key={i} className="text-center leading-tight">
+                                          <span>{b.subjectEmoji}</span>
+                                          <div className="text-[8px] text-muted-foreground">{b.horaInicio}</div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 )}
