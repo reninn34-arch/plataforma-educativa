@@ -58,7 +58,15 @@ export default function StudentDashboard() {
       .catch(() => {});
   }, []);
 
-  const pendingAssignments = assignments.filter((a: any) => a.status !== "graded" && a.status !== "submitted");
+  const pendingAssignments = assignments.filter((a: any) => {
+    if (a.status === "graded" || a.status === "submitted") return false;
+    if (a.dueDate && new Date(a.dueDate).getTime() < Date.now()) return false;
+    return true;
+  });
+  const expiredAssignments = assignments.filter((a: any) => {
+    if (a.status === "graded" || a.status === "submitted") return false;
+    return a.dueDate && new Date(a.dueDate).getTime() < Date.now();
+  });
   const submittedAssignments = assignments.filter((a: any) => a.status === "submitted");
   const totalSessions = metrics?.totalSessions || 0;
   const accuracy = metrics?.accuracy || 0;
@@ -103,6 +111,12 @@ export default function StudentDashboard() {
               <p className="text-2xl font-bold">{pendingAssignments.length}</p>
             </CardContent>
           </Card>
+          <Card className="shadow-sm border-l-4 border-l-red-400">
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground mb-1">Vencidas</p>
+              <p className="text-2xl font-bold">{expiredAssignments.length}</p>
+            </CardContent>
+          </Card>
           <Card className="shadow-sm border-l-4 border-l-emerald-500">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground mb-1">Entregadas</p>
@@ -122,14 +136,12 @@ export default function StudentDashboard() {
           </Card>
         </div>
 
-        {/* Assignments list */}
+        {/* Active pending assignments */}
         <Card className="shadow-sm">
           <CardContent className="p-0">
-            {assignments.length > 0 ? (
+            {pendingAssignments.length > 0 ? (
               <div className="divide-y">
-                {assignments.slice(0, 5).map((a) => {
-                  const isPending = a.status !== "graded" && a.status !== "submitted";
-                  const isSubmitted = a.status === "submitted";
+                {pendingAssignments.slice(0, 5).map((a) => {
                   return (
                     <Link
                       key={a.id}
@@ -137,20 +149,12 @@ export default function StudentDashboard() {
                       className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors group"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center ${
-                          isSubmitted ? "bg-emerald-100 text-emerald-600" :
-                          isPending ? "bg-amber-100 text-amber-600" :
-                          "bg-slate-100 text-slate-500"
-                        }`}>
-                          {isSubmitted ? <CheckCircle2 className="h-4 w-4" /> :
-                           isPending ? <AlertCircle className="h-4 w-4" /> :
-                           <CheckCircle2 className="h-4 w-4" />}
+                        <div className="h-8 w-8 shrink-0 rounded-full flex items-center justify-center bg-amber-100 text-amber-600 text-sm">
+                          {a.subjectEmoji || "📋"}
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-medium truncate">{a.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {a.subjectName}
-                          </p>
+                          <p className="text-xs text-muted-foreground">{a.subjectName}</p>
                           {a.dueDate && (
                             <div className="mt-0.5">
                               <DueTimer dueDate={a.dueDate} compact />
@@ -158,37 +162,33 @@ export default function StudentDashboard() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {isPending && (
-                          <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
-                            Pendiente
-                          </Badge>
-                        )}
-                        {isSubmitted && (
-                          <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200">
-                            Entregada
-                          </Badge>
-                        )}
-                        {a.status === "graded" && a.grade != null && (
-                          <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
-                            {a.grade}/100
-                          </Badge>
-                        )}
-                        <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
-                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
                     </Link>
                   );
                 })}
               </div>
             ) : (
-              <div className="p-8 text-center space-y-2">
-                <ClipboardList className="h-10 w-10 text-muted-foreground/30 mx-auto" />
-                <p className="text-sm text-muted-foreground">No tienes tareas asignadas por ahora.</p>
-                <p className="text-xs text-muted-foreground/70">Cuando un docente te envie una evaluacion, aparecera aqui.</p>
+              <div className="p-6 text-center">
+                <CheckCircle2 className="h-8 w-8 text-muted-foreground/30 mx-auto" />
+                <p className="text-sm text-muted-foreground mt-2">No tienes tareas pendientes</p>
               </div>
             )}
           </CardContent>
         </Card>
+
+        <div className="flex justify-between items-center">
+          <Link
+            href="/student/assignments"
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-medium transition-colors"
+          >
+            Ver todas mis tareas <ArrowRight className="h-3 w-3" />
+          </Link>
+          {expiredAssignments.length > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {expiredAssignments.length} {expiredAssignments.length === 1 ? "tarea vencida" : "tareas vencidas"}
+            </span>
+          )}
+        </div>
 
         <div>
           <Link
