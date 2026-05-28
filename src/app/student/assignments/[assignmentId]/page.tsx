@@ -159,7 +159,11 @@ export default function AssignmentSubmitPage() {
             <span className="text-xl">{assignment.subjectEmoji}</span>
             <div>
               <span className="text-base font-bold text-foreground">{assignment.subjectName}</span>
-              <p className="text-xs text-muted-foreground">Entrega de tarea</p>
+              <p className="text-xs text-muted-foreground">
+                {assignment.dueDate 
+                  ? `Entrega: ${new Date(assignment.dueDate).toLocaleDateString("es-EC", { day: "numeric", month: "long", year: "numeric" })} a las ${new Date(assignment.dueDate).toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })}`
+                  : "Entrega de tarea"}
+              </p>
             </div>
           </div>
           {isSubmitted && <Badge variant="default" className="gap-1"><CheckCircle className="h-3 w-3" /> Entregado</Badge>}

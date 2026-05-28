@@ -8,8 +8,8 @@ interface DueTimerProps {
   compact?: boolean;
 }
 
-function formatTimeLeft(ms: number): { label: string; urgent: "normal" | "soon" | "critical" | "expired" } {
-  if (ms <= 0) return { label: "Vencida", urgent: "expired" };
+function formatTimeLeft(ms: number): { label: string; dateTime: string; urgent: "normal" | "soon" | "critical" | "expired" } {
+  if (ms <= 0) return { label: "Vencida", dateTime: "", urgent: "expired" };
 
   const totalMinutes = Math.floor(ms / 60000);
   const totalHours = Math.floor(ms / 3600000);
@@ -17,30 +17,31 @@ function formatTimeLeft(ms: number): { label: string; urgent: "normal" | "soon" 
   const hours = totalHours % 24;
   const minutes = totalMinutes % 60;
 
+  const deadline = new Date(Date.now() + ms);
+  const timeStr = deadline.toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" });
+  const dateStr = deadline.toLocaleDateString("es-EC", { day: "numeric", month: "short" });
+
   if (days > 0) {
-    const date = new Date(Date.now() + ms);
-    const timeStr = date.toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" });
     return {
-      label: `Vence ${date.toLocaleDateString("es-EC", { day: "numeric", month: "short" })}, ${timeStr} (${days} ${days === 1 ? "dia" : "dias"})`,
+      label: `${dateStr}, ${timeStr}`,
+      dateTime: `(${days} ${days === 1 ? "dia" : "dias"})`,
       urgent: "normal",
     };
   }
 
   if (totalHours >= 6) {
-    const date = new Date(Date.now() + ms);
-    const timeStr = date.toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" });
-    return { label: `Vence hoy, ${timeStr} (${totalHours}h)`, urgent: "soon" };
+    return { label: `Hoy, ${timeStr}`, dateTime: `(${totalHours}h)`, urgent: "soon" };
   }
 
   if (totalHours >= 1) {
-    return { label: `Vence en ${totalHours}h ${minutes}m`, urgent: "critical" };
+    return { label: `${totalHours}h ${minutes}m`, dateTime: timeStr, urgent: "critical" };
   }
 
   if (minutes >= 1) {
-    return { label: `Vence en ${minutes} min`, urgent: "critical" };
+    return { label: `${minutes} min`, dateTime: timeStr, urgent: "critical" };
   }
 
-  return { label: "Vence ahora", urgent: "critical" };
+  return { label: "Ahora", dateTime: timeStr, urgent: "critical" };
 }
 
 export function DueTimer({ dueDate, compact = false }: DueTimerProps) {
@@ -55,7 +56,7 @@ export function DueTimer({ dueDate, compact = false }: DueTimerProps) {
   if (!dueDate) return null;
 
   const msLeft = new Date(dueDate).getTime() - Date.now();
-  const { label, urgent } = formatTimeLeft(msLeft);
+  const { label, dateTime, urgent } = formatTimeLeft(msLeft);
 
   const colors = {
     normal: "bg-blue-50 text-blue-700 border-blue-200",
@@ -75,6 +76,7 @@ export function DueTimer({ dueDate, compact = false }: DueTimerProps) {
     <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${colors[urgent]}`}>
       {compact ? "" : <Clock className="h-3 w-3" />}
       {compact ? icons[urgent] : ""} {label}
+      {dateTime && <span className="opacity-70 ml-0.5">{dateTime}</span>}
     </span>
   );
 }
