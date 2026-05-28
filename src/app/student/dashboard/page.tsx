@@ -35,6 +35,7 @@ export default function StudentDashboard() {
   const [streakDays, setStreakDays] = useState(0);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<any>(null);
+  const [todaySchedule, setTodaySchedule] = useState<any[]>([]);
 
   useEffect(() => {
     fetch("/api/user/profile")
@@ -43,6 +44,11 @@ export default function StudentDashboard() {
         if (d.fullName) setUserName(d.fullName);
       })
       .catch(() => setUserName("Estudiante"));
+
+    fetch("/api/student/horario?today=true")
+      .then(r => r.json())
+      .then(d => { if (d.horarios) setTodaySchedule(d.horarios); })
+      .catch(() => {});
 
     fetch("/api/student/progress")
       .then(r => r.json())
@@ -204,6 +210,40 @@ export default function StudentDashboard() {
           </Link>
         </div>
       </section>
+
+      {/* Divider */}
+      <div className="border-t border-dashed" />
+
+      {todaySchedule.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-blue-500" />
+            <h2 className="text-base font-bold tracking-tight">Horario de Hoy</h2>
+          </div>
+          <div className="space-y-1.5">
+            {todaySchedule.map((b: any, i: number) => (
+              <Link
+                key={i}
+                href="/student/horario"
+                className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground font-mono w-24">{b.horaInicio} - {b.horaFin}</span>
+                  {b.tipo === "receso" ? (
+                    <Badge variant="secondary" className="text-[10px]">☕ Receso</Badge>
+                  ) : (
+                    <>
+                      <span className="text-lg">{b.subjectEmoji || "📚"}</span>
+                      <span className="text-sm font-medium">{b.subjectName || "Sin materia"}</span>
+                    </>
+                  )}
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Divider */}
       <div className="border-t border-dashed" />

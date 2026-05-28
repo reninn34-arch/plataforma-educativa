@@ -313,3 +313,15 @@ export const parentStudents = pgTable("parent_students", {
 }, (table) => ({
   uniqueParentStudent: unique("parent_student_unique").on(table.parentId, table.studentId),
 }));
+
+export const horarios = pgTable("horarios", {
+  id: serial("id").primaryKey(),
+  cursoId: integer("curso_id")
+    .notNull()
+    .references(() => cursos.id, { onDelete: "cascade" }),
+  dia: varchar("dia", { length: 15 }).notNull(),
+  horaInicio: varchar("hora_inicio", { length: 5 }).notNull(),
+  horaFin: varchar("hora_fin", { length: 5 }).notNull(),
+  subjectId: integer("subject_id").references(() => subjects.id, { onDelete: "set null" }),
+  tipo: varchar("tipo", { length: 15 }).notNull().default("clase"),
+});

@@ -55,6 +55,34 @@ export default function CursoDetailPage() {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailFeedback, setEmailFeedback] = useState("");
   const [resetPins, setResetPins] = useState(false);
+  const [schedule, setSchedule] = useState<any[]>([]);
+  const [scheduleSaving, setScheduleSaving] = useState(false);
+  const [scheduleFeedback, setScheduleFeedback] = useState("");
+
+  const fetchHorario = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/admin/courses/${cursoId}/horarios`);
+      const d = await res.json();
+      const hor = d.horarios || [];
+      setSchedule(hor.length > 0 ? hor : generateDefaultBlocks());
+    } catch {}
+  }, [cursoId]);
+
+  const generateDefaultBlocks = () => {
+    const dias = ["lunes", "martes", "miercoles", "jueves", "viernes"];
+    const horas = ["07:00", "07:45", "08:30", "09:15", "10:00", "10:45", "11:30"];
+    return dias.flatMap(dia =>
+      horas.slice(0, -1).map((h, i) => ({
+        dia,
+        horaInicio: h,
+        horaFin: horas[i + 1],
+        subjectId: null,
+        tipo: "clase",
+        subjectEmoji: null,
+        subjectName: null,
+      }))
+    );
+  };
 
   const fetchCursoInfo = useCallback(async () => {
     try {
@@ -98,6 +126,7 @@ export default function CursoDetailPage() {
   useEffect(() => {
     fetchCursoInfo();
     fetchStudents();
+    fetchHorario();
     fetch("/api/admin/users?role=student")
       .then(r => r.json()).then(d => setAllStudents(d.users || []))
       .catch(() => {});
@@ -289,6 +318,115 @@ export default function CursoDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      {scheduleFeedback && (
+        <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-medium text-emerald-700 flex items-center justify-between">
+          <span>{scheduleFeedback}</span>
+          <Button variant="ghost" size="icon-sm" onClick={() => setScheduleFeedback("")}><X className="h-3 w-3" /></Button>
+        </div>
+      )}
+
+      <Card className="shadow-sm">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Horario Semanal</CardTitle>
+            <Button
+              size="sm"
+              onClick={async () => {
+                setScheduleSaving(true);
+                try {
+                  const bloques = schedule.map(b => ({
+                    dia: b.dia,
+                    horaInicio: b.horaInicio,
+                    horaFin: b.horaFin,
+                    subjectId: b.subjectId,
+                    tipo: b.tipo,
+                  }));
+                  const res = await fetch(`/api/admin/courses/${cursoId}/horarios`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ bloques }),
+                  });
+                  if (res.ok) {
+                    setScheduleFeedback("Horario guardado correctamente.");
+                  }
+                } catch {}
+                setScheduleSaving(false);
+              }}
+              disabled={scheduleSaving}
+              className="gap-2"
+            >
+              {scheduleSaving && <Loader2 className="h-3 w-3 animate-spin" />}
+              Guardar horario
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr>
+                  <th className="p-2 border bg-muted/50 text-left text-xs font-semibold text-muted-foreground">Hora</th>
+                  {["lunes","martes","miercoles","jueves","viernes"].map(dia => (
+                    <th key={dia} className="p-2 border bg-muted/50 text-center text-xs font-semibold text-muted-foreground capitalize">{dia.slice(0,3)}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[...new Set(schedule.map(b => `${b.horaInicio}-${b.horaFin}`))].map(bloqueRaw => {
+                  const [hInicio, hFin] = bloqueRaw.split("-");
+                  return (
+                    <tr key={bloqueRaw}>
+                      <td className="p-1 border text-[10px] text-muted-foreground text-center font-mono whitespace-nowrap">
+                        {hInicio}<br />{hFin}
+                      </td>
+                      {["lunes","martes","miercoles","jueves","viernes"].map(dia => {
+                        const idx = schedule.findIndex(
+                          b => b.dia === dia && b.horaInicio === hInicio && b.horaFin === hFin
+                        );
+                        if (idx === -1) return <td key={dia} className="p-1 border"></td>;
+                        const b = schedule[idx];
+                        return (
+                          <td key={dia} className="p-1 border">
+                            <select
+                              value={b.tipo === "receso" ? "receso" : b.subjectId || ""}
+                              onChange={e => {
+                                const val = e.target.value;
+                                const updated = [...schedule];
+                                if (val === "receso") {
+                                  updated[idx] = { ...updated[idx], tipo: "receso", subjectId: null };
+                                } else if (val === "") {
+                                  updated[idx] = { ...updated[idx], tipo: "clase", subjectId: null };
+                                } else {
+                                  updated[idx] = { ...updated[idx], tipo: "clase", subjectId: parseInt(val) };
+                                }
+                                setSchedule(updated);
+                              }}
+                              className="w-full h-8 text-[10px] rounded border border-input bg-card px-1"
+                            >
+                              <option value="">—</option>
+                              <option value="receso">☕ Receso</option>
+                              {cursoInfo?.teacherSubjects && cursoInfo.teacherSubjects.length > 0 && (
+                                <optgroup label="Materias del curso">
+                                  {[...new Map(cursoInfo.teacherSubjects.map(ts => [ts.subjectId, ts])).values()].map(ts => (
+                                    <option key={ts.subjectId} value={ts.subjectId}>
+                                      {ts.subjectEmoji} {ts.subjectName}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              )}
+                            </select>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
