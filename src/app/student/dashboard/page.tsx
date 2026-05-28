@@ -195,14 +195,6 @@ export default function StudentDashboard() {
           )}
         </div>
 
-        <div>
-          <Link
-            href="/student/grades"
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-medium transition-colors"
-          >
-            Ver todas mis calificaciones <ArrowRight className="h-3 w-3" />
-          </Link>
-        </div>
       </section>
 
       {/* Divider */}
