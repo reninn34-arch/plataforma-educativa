@@ -26,6 +26,8 @@ export async function POST(request: NextRequest) {
     const { nombre, fechaInicio, fechaFin } = await request.json();
     if (!nombre) return NextResponse.json({ error: "Nombre requerido" }, { status: 400 });
 
+    await db.update(periodosLectivos).set({ activo: false }).where(eq(periodosLectivos.activo, true));
+
     const [created] = await db.insert(periodosLectivos).values({
       nombre,
       fechaInicio: fechaInicio ? new Date(fechaInicio) : null,

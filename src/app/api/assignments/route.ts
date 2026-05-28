@@ -25,11 +25,13 @@ export async function GET(request: NextRequest) {
           subjectSlug: subjects.slug,
           cursoId: assignments.cursoId,
           cursoNombre: cursos.nombre,
+          periodoNombre: periodosLectivos.nombre,
           submissionCount: db.$count(assignmentSubmissions, eq(assignmentSubmissions.assignmentId, assignments.id)),
         })
         .from(assignments)
         .leftJoin(subjects, eq(assignments.subjectId, subjects.id))
         .leftJoin(cursos, eq(assignments.cursoId, cursos.id))
+        .leftJoin(periodosLectivos, eq(assignments.periodoLectivoId, periodosLectivos.id))
         .where(eq(assignments.teacherId, user.id))
         .orderBy(desc(assignments.createdAt));
 

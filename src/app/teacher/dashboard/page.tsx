@@ -20,6 +20,7 @@ function DashboardContent() {
   const cursoId = searchParams.get("cursoId") ? parseInt(searchParams.get("cursoId")!) : null;
   const [cursos, setCursos] = useState<CursoOption[]>([]);
   const [selectedCurso, setSelectedCurso] = useState<CursoOption | null>(null);
+  const [activePeriod, setActivePeriod] = useState<{ nombre: string } | null>(null);
 
   useEffect(() => {
     fetch("/api/teacher/courses")
@@ -30,6 +31,13 @@ function DashboardContent() {
           const found = (d.cursos || []).find((c: CursoOption) => c.id === cursoId);
           if (found) setSelectedCurso(found);
         }
+      })
+      .catch(() => {});
+
+    fetch("/api/teacher/periodos")
+      .then(r => r.json())
+      .then(d => {
+        if (d.active) setActivePeriod(d.active);
       })
       .catch(() => {});
   }, [cursoId]);
@@ -68,6 +76,11 @@ function DashboardContent() {
             {selectedCurso
               ? `Estudiantes y progreso del curso ${selectedCurso.nombre}`
               : "Monitorea el progreso y riesgo de todos tus estudiantes"}
+            {activePeriod && (
+              <span className="ml-3 inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
+                📅 {activePeriod.nombre}
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-3">

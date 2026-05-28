@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { periodosLectivos } from "@/lib/db/schema";
+import { periodosLectivos, assignments } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
@@ -14,14 +14,20 @@ export async function PUT(
 
   try {
     const { id } = await params;
+    const periodoId = parseInt(id);
     const { nombre, fechaInicio, fechaFin, activo } = await request.json();
+
+    if (activo === true) {
+      await db.update(periodosLectivos).set({ activo: false }).where(eq(periodosLectivos.activo, true));
+    }
+
     const updateData: Record<string, any> = {};
     if (nombre) updateData.nombre = nombre;
     if (fechaInicio !== undefined) updateData.fechaInicio = fechaInicio ? new Date(fechaInicio) : null;
     if (fechaFin !== undefined) updateData.fechaFin = fechaFin ? new Date(fechaFin) : null;
     if (activo !== undefined) updateData.activo = activo;
 
-    await db.update(periodosLectivos).set(updateData).where(eq(periodosLectivos.id, parseInt(id)));
+    await db.update(periodosLectivos).set(updateData).where(eq(periodosLectivos.id, periodoId));
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: "Error al actualizar" }, { status: 500 });
@@ -38,7 +44,19 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-    await db.delete(periodosLectivos).where(eq(periodosLectivos.id, parseInt(id)));
+    const periodoId = parseInt(id);
+
+    const refs = await db
+      .select({ id: assignments.id })
+      .from(assignments)
+      .where(eq(assignments.periodoLectivoId, periodoId))
+      .limit(1);
+
+    if (refs.length > 0) {
+      return NextResponse.json({ error: "No se puede eliminar. Hay tareas asignadas a este periodo." }, { status: 400 });
+    }
+
+    await db.delete(periodosLectivos).where(eq(periodosLectivos.id, periodoId));
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: "Error al eliminar" }, { status: 500 });

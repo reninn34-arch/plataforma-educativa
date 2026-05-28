@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { assignments, assignmentSubmissions, subjects, users, cursos, cursoProfesores } from "@/lib/db/schema";
+import { assignments, assignmentSubmissions, subjects, users, cursos, cursoProfesores, periodosLectivos } from "@/lib/db/schema";
 import { eq, and, desc, asc, inArray } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
 
   const trimester = parseInt(request.nextUrl.searchParams.get("trimester") || "0");
   const cursoIdParam = request.nextUrl.searchParams.get("cursoId");
+  const periodoIdParam = request.nextUrl.searchParams.get("periodoId");
 
   try {
     const mySubjectCourses = await db
@@ -45,6 +46,19 @@ export async function GET(request: NextRequest) {
     if (trimester > 0) conditions.push(eq(assignments.trimester, trimester));
     if (targetCursoIds.length > 0) {
       conditions.push(inArray(assignments.cursoId, targetCursoIds));
+    }
+
+    if (periodoIdParam) {
+      conditions.push(eq(assignments.periodoLectivoId, parseInt(periodoIdParam)));
+    } else {
+      const [activePeriod] = await db
+        .select({ id: periodosLectivos.id })
+        .from(periodosLectivos)
+        .where(eq(periodosLectivos.activo, true))
+        .limit(1);
+      if (activePeriod) {
+        conditions.push(eq(assignments.periodoLectivoId, activePeriod.id));
+      }
     }
 
     const data = await db

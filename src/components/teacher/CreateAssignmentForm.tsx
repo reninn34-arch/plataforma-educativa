@@ -46,6 +46,7 @@ interface Assignment {
   subjectSlug: string;
   cursoId?: number | null;
   cursoNombre?: string | null;
+  periodoNombre?: string | null;
   submissionCount?: number;
 }
 
@@ -91,6 +92,7 @@ export function CreateAssignmentForm() {
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [subjectsList, setSubjectsList] = useState<SubjectData[]>([]);
   const [cursosList, setCursosList] = useState<CursoData[]>([]);
+  const [activePeriod, setActivePeriod] = useState<string | null>(null);
 
   const [selectedAssignment, setSelectedAssignment] = useState<number | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -173,6 +175,10 @@ export function CreateAssignmentForm() {
     }).catch(() => {});
     fetch("/api/teacher/courses").then(r => r.json()).then(d => {
       setCursosList(d.cursos || []);
+    }).catch(() => {});
+
+    fetch("/api/teacher/periodos").then(r => r.json()).then(d => {
+      if (d.active) setActivePeriod(d.active.nombre);
     }).catch(() => {});
   }, []);
 
@@ -524,7 +530,13 @@ export function CreateAssignmentForm() {
             <Card className="shadow-sm animate-scale-in">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">{editId ? "Editar tarea" : "Crear nueva tarea"}</CardTitle>
+                  <CardTitle className="text-base">{editId ? "Editar tarea" : "Crear nueva tarea"}
+                    {activePeriod && (
+                      <Badge variant="outline" className="ml-2 text-[10px] bg-blue-50 text-blue-700 border-blue-200">
+                        📅 {activePeriod}
+                      </Badge>
+                    )}
+                  </CardTitle>
                   <Button variant="ghost" size="icon-sm" onClick={cancelEdit}><X className="h-4 w-4" /></Button>
                 </div>
               </CardHeader>
@@ -681,6 +693,9 @@ export function CreateAssignmentForm() {
                           <Badge variant="secondary" className="text-[10px]">{a.subjectName}</Badge>
                           {a.cursoNombre && (
                             <Badge variant="outline" className="text-[10px]">{a.cursoNombre}</Badge>
+                          )}
+                          {a.periodoNombre && (
+                            <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">{a.periodoNombre}</Badge>
                           )}
                         </div>
                         <h3 className="font-bold text-foreground">{a.title}</h3>
