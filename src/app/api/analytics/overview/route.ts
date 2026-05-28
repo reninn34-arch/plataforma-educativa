@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
         totalSessions: sql<number>`count(distinct ${practiceSessions.id})`.mapWith(Number),
         totalAnswers: sql<number>`count(${practiceAnswers.id})`.mapWith(Number),
         avgScore: sql<number>`round(avg(${practiceSessions.score}))`.mapWith(Number),
-        avgCorrect: sql<number>`round(avg(cast(${practiceSessions.correctCount} as numeric) / cast(${practiceSessions.totalCount} as numeric) * 100))`.mapWith(Number),
+        avgCorrect: sql<number>`round(avg(case when ${practiceSessions.totalCount} > 0 then cast(${practiceSessions.correctCount} as numeric) / cast(${practiceSessions.totalCount} as numeric) * 100 else null end))`.mapWith(Number),
       })
       .from(practiceSessions)
       .leftJoin(practiceAnswers, eq(practiceAnswers.sessionId, practiceSessions.id));
