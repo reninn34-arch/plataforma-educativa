@@ -82,8 +82,30 @@ export function CreateAssignmentForm() {
 
   const [selectedAssignment, setSelectedAssignment] = useState<number | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [notSubmitted, setNotSubmitted] = useState<{ studentId: number; studentName: string; studentCedula: string; expired: boolean }[]>([]);
   const [loadingSubs, setLoadingSubs] = useState(false);
   const [gradingSub, setGradingSub] = useState<{ id: number; grade: number; feedback: string } | null>(null);
+  const [absentLoading, setAbsentLoading] = useState<number | null>(null);
+
+  const handleMarkAbsent = async (studentId: number) => {
+    setAbsentLoading(studentId);
+    try {
+      const res = await fetch(`/api/assignments/${selectedAssignment}/mark-absent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId }),
+      });
+      if (res.ok) {
+        viewSubmissions(selectedAssignment!);
+      } else {
+        const d = await res.json();
+        setErrorMsg(d.error || "Error al marcar");
+      }
+    } catch {
+      setErrorMsg("Error de conexion");
+    }
+    setAbsentLoading(null);
+  };
 
   const handleGrade = async (submissionId: number, grade: number, feedback: string) => {
     try {
@@ -133,6 +155,7 @@ export function CreateAssignmentForm() {
       const res = await fetch(`/api/assignments/${aid}`);
       const data = await res.json();
       if (data.submissions) setSubmissions(data.submissions);
+      if (data.notSubmitted) setNotSubmitted(data.notSubmitted);
     } catch {
       setErrorMsg("Error al cargar entregas");
     }
@@ -413,6 +436,40 @@ export function CreateAssignmentForm() {
                         )}
                       </CardContent>
                     </Card>
+                  ))}
+                </div>
+              )}
+
+              {notSubmitted.length > 0 && (
+                <div className="border-t pt-4 space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    No entregados ({notSubmitted.length})
+                  </p>
+                  {notSubmitted.map((ns) => (
+                    <div key={ns.studentId} className="flex items-center justify-between rounded-lg border bg-card p-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${ns.expired ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-600"}`}>
+                          {ns.expired ? "❌" : "⏳"}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{ns.studentName}</p>
+                          <p className="text-xs text-muted-foreground">{ns.studentCedula}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {ns.expired ? (
+                          <Badge variant="destructive" className="text-[10px]">Plazo vencido</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">Pendiente</Badge>
+                        )}
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                          disabled={absentLoading === ns.studentId}
+                          onClick={() => handleMarkAbsent(ns.studentId)}>
+                          {absentLoading === ns.studentId ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+                          No entrego (0)
+                        </Button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}

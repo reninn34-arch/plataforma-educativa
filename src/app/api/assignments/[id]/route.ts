@@ -47,6 +47,7 @@ export async function GET(
 
     // Get submissions
     let submissions: any[] = [];
+    let notSubmitted: any[] = [];
     if (user.role === "teacher") {
       submissions = await db
         .select({
@@ -91,6 +92,22 @@ export async function GET(
           .length,
         mcqTotal: questions.filter(q => q.type === "mcq").length,
       }));
+
+      // Find students who haven't submitted
+      const allStudents = await db
+        .select({ id: users.id, fullName: users.fullName, cedula: users.cedula })
+        .from(users)
+        .where(eq(users.role, "student"));
+
+      const submittedIds = new Set(submissions.map(s => s.studentId));
+      const notSubmitted = allStudents
+        .filter(s => !submittedIds.has(s.id))
+        .map(s => ({
+          studentId: s.id,
+          studentName: s.fullName,
+          studentCedula: s.cedula,
+          expired: assignment.dueDate ? new Date() > new Date(assignment.dueDate) : false,
+        }));
     } else {
       const [sub] = await db
         .select({
@@ -135,11 +152,11 @@ export async function GET(
         options: q.options,
         points: q.points,
         orderIndex: q.orderIndex,
-        // Only send correctIndex to teacher
         correctIndex: user.role === "teacher" ? q.correctIndex : undefined,
       })),
       submissions,
       role: user.role,
+      ...(user.role === "teacher" && { notSubmitted }),
     });
   } catch (error) {
     console.error("GET /api/assignments/[id] error:", error);
