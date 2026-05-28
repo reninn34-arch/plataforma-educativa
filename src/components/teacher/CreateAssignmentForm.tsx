@@ -156,6 +156,7 @@ export function CreateAssignmentForm() {
       const data = await res.json();
       if (data.submissions) setSubmissions(data.submissions);
       if (data.notSubmitted) setNotSubmitted(data.notSubmitted);
+      console.log("[viewSubmissions] notSubmitted count:", data.notSubmitted?.length ?? 0, data.notSubmitted);
     } catch {
       setErrorMsg("Error al cargar entregas");
     }
@@ -442,12 +443,16 @@ export function CreateAssignmentForm() {
                 </div>
               )}
 
-              {notSubmitted.length > 0 && (
-                <div className="border-t pt-4 space-y-3">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    No entregados ({notSubmitted.length})
+              <div className="border-t pt-4 space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  No entregados ({notSubmitted.length})
+                </p>
+                {notSubmitted.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-2">
+                    ✅ Todos los estudiantes han entregado
                   </p>
-                  {notSubmitted.map((ns) => (
+                ) : (
+                  notSubmitted.map((ns) => (
                     <div key={ns.studentId} className="flex items-center justify-between rounded-lg border bg-card p-3">
                       <div className="flex items-center gap-3">
                         <div className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${ns.expired ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-600"}`}>
@@ -472,9 +477,9 @@ export function CreateAssignmentForm() {
                         </Button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  ))
+                )}
+              </div>
               </>
               )}
             </CardContent>
