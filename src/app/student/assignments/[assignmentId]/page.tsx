@@ -199,8 +199,8 @@ export default function AssignmentSubmitPage() {
           </CardContent>
         </Card>
 
-        {/* MCQ Questions */}
-        {hasMcq && (
+        {/* MCQ Questions — only if not expired or already submitted */}
+        {(!isExpired || isSubmitted) && hasMcq && (
           <Card className="shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -243,8 +243,8 @@ export default function AssignmentSubmitPage() {
           </Card>
         )}
 
-        {/* File Upload */}
-        {hasFile && (
+        {/* File Upload — only if not expired or already submitted */}
+        {(!isExpired || isSubmitted) && hasFile && (
           <Card className="shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
