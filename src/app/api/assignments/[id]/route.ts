@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentQuestions, assignmentSubmissions, submissionAnswers, subjects, users } from "@/lib/db/schema";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, and, asc, inArray } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
 export async function GET(
@@ -162,27 +162,48 @@ export async function PUT(
     const { id } = await params;
     const assignmentId = parseInt(id);
 
-    const { title, description, dueDate, trimester, questions } = await request.json();
+    const { title, description, dueDate, trimester, subjectId, questions } = await request.json();
 
     if (!title || !description) {
       return NextResponse.json({ error: "Titulo y descripcion requeridos" }, { status: 400 });
     }
 
+    // Verify teacher owns this assignment
+    const [existing] = await db
+      .select({ teacherId: assignments.teacherId })
+      .from(assignments)
+      .where(eq(assignments.id, assignmentId))
+      .limit(1);
+    if (!existing || existing.teacherId !== user.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
     // Update assignment
+    const updateValues: Record<string, any> = {
+      title,
+      description,
+      dueDate: dueDate || null,
+      trimester: trimester || 1,
+    };
+    if (subjectId != null) updateValues.subjectId = subjectId;
+
     await db
       .update(assignments)
-      .set({
-        title,
-        description,
-        dueDate: dueDate || null,
-        trimester: trimester || 1,
-      } as any)
+      .set(updateValues)
       .where(eq(assignments.id, assignmentId));
 
     // Replace questions
     if (questions) {
-      await db.delete(submissionAnswers)
-        .where(eq(submissionAnswers.questionId, assignmentId));
+      // Delete submissionAnswers that belong to submissions of this assignment
+      const subIds = await db
+        .select({ id: assignmentSubmissions.id })
+        .from(assignmentSubmissions)
+        .where(eq(assignmentSubmissions.assignmentId, assignmentId));
+      const submissionIds = subIds.map(s => s.id);
+      if (submissionIds.length > 0) {
+        await db.delete(submissionAnswers)
+          .where(inArray(submissionAnswers.submissionId, submissionIds));
+      }
 
       await db.delete(assignmentQuestions)
         .where(eq(assignmentQuestions.assignmentId, assignmentId));
@@ -224,9 +245,27 @@ export async function DELETE(
     const { id } = await params;
     const assignmentId = parseInt(id);
 
-    // Cascade delete
-    await db.delete(submissionAnswers)
-      .where(eq(submissionAnswers.questionId, assignmentId));
+    // Verify teacher owns this assignment
+    const [existing] = await db
+      .select({ teacherId: assignments.teacherId })
+      .from(assignments)
+      .where(eq(assignments.id, assignmentId))
+      .limit(1);
+    if (!existing || existing.teacherId !== user.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
+    // Cascade delete: submissionAnswers -> submissions -> questions -> assignment
+    const subs = await db
+      .select({ id: assignmentSubmissions.id })
+      .from(assignmentSubmissions)
+      .where(eq(assignmentSubmissions.assignmentId, assignmentId));
+    const subIds = subs.map(s => s.id);
+
+    if (subIds.length > 0) {
+      await db.delete(submissionAnswers)
+        .where(inArray(submissionAnswers.submissionId, subIds));
+    }
 
     await db.delete(assignmentSubmissions)
       .where(eq(assignmentSubmissions.assignmentId, assignmentId));

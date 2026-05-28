@@ -112,30 +112,47 @@ export async function POST(
       }
     }
 
-    // Calculate auto-grade
-    const allAnswers = await db
-      .select({ isCorrect: submissionAnswers.isCorrect })
-      .from(submissionAnswers)
-      .where(eq(submissionAnswers.submissionId, submissionId));
+    // Calculate auto-grade only if ALL questions are MCQ
+    const allQuestions = await db
+      .select({ type: assignmentQuestions.type })
+      .from(assignmentQuestions)
+      .where(eq(assignmentQuestions.assignmentId, assignmentId));
 
-    const correct = allAnswers.filter(a => a.isCorrect).length;
-    const total = allAnswers.length;
-    const autoGrade = total > 0 ? Math.round((correct / total) * 10) : null;
+    const mcqQuestions = allQuestions.filter(q => q.type === "mcq").length;
+    const hasOnlyMcq = allQuestions.length > 0 && mcqQuestions === allQuestions.length;
 
-    if (autoGrade !== null) {
-      await db
-        .update(assignmentSubmissions)
-        .set({ grade: autoGrade })
-        .where(eq(assignmentSubmissions.id, submissionId));
+    if (hasOnlyMcq) {
+      const allAnswers = await db
+        .select({ isCorrect: submissionAnswers.isCorrect })
+        .from(submissionAnswers)
+        .where(eq(submissionAnswers.submissionId, submissionId));
+
+      const correct = allAnswers.filter(a => a.isCorrect).length;
+      const total = allAnswers.length;
+      const autoGrade = total > 0 ? Math.round((correct / total) * 10) : null;
+
+      if (autoGrade !== null) {
+        // Only auto-grade if no previous teacher grade exists
+        const [sub] = await db
+          .select({ grade: assignmentSubmissions.grade })
+          .from(assignmentSubmissions)
+          .where(eq(assignmentSubmissions.id, submissionId))
+          .limit(1);
+
+        if (!sub || sub.grade == null) {
+          await db
+            .update(assignmentSubmissions)
+            .set({ grade: autoGrade })
+            .where(eq(assignmentSubmissions.id, submissionId));
+        }
+      }
     }
 
     return NextResponse.json({
       success: true,
       submissionId,
       fileUrl,
-      mcqCorrect: correct,
-      mcqTotal: total,
-      autoGrade,
+      autoGraded: hasOnlyMcq,
     });
   } catch (error) {
     console.error("Submit error:", error);

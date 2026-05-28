@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { assignmentSubmissions } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { assignments, assignmentSubmissions } from "@/lib/db/schema";
+import { eq, and } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
 export async function PUT(
@@ -16,22 +16,42 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { submissionId, grade, feedback } = await request.json();
+    const assignmentId = parseInt(id);
+    const { submissionId, grade: rawGrade, feedback } = await request.json();
 
     if (!submissionId) {
       return NextResponse.json({ error: "submissionId requerido" }, { status: 400 });
     }
 
-    if (grade !== undefined && (grade < 0 || grade > 10)) {
+    const grade = rawGrade != null ? Math.round(rawGrade) : null;
+    if (grade != null && (grade < 0 || grade > 10)) {
       return NextResponse.json({ error: "Nota debe ser entre 0 y 10" }, { status: 400 });
+    }
+
+    // Verify the assignment belongs to this teacher and submission belongs to assignment
+    const [row] = await db
+      .select({
+        teacherId: assignments.teacherId,
+        subId: assignmentSubmissions.id,
+      })
+      .from(assignmentSubmissions)
+      .leftJoin(assignments, eq(assignmentSubmissions.assignmentId, assignments.id))
+      .where(and(
+        eq(assignmentSubmissions.id, submissionId),
+        eq(assignments.id, assignmentId),
+      ))
+      .limit(1);
+
+    if (!row || row.teacherId !== user.id) {
+      return NextResponse.json({ error: "No autorizado o tarea no encontrada" }, { status: 403 });
     }
 
     await db
       .update(assignmentSubmissions)
       .set({
-        grade: grade ?? null,
+        grade,
         feedback: feedback || null,
-        status: grade !== undefined && grade !== null ? "graded" : "submitted",
+        status: grade != null ? "graded" : "submitted",
       } as any)
       .where(eq(assignmentSubmissions.id, submissionId));
 

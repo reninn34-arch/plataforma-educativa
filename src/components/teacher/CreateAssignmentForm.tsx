@@ -4,12 +4,18 @@ import { useState, useEffect } from "react";
 import {
   Plus, Loader2, CheckCircle, Calendar, BookOpen, FileText, Download,
   ArrowLeft, Trash2, ListChecks, Upload, FileUp,
-  Pencil, X,
+  Pencil, X, AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SUBJECTS } from "@/lib/utils";
+
+interface SubjectData {
+  id: number;
+  slug: string;
+  name: string;
+  emoji: string;
+}
 
 interface Question {
   id: string;
@@ -63,13 +69,15 @@ export function CreateAssignmentForm() {
   const [editId, setEditId] = useState<number | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [subjectId, setSubjectId] = useState(1);
+  const [subjectId, setSubjectId] = useState<number | null>(null);
   const [dueDate, setDueDate] = useState("");
   const [trimester, setTrimester] = useState(1);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [subjectsList, setSubjectsList] = useState<SubjectData[]>([]);
 
   const [selectedAssignment, setSelectedAssignment] = useState<number | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -78,27 +86,44 @@ export function CreateAssignmentForm() {
 
   const handleGrade = async (submissionId: number, grade: number, feedback: string) => {
     try {
-      await fetch(`/api/assignments/${selectedAssignment}/grade`, {
+      const gradeInt = Math.round(grade);
+      const res = await fetch(`/api/assignments/${selectedAssignment}/grade`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ submissionId, grade, feedback }),
+        body: JSON.stringify({ submissionId, grade: gradeInt, feedback }),
       });
+      if (!res.ok) {
+        const d = await res.json();
+        setErrorMsg(d.error || "Error al calificar");
+      }
       setGradingSub(null);
-      viewSubmissions(selectedAssignment!); // Refresh
-    } catch {}
+      viewSubmissions(selectedAssignment!);
+    } catch {
+      setErrorMsg("Error de conexion al calificar");
+    }
   };
 
   const fetchAssignments = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/assignments?role=teacher");
+      const res = await fetch("/api/assignments");
       const data = await res.json();
       if (data.assignments) setAssignments(data.assignments);
-    } catch {}
+    } catch {
+      setErrorMsg("Error al cargar tareas");
+    }
     setLoading(false);
   };
 
-  useEffect(() => { fetchAssignments(); }, []);
+  useEffect(() => {
+    fetchAssignments();
+    fetch("/api/subjects").then(r => r.json()).then(d => {
+      if (d.subjects && d.subjects.length > 0) {
+        setSubjectsList(d.subjects);
+        setSubjectId(d.subjects[0].id);
+      }
+    }).catch(() => {});
+  }, []);
 
   const viewSubmissions = async (aid: number) => {
     setSelectedAssignment(aid);
@@ -107,8 +132,27 @@ export function CreateAssignmentForm() {
       const res = await fetch(`/api/assignments/${aid}`);
       const data = await res.json();
       if (data.submissions) setSubmissions(data.submissions);
-    } catch {}
+    } catch {
+      setErrorMsg("Error al cargar entregas");
+    }
     setLoadingSubs(false);
+  };
+
+  const handleDelete = async (aid: number) => {
+    setDeleteConfirm(null);
+    try {
+      const res = await fetch(`/api/assignments/${aid}`, { method: "DELETE" });
+      if (!res.ok) {
+        const d = await res.json();
+        setErrorMsg(d.error || "Error al eliminar");
+        return;
+      }
+      setFeedback("Tarea eliminada");
+      fetchAssignments();
+      setTimeout(() => setFeedback(""), 3000);
+    } catch {
+      setErrorMsg("Error de conexion al eliminar");
+    }
   };
 
   const startEdit = async (a: Assignment) => {
@@ -116,10 +160,10 @@ export function CreateAssignmentForm() {
     setTitle(a.title);
     setDescription(a.description);
     setDueDate(a.dueDate || "");
-    setSubjectId(a.subjectId || 1);
+    setSubjectId(a.subjectId || subjectsList[0]?.id || null);
     setShowForm(true);
+    setErrorMsg("");
 
-    // Load questions
     try {
       const res = await fetch(`/api/assignments/${a.id}`);
       const data = await res.json();
@@ -134,7 +178,9 @@ export function CreateAssignmentForm() {
           dbId: q.id,
         })));
       }
-    } catch {}
+    } catch {
+      setErrorMsg("Error al cargar preguntas");
+    }
   };
 
   const cancelEdit = () => {
@@ -144,17 +190,8 @@ export function CreateAssignmentForm() {
     setDescription("");
     setDueDate("");
     setQuestions([]);
-    setSubjectId(1);
-  };
-
-  const handleDelete = async (aid: number) => {
-    setDeleteConfirm(null);
-    try {
-      await fetch(`/api/assignments/${aid}`, { method: "DELETE" });
-      setFeedback("Tarea eliminada");
-      fetchAssignments();
-      setTimeout(() => setFeedback(""), 3000);
-    } catch {}
+    setSubjectId(subjectsList[0]?.id ?? null);
+    setErrorMsg("");
   };
 
   const addQuestion = (type: "mcq" | "file_upload") => {
@@ -203,7 +240,7 @@ export function CreateAssignmentForm() {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editId ? { ...body, subjectId } : { ...body, subjectId }),
+        body: JSON.stringify({ ...body, subjectId }),
       });
 
       if (res.ok) {
@@ -211,9 +248,13 @@ export function CreateAssignmentForm() {
         setFeedback(editId ? "Tarea actualizada" : "Tarea creada exitosamente");
         fetchAssignments();
         setTimeout(() => setFeedback(""), 3000);
+      } else {
+        const d = await res.json();
+        setErrorMsg(d.error || "Error al guardar");
       }
-    } catch {}
-    setSaving(false);
+    } catch {
+      setErrorMsg("Error de conexion al guardar");
+    }
   };
 
   return (
@@ -221,6 +262,11 @@ export function CreateAssignmentForm() {
       {feedback && (
         <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-medium text-emerald-700">
           <CheckCircle className="h-4 w-4" /> {feedback}
+        </div>
+      )}
+      {errorMsg && (
+        <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm font-medium text-red-700">
+          <AlertCircle className="h-4 w-4" /> {errorMsg}
         </div>
       )}
 
@@ -307,7 +353,7 @@ export function CreateAssignmentForm() {
                                     type="number"
                                     min={0}
                                     max={10}
-                                    step={0.1}
+                                    step={1}
                                     value={gradingSub.grade}
                                     onChange={(e) => setGradingSub({ ...gradingSub, grade: parseFloat(e.target.value) || 0 })}
                                     className="w-16 h-8 rounded border border-input bg-card px-2 text-sm text-center"
@@ -377,7 +423,7 @@ export function CreateAssignmentForm() {
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-foreground">Tareas asignadas</h2>
             {!showForm && (
-              <Button onClick={() => { setShowForm(true); setEditId(null); setTitle(""); setDescription(""); setDueDate(""); setQuestions([]); }} size="sm" className="gap-2">
+              <Button onClick={() => { setShowForm(true); setEditId(null); setTitle(""); setDescription(""); setDueDate(""); setQuestions([]); setSubjectId(subjectsList[0]?.id ?? null); setErrorMsg(""); }} size="sm" className="gap-2">
                 <Plus className="h-4 w-4" /> Nueva Tarea
               </Button>
             )}
@@ -393,15 +439,13 @@ export function CreateAssignmentForm() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  {!editId && (
-                    <div>
-                      <label className="text-sm font-semibold text-foreground mb-1.5 block">Materia</label>
-                      <select value={subjectId} onChange={(e) => setSubjectId(Number(e.target.value))}
-                        className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm">
-                        {SUBJECTS.map((s, i) => <option key={s.id} value={i + 1}>{s.emoji} {s.name}</option>)}
-                      </select>
-                    </div>
-                  )}
+                  <div>
+                    <label className="text-sm font-semibold text-foreground mb-1.5 block">Materia</label>
+                    <select value={subjectId ?? ""} onChange={(e) => setSubjectId(Number(e.target.value))}
+                      className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm">
+                      {subjectsList.map((s) => <option key={s.id} value={s.id}>{s.emoji} {s.name}</option>)}
+                    </select>
+                  </div>
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className={editId ? "sm:col-span-2" : ""}>
                       <label className="text-sm font-semibold text-foreground mb-1.5 block">Titulo</label>
