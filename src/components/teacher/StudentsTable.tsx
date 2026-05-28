@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   Search, ArrowDownUp, ChevronUp, ChevronDown,
-  Users, AlertTriangle, CheckCircle2, BarChart3, Loader2,
+  Users, AlertTriangle, CheckCircle2, BarChart3, Loader2, TrendingDown,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,14 +14,10 @@ import {
 } from "@/components/ui/table";
 import { SemaforoRiesgo } from "@/components/SemaforoRiesgo";
 
-interface StudentProgress {
-  subjectId: number;
-  subjectName: string;
-  subjectEmoji: string;
-  percentage: number;
-  daysInactive: number;
-  consecutiveFailures: number;
-  lastActivity: string | null;
+interface StudentGrades {
+  average: number | null;
+  pending: number;
+  lastSubmission: string | null;
 }
 
 interface StudentData {
@@ -32,14 +27,14 @@ interface StudentData {
   email: string | null;
   cursoId: number;
   cursoNombre: string;
-  progress: StudentProgress[];
+  grades: StudentGrades;
 }
 
 interface StatsData {
   totalEstudiantes: number;
-  enRiesgo: number;
-  inactivos: number;
-  promedio: number;
+  pendientes: number;
+  bajoRendimiento: number;
+  promedioGeneral: number;
   totalCursos: number;
 }
 
@@ -47,10 +42,10 @@ function getInitials(name: string) {
   return name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
 }
 
-function getProgressColor(p: number) {
-  if (p >= 70) return "bg-emerald-500";
-  if (p >= 40) return "bg-primary";
-  return "bg-amber-500";
+function getGradeColor(p: number) {
+  if (p >= 7) return "bg-emerald-500";
+  if (p >= 5) return "bg-primary";
+  return "bg-red-500";
 }
 
 function daysAgo(dateStr: string | null): string {
@@ -67,7 +62,7 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [students, setStudents] = useState<StudentData[]>([]);
-  const [stats, setStats] = useState<StatsData>({ totalEstudiantes: 0, enRiesgo: 0, inactivos: 0, promedio: 0, totalCursos: 0 });
+  const [stats, setStats] = useState<StatsData>({ totalEstudiantes: 0, pendientes: 0, bajoRendimiento: 0, promedioGeneral: 0, totalCursos: 0 });
   const [loading, setLoading] = useState(true);
   const [sortKey, setSortKey] = useState<string>("fullName");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -80,10 +75,10 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
 
     Promise.all([
       fetch(`/api/teacher/students?${params}`).then(r => r.json()),
-      fetch(`/api/teacher/stats${cursoId ? `?cursoId=${cursoId}` : ""}`).then(r => r.json()),
+      fetch(`/api/teacher/academic-stats${cursoId ? `?cursoId=${cursoId}` : ""}`).then(r => r.json()),
     ]).then(([sd, st]) => {
       setStudents(sd.students || []);
-      setStats(st.totalEstudiantes !== undefined ? st : { totalEstudiantes: 0, enRiesgo: 0, inactivos: 0, promedio: 0, totalCursos: 0 });
+      setStats(st.totalEstudiantes !== undefined ? st : { totalEstudiantes: 0, pendientes: 0, bajoRendimiento: 0, promedioGeneral: 0, totalCursos: 0 });
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [cursoId, search]);
@@ -98,12 +93,8 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
   };
 
   const getSortValue = (s: StudentData, key: string): number | string => {
-    if (key === "progress") {
-      return s.progress[0]?.percentage || 0;
-    }
-    if (key === "daysInactive") {
-      return Math.min(...(s.progress.map(p => p.daysInactive).filter(d => d > 0)), 0);
-    }
+    if (key === "average") return s.grades.average ?? 0;
+    if (key === "pending") return s.grades.pending;
     if (key === "fullName") return s.fullName;
     if (key === "cedula") return s.cedula;
     return 0;
@@ -150,8 +141,8 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">En Riesgo</p>
-                <p className="text-2xl font-extrabold text-amber-600 tabular-nums">{stats.enRiesgo}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Pendientes</p>
+                <p className="text-2xl font-extrabold text-amber-600 tabular-nums">{stats.pendientes}</p>
               </div>
               <AlertTriangle className="h-5 w-5 text-amber-500" />
             </div>
@@ -161,10 +152,10 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Inactivos</p>
-                <p className="text-2xl font-extrabold text-red-600 tabular-nums">{stats.inactivos}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Bajo prom.</p>
+                <p className="text-2xl font-extrabold text-red-600 tabular-nums">{stats.bajoRendimiento}</p>
               </div>
-              <AlertTriangle className="h-5 w-5 text-red-500" />
+              <TrendingDown className="h-5 w-5 text-red-500" />
             </div>
           </CardContent>
         </Card>
@@ -172,8 +163,8 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Promedio</p>
-                <p className="text-2xl font-extrabold text-emerald-600 tabular-nums">{stats.promedio}%</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Prom. General</p>
+                <p className="text-2xl font-extrabold text-emerald-600 tabular-nums">{stats.promedioGeneral}%</p>
               </div>
               <CheckCircle2 className="h-5 w-5 text-emerald-500" />
             </div>
@@ -210,22 +201,28 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
                 {!cursoId && (
                   <TableHead><span className="text-xs font-semibold uppercase tracking-wider">Curso</span></TableHead>
                 )}
-                <TableHead><span className="text-xs font-semibold uppercase tracking-wider">Progreso</span></TableHead>
-                <TableHead className="cursor-pointer select-none" onClick={() => handleSort("daysInactive")}>
+                <TableHead className="cursor-pointer select-none" onClick={() => handleSort("average")}>
                   <span className="inline-flex items-center text-xs font-semibold uppercase tracking-wider">
-                    Inactivo <SortIcon column="daysInactive" />
+                    Nota <SortIcon column="average" />
+                  </span>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => handleSort("pending")}>
+                  <span className="inline-flex items-center text-xs font-semibold uppercase tracking-wider">
+                    Pend. <SortIcon column="pending" />
                   </span>
                 </TableHead>
                 <TableHead><span className="text-xs font-semibold uppercase tracking-wider">Riesgo</span></TableHead>
-                <TableHead className="hidden md:table-cell"><span className="text-xs font-semibold uppercase tracking-wider">Ult. Actividad</span></TableHead>
+                <TableHead className="hidden md:table-cell"><span className="text-xs font-semibold uppercase tracking-wider">Ult. Entrega</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sorted.map((s) => {
-                const bestProgress = s.progress.sort((a, b) => b.percentage - a.percentage)[0];
-                const p = bestProgress || { percentage: 0, subjectEmoji: "📚", subjectName: "—", daysInactive: 0, consecutiveFailures: 0, lastActivity: null };
-                const maxInactive = s.progress.length > 0 ? Math.max(...s.progress.map(pr => pr.daysInactive)) : 0;
-                const maxFailures = s.progress.length > 0 ? Math.max(...s.progress.map(pr => pr.consecutiveFailures)) : 0;
+                const avg = s.grades.average;
+                const gradePercent = avg !== null ? Math.round(avg * 10) : 0;
+                const riskDaysInactive = s.grades.lastSubmission
+                  ? Math.floor((Date.now() - new Date(s.grades.lastSubmission).getTime()) / (1000 * 60 * 60 * 24))
+                  : 999;
+                const riskFailures = avg !== null && avg < 7 ? 5 : 0;
 
                 return (
                   <TableRow key={s.id + "-" + s.cursoId}>
@@ -247,21 +244,23 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div className="h-1.5 w-12 rounded-full bg-muted overflow-hidden">
-                          <div className={cn("h-full rounded-full", getProgressColor(p.percentage))} style={{ width: `${p.percentage}%` }} />
+                          <div className={cn("h-full rounded-full", getGradeColor(gradePercent / 10))} style={{ width: `${gradePercent}%` }} />
                         </div>
-                        <Badge variant="outline" className="text-[10px] gap-0.5 py-0">
-                          <span>{p.subjectEmoji}</span> {p.percentage}%
+                        <Badge variant={avg !== null && avg >= 7 ? "default" : avg !== null ? "destructive" : "outline"} className="text-[10px]">
+                          {avg !== null ? avg.toFixed(1) : "—"}
                         </Badge>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className={cn("text-xs font-medium", maxInactive >= 7 ? "text-destructive" : maxInactive >= 3 ? "text-amber-600" : "text-muted-foreground")}>
-                        {maxInactive} {maxInactive === 1 ? "dia" : "dias"}
+                      <span className={cn("text-xs font-medium", s.grades.pending > 0 ? "text-amber-600" : "text-muted-foreground")}>
+                        {s.grades.pending > 0 ? `${s.grades.pending} tarea${s.grades.pending > 1 ? "s" : ""}` : "Al dia"}
                       </span>
                     </TableCell>
-                    <TableCell><SemaforoRiesgo daysInactive={maxInactive} consecutiveFailures={maxFailures} /></TableCell>
+                    <TableCell>
+                      <SemaforoRiesgo daysInactive={riskDaysInactive} consecutiveFailures={riskFailures} />
+                    </TableCell>
                     <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
-                      {daysAgo(p.lastActivity)}
+                      {daysAgo(s.grades.lastSubmission)}
                     </TableCell>
                   </TableRow>
                 );

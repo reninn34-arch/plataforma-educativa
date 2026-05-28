@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { users, cursoEstudiantes, cursoProfesores, cursos, progress, subjects } from "@/lib/db/schema";
+import { users, cursoEstudiantes, cursoProfesores, cursos, progress, subjects, assignments, assignmentSubmissions } from "@/lib/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
@@ -110,6 +110,62 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const gradesData = studentIds.length > 0 && subjectIds.length > 0 ? await db
+      .select({
+        studentId: assignmentSubmissions.studentId,
+        grade: assignmentSubmissions.grade,
+        status: assignmentSubmissions.status,
+        submittedAt: assignmentSubmissions.submittedAt,
+        assignmentId: assignmentSubmissions.assignmentId,
+      })
+      .from(assignmentSubmissions)
+      .innerJoin(assignments, eq(assignmentSubmissions.assignmentId, assignments.id))
+      .where(and(
+        eq(assignments.teacherId, teacher.id),
+        inArray(assignmentSubmissions.studentId, studentIds),
+        inArray(assignments.subjectId, subjectIds),
+      )) : [];
+
+    const allAsignIds = [...new Set(gradesData.map(g => g.assignmentId))];
+    const totalAssignments = allAsignIds.length;
+
+    const gradesByStudent: Record<number, { average: number | null; pending: number; lastSubmission: string | null }> = {};
+
+    for (const sid of studentIds) {
+      gradesByStudent[sid] = { average: null, pending: totalAssignments, lastSubmission: null };
+    }
+
+    const studentGradesMap = new Map<number, number[]>();
+    for (const g of gradesData) {
+      if (!studentGradesMap.has(g.studentId)) studentGradesMap.set(g.studentId, []);
+      if (g.grade !== null && g.grade !== undefined) {
+        studentGradesMap.get(g.studentId)!.push(g.grade);
+      }
+    }
+
+    const submittedByStudent: Record<number, Set<number>> = {};
+    for (const g of gradesData) {
+      if (!submittedByStudent[g.studentId]) submittedByStudent[g.studentId] = new Set();
+      submittedByStudent[g.studentId].add(g.assignmentId);
+    }
+
+    for (const sid of studentIds) {
+      const gr = studentGradesMap.get(sid) || [];
+      gradesByStudent[sid].average = gr.length > 0 ? Math.round((gr.reduce((a, b) => a + b, 0) / gr.length) * 10) / 10 : null;
+      gradesByStudent[sid].pending = totalAssignments > 0 ? totalAssignments - (submittedByStudent[sid]?.size || 0) : 0;
+    }
+
+    const lastSubs = gradesData.reduce((acc: Record<number, string>, g) => {
+      if (g.submittedAt && (!acc[g.studentId] || new Date(g.submittedAt) > new Date(acc[g.studentId]))) {
+        acc[g.studentId] = new Date(g.submittedAt).toISOString();
+      }
+      return acc;
+    }, {});
+
+    for (const sid of studentIds) {
+      gradesByStudent[sid].lastSubmission = lastSubs[sid] || null;
+    }
+
     const enriched = studentRows
       .filter(s => {
         if (!search) return true;
@@ -124,6 +180,7 @@ export async function GET(request: NextRequest) {
         cursoId: s.cursoId,
         cursoNombre: s.cursoNombre,
         progress: progressByStudent[s.id] || [],
+        grades: gradesByStudent[s.id] || { average: null, pending: 0, lastSubmission: null },
       }));
 
     return NextResponse.json({ students: enriched });
