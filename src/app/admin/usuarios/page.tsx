@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { RefreshCw, Pencil, Trash2, Search, Loader2, X, Copy, Check, UserPlus } from "lucide-react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import {
+  RefreshCw, Pencil, Search, Loader2, X, Copy, Check, UserPlus,
+  Upload, Download, Power, PowerOff, AlertTriangle, ShieldCheck,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 
 interface UserData {
   id: number;
@@ -14,6 +20,15 @@ interface UserData {
   email: string | null;
   activo: boolean;
   createdAt: string;
+  subjects?: { subjectId: number; subjectName: string; subjectEmoji: string }[];
+}
+
+interface BulkResultItem {
+  cedula: string;
+  nombre: string;
+  pin: string;
+  status: "creado" | "reactivado" | "omitido" | "error";
+  razon?: string;
 }
 
 export default function AdminUsersPage() {
@@ -21,6 +36,7 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [showInactive, setShowInactive] = useState(false);
 
   const [showCreate, setShowCreate] = useState(false);
   const [newCedula, setNewCedula] = useState("");
@@ -33,7 +49,6 @@ export default function AdminUsersPage() {
   const [createdPin, setCreatedPin] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Edit state
   const [editUser, setEditUser] = useState<UserData | null>(null);
   const [editCedula, setEditCedula] = useState("");
   const [editName, setEditName] = useState("");
@@ -41,15 +56,27 @@ export default function AdminUsersPage() {
   const [editResetPin, setEditResetPin] = useState(false);
   const [editError, setEditError] = useState("");
 
+  const [deactivateUser, setDeactivateUser] = useState<UserData | null>(null);
+  const [reactivateUser, setReactivateUser] = useState<UserData | null>(null);
+
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const [bulkPreview, setBulkPreview] = useState<string[][]>([]);
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const [bulkResults, setBulkResults] = useState<BulkResultItem[] | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/users?role=${tab}`);
+      const params = new URLSearchParams({ role: tab });
+      if (showInactive) params.set("inactivos", "true");
+      const res = await fetch(`/api/admin/users?${params}`);
       const d = await res.json();
       setUsers(d.users || []);
     } catch {}
     setLoading(false);
-  }, [tab]);
+  }, [tab, showInactive]);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
@@ -75,21 +102,39 @@ export default function AdminUsersPage() {
     setSaving(false);
   };
 
-  const handleDelete = async (id: number) => {
-    try {
-      const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
-      if (res.ok) fetchUsers();
-    } catch {}
+  const confirmDeactivate = (u: UserData) => {
+    setDeactivateUser(u);
   };
 
-  const handleReactivate = async (id: number) => {
+  const doDeactivate = async () => {
+    if (!deactivateUser) return;
     try {
-      const res = await fetch(`/api/admin/users/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ activo: true }) });
-      if (res.ok) fetchUsers();
+      await fetch(`/api/admin/users/${deactivateUser.id}`, { method: "DELETE" });
+      setFeedback(`Usuario ${deactivateUser.fullName} desactivado.`);
+      fetchUsers();
     } catch {}
+    setDeactivateUser(null);
   };
 
-  const openEdit = (u: UserData) => {
+  const confirmReactivate = (u: UserData) => {
+    setReactivateUser(u);
+  };
+
+  const doReactivate = async () => {
+    if (!reactivateUser) return;
+    try {
+      await fetch(`/api/admin/users/${reactivateUser.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activo: true }),
+      });
+      setFeedback(`Usuario ${reactivateUser.fullName} reactivado.`);
+      fetchUsers();
+    } catch {}
+    setReactivateUser(null);
+  };
+
+  const openEdit = async (u: UserData) => {
     setEditUser(u);
     setEditCedula(u.cedula);
     setEditName(u.fullName);
@@ -116,6 +161,7 @@ export default function AdminUsersPage() {
       });
       const d = await res.json();
       if (!res.ok) { setEditError(d.error); setSaving(false); return; }
+
       if (d.newPin) {
         setCreatedPin(d.newPin);
         setFeedback(`PIN de ${editName} restablecido.`);
@@ -142,6 +188,41 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleBulkFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBulkFile(file);
+    setBulkResults(null);
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const lines = text.split("\n").filter(l => l.trim());
+      const parsed = lines.slice(0, 4).map(l => l.split(/[,;]/).map(c => c.trim().replace(/^"|"$/g, "")));
+      setBulkPreview(parsed);
+    };
+    reader.readAsText(file, "UTF-8");
+  };
+
+  const doBulkImport = async () => {
+    if (!bulkFile) return;
+    setBulkImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", bulkFile);
+      const res = await fetch("/api/admin/users/bulk", { method: "POST", body: formData });
+      const d = await res.json();
+      setBulkResults(d.resultados || []);
+      if (res.ok) {
+        fetchUsers();
+        setBulkFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        setBulkPreview([]);
+      }
+    } catch {}
+    setBulkImporting(false);
+  };
+
   const filtered = users.filter(u =>
     u.fullName.toLowerCase().includes(search.toLowerCase()) ||
     u.cedula.includes(search)
@@ -156,18 +237,23 @@ export default function AdminUsersPage() {
             {tab === "student" ? "Estudiantes" : "Profesores"} registrados
           </p>
         </div>
-        <Button onClick={() => { setShowCreate(true); setCreatedPin(null); setError(""); resetForm(); }} size="sm" className="gap-2">
-          <UserPlus className="h-4 w-4" /> Nuevo {tab === "student" ? "estudiante" : "profesor"}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowBulkImport(true)}>
+            <Upload className="h-4 w-4" /> Importar CSV
+          </Button>
+          <Button onClick={() => { setShowCreate(true); setCreatedPin(null); setError(""); resetForm(); }} size="sm" className="gap-2">
+            <UserPlus className="h-4 w-4" /> Nuevo {tab === "student" ? "estudiante" : "profesor"}
+          </Button>
+        </div>
       </div>
 
       {feedback && (
-        <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-medium text-emerald-700">
-          {feedback}
+        <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-medium text-emerald-700 flex items-center justify-between">
+          <span>{feedback}</span>
+          <Button variant="ghost" size="icon-sm" onClick={() => setFeedback("")}><X className="h-3 w-3" /></Button>
         </div>
       )}
 
-      {/* New PIN shown after reset */}
       {createdPin && (
         <Card className="shadow-lg border-emerald-300 bg-emerald-50/80 animate-scale-in">
           <CardContent className="p-6 space-y-3">
@@ -184,6 +270,104 @@ export default function AdminUsersPage() {
                 {copied ? "Copiado" : "Copiar credenciales"}
               </Button>
               <Button size="sm" variant="ghost" onClick={() => { setCreatedPin(null); setEditCedula(""); }}>Cerrar</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Bulk import panel */}
+      {showBulkImport && (
+        <Card className="shadow-sm animate-scale-in">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Importar estudiantes desde CSV</CardTitle>
+              <Button variant="ghost" size="icon-sm" onClick={() => { setShowBulkImport(false); setBulkResults(null); setBulkFile(null); setBulkPreview([]); }}><X className="h-4 w-4" /></Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
+              <p className="font-semibold mb-1">Formato del archivo:</p>
+              <p>El CSV debe tener las columnas: <strong>Cedula, Nombre Completo, Email</strong> (email es opcional).</p>
+              <p className="mt-1">Ejemplo: <code className="bg-blue-100 px-1.5 py-0.5 rounded text-xs">1723456789;Juan Perez;juan@ejemplo.com</code></p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,.txt"
+                onChange={handleBulkFileChange}
+                className="flex-1 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+              />
+            </div>
+
+            {bulkPreview.length > 0 && (
+              <div className="rounded-lg border overflow-hidden">
+                <p className="px-4 py-2 text-xs font-semibold text-muted-foreground bg-muted/50">Vista previa (primeras 3 filas + cabecera):</p>
+                <div className="divide-y max-h-48 overflow-y-auto">
+                  {bulkPreview.map((row, i) => (
+                    <div key={i} className={`px-4 py-2 text-xs flex gap-4 ${i === 0 ? "font-semibold bg-muted/30" : ""}`}>
+                      {row.map((cell, j) => (
+                        <span key={j} className="truncate flex-1">{cell || "-"}</span>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {bulkResults && (
+              <div className="rounded-lg border p-4 space-y-3">
+                <div className="grid grid-cols-4 gap-3 text-center">
+                  <div className="rounded-lg bg-emerald-50 p-3">
+                    <p className="text-2xl font-bold text-emerald-700">{bulkResults.filter(r => r.status === "creado").length}</p>
+                    <p className="text-xs text-emerald-600 font-medium">Creados</p>
+                  </div>
+                  <div className="rounded-lg bg-blue-50 p-3">
+                    <p className="text-2xl font-bold text-blue-700">{bulkResults.filter(r => r.status === "reactivado").length}</p>
+                    <p className="text-xs text-blue-600 font-medium">Reactivados</p>
+                  </div>
+                  <div className="rounded-lg bg-amber-50 p-3">
+                    <p className="text-2xl font-bold text-amber-700">{bulkResults.filter(r => r.status === "omitido").length}</p>
+                    <p className="text-xs text-amber-600 font-medium">Omitidos</p>
+                  </div>
+                  <div className="rounded-lg bg-red-50 p-3">
+                    <p className="text-2xl font-bold text-red-700">{bulkResults.filter(r => r.status === "error").length}</p>
+                    <p className="text-xs text-red-600 font-medium">Errores</p>
+                  </div>
+                </div>
+                {bulkResults.filter(r => r.status !== "creado").length > 0 && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer text-muted-foreground font-medium py-1">Ver detalles</summary>
+                    <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
+                      {bulkResults.filter(r => r.status !== "creado").map((r, i) => (
+                        <div key={i} className="flex items-center gap-2 px-2 py-1 rounded bg-muted/30">
+                          <Badge variant={r.status === "error" ? "destructive" : r.status === "omitido" ? "secondary" : "default"} className="text-[10px]">
+                            {r.status}
+                          </Badge>
+                          <span className="font-mono">{r.cedula}</span>
+                          <span>{r.nombre}</span>
+                          {r.razon && <span className="text-muted-foreground">- {r.razon}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <Button onClick={doBulkImport} disabled={!bulkFile || bulkImporting} className="gap-2">
+                {bulkImporting && <Loader2 className="h-4 w-4 animate-spin" />}
+                Importar estudiantes
+              </Button>
+              <a
+                href="data:text/csv;charset=utf-8,Cedula%3BNombre%20Completo%3BEmail%0A1723456789%3BJuan%20Perez%3Bjuan%40ejemplo.com%0A0987654321%3BMaria%20Gomez%3B"
+                download="plantilla_alumnos.csv"
+                className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border text-sm font-medium hover:bg-muted/50 transition-colors"
+              >
+                <Download className="h-4 w-4" /> Descargar plantilla
+              </a>
             </div>
           </CardContent>
         </Card>
@@ -243,7 +427,7 @@ export default function AdminUsersPage() {
       {/* Edit modal */}
       {editUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <Card className="max-w-md w-full mx-4 shadow-xl animate-scale-in">
+          <Card className="max-w-md w-full mx-4 shadow-xl animate-scale-in max-h-[90vh] overflow-y-auto">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Editar {editUser.role === "student" ? "estudiante" : "profesor"}</CardTitle>
@@ -275,6 +459,7 @@ export default function AdminUsersPage() {
                     placeholder="juan@ejemplo.com"
                   />
                 </div>
+
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={editResetPin} onChange={e => setEditResetPin(e.target.checked)} className="h-4 w-4 rounded border-input" />
                   <span className="text-sm">Generar nuevo PIN</span>
@@ -293,6 +478,60 @@ export default function AdminUsersPage() {
         </div>
       )}
 
+      {/* Deactivate confirmation dialog */}
+      <Dialog open={!!deactivateUser} onOpenChange={(open) => { if (!open) setDeactivateUser(null); }}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <div className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="h-5 w-5" />
+              <DialogTitle>Desactivar usuario</DialogTitle>
+            </div>
+            <DialogDescription>
+              {deactivateUser && (
+                <>
+                  ¿Estas seguro de desactivar a <strong>{deactivateUser.fullName}</strong>?
+                  <br /><br />
+                  El usuario <strong>no podra iniciar sesion</strong> en la plataforma, pero sus datos (calificaciones, progreso, tareas) se conservaran. Podras reactivarlo en cualquier momento.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeactivateUser(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={doDeactivate} className="gap-2">
+              <Power className="h-4 w-4" /> Desactivar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reactivate confirmation dialog */}
+      <Dialog open={!!reactivateUser} onOpenChange={(open) => { if (!open) setReactivateUser(null); }}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <div className="flex items-center gap-2 text-emerald-600">
+              <ShieldCheck className="h-5 w-5" />
+              <DialogTitle>Reactivar usuario</DialogTitle>
+            </div>
+            <DialogDescription>
+              {reactivateUser && (
+                <>
+                  ¿Deseas reactivar a <strong>{reactivateUser.fullName}</strong>?
+                  <br /><br />
+                  Podra volver a iniciar sesion con sus credenciales anteriores.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReactivateUser(null)}>Cancelar</Button>
+            <Button onClick={doReactivate} className="gap-2">
+              <PowerOff className="h-4 w-4" /> Reactivar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Tabs */}
       <div className="flex gap-2 p-1 bg-muted/50 rounded-xl">
         <button
@@ -310,13 +549,24 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <input
-          type="text" value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar por nombre o cedula..."
-          className="w-full h-10 pl-10 rounded-lg border border-input bg-card px-3 text-sm"
-        />
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar por nombre o cedula..."
+            className="w-full h-10 pl-10 rounded-lg border border-input bg-card px-3 text-sm"
+          />
+        </div>
+        <label className="flex items-center gap-2 cursor-pointer text-sm text-muted-foreground whitespace-nowrap">
+          <input
+            type="checkbox"
+            checked={showInactive}
+            onChange={e => setShowInactive(e.target.checked)}
+            className="h-4 w-4 rounded border-input"
+          />
+          Mostrar inactivos
+        </label>
       </div>
 
       {/* Table */}
@@ -344,6 +594,15 @@ export default function AdminUsersPage() {
                         {u.cedula}
                         {u.email && ` · ${u.email}`}
                       </p>
+                      {u.role === "teacher" && u.subjects && u.subjects.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {u.subjects.map((s, i) => (
+                            <Badge key={i} variant="outline" className="text-[10px] py-0 gap-1">
+                              <span>{s.subjectEmoji}</span> {s.subjectName}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -357,11 +616,11 @@ export default function AdminUsersPage() {
                       <Pencil className="h-4 w-4" />
                     </Button>
                     {u.activo ? (
-                      <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(u.id)} className="text-muted-foreground hover:text-destructive" title="Desactivar">
-                        <Trash2 className="h-4 w-4" />
+                      <Button variant="ghost" size="icon-sm" onClick={() => confirmDeactivate(u)} className="text-muted-foreground hover:text-amber-600" title="Desactivar">
+                        <Power className="h-4 w-4" />
                       </Button>
                     ) : (
-                      <Button variant="ghost" size="icon-sm" onClick={() => handleReactivate(u.id)} className="text-muted-foreground hover:text-emerald-600" title="Reactivar">
+                      <Button variant="ghost" size="icon-sm" onClick={() => confirmReactivate(u)} className="text-muted-foreground hover:text-emerald-600" title="Reactivar">
                         <RefreshCw className="h-4 w-4" />
                       </Button>
                     )}

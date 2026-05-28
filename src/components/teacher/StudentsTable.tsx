@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import {
   Search, ArrowDownUp, ChevronUp, ChevronDown,
-  Users, AlertTriangle, CheckCircle2, Phone, BarChart3,
+  Users, AlertTriangle, CheckCircle2, BarChart3, Loader2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,31 +15,33 @@ import {
 } from "@/components/ui/table";
 import { SemaforoRiesgo } from "@/components/SemaforoRiesgo";
 
-interface Student {
-  id: number;
-  cedula: string;
-  fullName: string;
-  subject: string;
-  progress: number;
+interface StudentProgress {
+  subjectId: number;
+  subjectName: string;
+  subjectEmoji: string;
+  percentage: number;
   daysInactive: number;
   consecutiveFailures: number;
-  lastActivity: string;
-  phone?: string;
+  lastActivity: string | null;
 }
 
-const MOCK_STUDENTS: Student[] = [
-  { id: 1, cedula: "1723456789", fullName: "Maria Elena Guaman", subject: "Matematicas", progress: 72, daysInactive: 1, consecutiveFailures: 0, lastActivity: "Hoy, 10:30", phone: "0998765432" },
-  { id: 2, cedula: "1712345678", fullName: "Jose Luis Quishpe", subject: "Lenguaje", progress: 35, daysInactive: 4, consecutiveFailures: 3, lastActivity: "20 May 2026", phone: "0987654321" },
-  { id: 3, cedula: "1709876543", fullName: "Ana Lucia Paredes", subject: "Ciencias", progress: 88, daysInactive: 0, consecutiveFailures: 0, lastActivity: "Hoy, 14:15", phone: "0976543210" },
-  { id: 4, cedula: "1721345678", fullName: "Carlos Andres Toapanta", subject: "Sociales", progress: 51, daysInactive: 2, consecutiveFailures: 1, lastActivity: "23 May 2026", phone: "0965432109" },
-  { id: 5, cedula: "1713456789", fullName: "Rosa Elena Tipan", subject: "Matematicas", progress: 12, daysInactive: 8, consecutiveFailures: 6, lastActivity: "15 May 2026", phone: "0954321098" },
-  { id: 6, cedula: "1732145678", fullName: "Luis Miguel Chicaiza", subject: "Lenguaje", progress: 44, daysInactive: 2, consecutiveFailures: 0, lastActivity: "24 May 2026" },
-  { id: 7, cedula: "1714567890", fullName: "Diana Carolina Mena", subject: "Ciencias", progress: 95, daysInactive: 0, consecutiveFailures: 0, lastActivity: "Hoy, 09:00" },
-  { id: 8, cedula: "1721456789", fullName: "Pedro Pablo Tupiza", subject: "Sociales", progress: 28, daysInactive: 6, consecutiveFailures: 4, lastActivity: "17 May 2026" },
-];
+interface StudentData {
+  id: number;
+  fullName: string;
+  cedula: string;
+  email: string | null;
+  cursoId: number;
+  cursoNombre: string;
+  progress: StudentProgress[];
+}
 
-type SortKey = keyof Student;
-type SortDir = "asc" | "desc";
+interface StatsData {
+  totalEstudiantes: number;
+  enRiesgo: number;
+  inactivos: number;
+  promedio: number;
+  totalCursos: number;
+}
 
 function getInitials(name: string) {
   return name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
@@ -49,12 +53,42 @@ function getProgressColor(p: number) {
   return "bg-amber-500";
 }
 
-export function StudentsTable() {
-  const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>("fullName");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+function daysAgo(dateStr: string | null): string {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diff = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+  if (diff === 0) return "Hoy";
+  if (diff === 1) return "1 dia";
+  return `${diff} dias`;
+}
 
-  const handleSort = (key: SortKey) => {
+export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
+  const router = useRouter();
+  const [search, setSearch] = useState("");
+  const [students, setStudents] = useState<StudentData[]>([]);
+  const [stats, setStats] = useState<StatsData>({ totalEstudiantes: 0, enRiesgo: 0, inactivos: 0, promedio: 0, totalCursos: 0 });
+  const [loading, setLoading] = useState(true);
+  const [sortKey, setSortKey] = useState<string>("fullName");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  useEffect(() => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (cursoId) params.set("cursoId", String(cursoId));
+    if (search) params.set("search", search);
+
+    Promise.all([
+      fetch(`/api/teacher/students?${params}`).then(r => r.json()),
+      fetch(`/api/teacher/stats${cursoId ? `?cursoId=${cursoId}` : ""}`).then(r => r.json()),
+    ]).then(([sd, st]) => {
+      setStudents(sd.students || []);
+      setStats(st.totalEstudiantes !== undefined ? st : { totalEstudiantes: 0, enRiesgo: 0, inactivos: 0, promedio: 0, totalCursos: 0 });
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [cursoId, search]);
+
+  const handleSort = (key: string) => {
     if (sortKey === key) {
       setSortDir(d => (d === "asc" ? "desc" : "asc"));
     } else {
@@ -63,43 +97,50 @@ export function StudentsTable() {
     }
   };
 
-  const filtered = MOCK_STUDENTS
-    .filter((s) =>
-      s.fullName.toLowerCase().includes(search.toLowerCase()) ||
-      s.cedula.includes(search) ||
-      s.subject.toLowerCase().includes(search.toLowerCase())
-    )
-    .sort((a, b) => {
-      const aVal = a[sortKey];
-      const bVal = b[sortKey];
-      const dir = sortDir === "asc" ? 1 : -1;
-      if (typeof aVal === "string" && typeof bVal === "string") return aVal.localeCompare(bVal) * dir;
-      return ((aVal as number) - (bVal as number)) * dir;
-    });
-
-  const stats = {
-    total: MOCK_STUDENTS.length,
-    enRiesgo: MOCK_STUDENTS.filter((s) => s.daysInactive >= 3 || s.consecutiveFailures >= 3).length,
-    activos: MOCK_STUDENTS.filter((s) => s.daysInactive <= 1 && s.consecutiveFailures <= 0).length,
+  const getSortValue = (s: StudentData, key: string): number | string => {
+    if (key === "progress") {
+      return s.progress[0]?.percentage || 0;
+    }
+    if (key === "daysInactive") {
+      return Math.min(...(s.progress.map(p => p.daysInactive).filter(d => d > 0)), 0);
+    }
+    if (key === "fullName") return s.fullName;
+    if (key === "cedula") return s.cedula;
+    return 0;
   };
 
-  const SortIcon = ({ column }: { column: SortKey }) => {
+  const sorted = [...students].sort((a, b) => {
+    const aVal = getSortValue(a, sortKey);
+    const bVal = getSortValue(b, sortKey);
+    const dir = sortDir === "asc" ? 1 : -1;
+    if (typeof aVal === "string" && typeof bVal === "string") return aVal.localeCompare(bVal) * dir;
+    return ((aVal as number) - (bVal as number)) * dir;
+  });
+
+  const SortIcon = ({ column }: { column: string }) => {
     if (sortKey !== column) return <ArrowDownUp className="ml-1 h-3 w-3 text-muted-foreground/40" />;
     return sortDir === "asc"
       ? <ChevronUp className="ml-1 h-3.5 w-3.5 text-primary" />
       : <ChevronDown className="ml-1 h-3.5 w-3.5 text-primary" />;
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in-up">
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card className="border-l-[3px] border-l-blue-500 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Estudiantes</p>
-                <p className="text-2xl font-extrabold text-foreground tabular-nums">{stats.total}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Alumnos</p>
+                <p className="text-2xl font-extrabold text-foreground tabular-nums">{stats.totalEstudiantes}</p>
               </div>
               <Users className="h-5 w-5 text-blue-500" />
             </div>
@@ -116,12 +157,23 @@ export function StudentsTable() {
             </div>
           </CardContent>
         </Card>
+        <Card className="border-l-[3px] border-l-red-500 shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Inactivos</p>
+                <p className="text-2xl font-extrabold text-red-600 tabular-nums">{stats.inactivos}</p>
+              </div>
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+            </div>
+          </CardContent>
+        </Card>
         <Card className="border-l-[3px] border-l-emerald-500 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Activos</p>
-                <p className="text-2xl font-extrabold text-emerald-600 tabular-nums">{stats.activos}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Promedio</p>
+                <p className="text-2xl font-extrabold text-emerald-600 tabular-nums">{stats.promedio}%</p>
               </div>
               <CheckCircle2 className="h-5 w-5 text-emerald-500" />
             </div>
@@ -129,21 +181,17 @@ export function StudentsTable() {
         </Card>
       </div>
 
-      {/* Search */}
-      <div className="flex gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Buscar por nombre, cedula o materia..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-10 pl-10 pr-4 rounded-lg border border-input bg-card text-sm"
-          />
-        </div>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          type="text"
+          placeholder="Buscar por nombre o cedula..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full h-10 pl-10 pr-4 rounded-lg border border-input bg-card text-sm"
+        />
       </div>
 
-      {/* Table */}
       <Card className="shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
@@ -159,64 +207,69 @@ export function StudentsTable() {
                     Cedula <SortIcon column="cedula" />
                   </span>
                 </TableHead>
-                <TableHead><span className="text-xs font-semibold uppercase tracking-wider">Materia</span></TableHead>
-                <TableHead className="cursor-pointer select-none" onClick={() => handleSort("progress")}>
-                  <span className="inline-flex items-center text-xs font-semibold uppercase tracking-wider">
-                    Progreso <SortIcon column="progress" />
-                  </span>
-                </TableHead>
+                {!cursoId && (
+                  <TableHead><span className="text-xs font-semibold uppercase tracking-wider">Curso</span></TableHead>
+                )}
+                <TableHead><span className="text-xs font-semibold uppercase tracking-wider">Progreso</span></TableHead>
                 <TableHead className="cursor-pointer select-none" onClick={() => handleSort("daysInactive")}>
                   <span className="inline-flex items-center text-xs font-semibold uppercase tracking-wider">
                     Inactivo <SortIcon column="daysInactive" />
                   </span>
                 </TableHead>
-                <TableHead><span className="text-xs font-semibold uppercase tracking-wider">Estado</span></TableHead>
+                <TableHead><span className="text-xs font-semibold uppercase tracking-wider">Riesgo</span></TableHead>
                 <TableHead className="hidden md:table-cell"><span className="text-xs font-semibold uppercase tracking-wider">Ult. Actividad</span></TableHead>
-                <TableHead><span className="text-xs font-semibold uppercase tracking-wider">Accion</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-foreground">
-                        {getInitials(s.fullName)}
+              {sorted.map((s) => {
+                const bestProgress = s.progress.sort((a, b) => b.percentage - a.percentage)[0];
+                const p = bestProgress || { percentage: 0, subjectEmoji: "📚", subjectName: "—", daysInactive: 0, consecutiveFailures: 0, lastActivity: null };
+                const maxInactive = s.progress.length > 0 ? Math.max(...s.progress.map(pr => pr.daysInactive)) : 0;
+                const maxFailures = s.progress.length > 0 ? Math.max(...s.progress.map(pr => pr.consecutiveFailures)) : 0;
+
+                return (
+                  <TableRow key={s.id + "-" + s.cursoId}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-foreground">
+                          {getInitials(s.fullName)}
+                        </div>
+                        <div>
+                          <span className="font-semibold text-foreground text-sm">{s.fullName}</span>
+                          {s.email && <p className="text-[10px] text-muted-foreground">{s.email}</p>}
+                        </div>
                       </div>
-                      <span className="font-semibold text-foreground text-sm">{s.fullName}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">{s.cedula}</TableCell>
-                  <TableCell><Badge variant="secondary" className="font-normal">{s.subject}</Badge></TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2.5">
-                      <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
-                        <div className={cn("h-full rounded-full transition-all", getProgressColor(s.progress))} style={{ width: `${s.progress}%` }} />
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">{s.cedula}</TableCell>
+                    {!cursoId && (
+                      <TableCell><Badge variant="secondary" className="text-[10px]">{s.cursoNombre}</Badge></TableCell>
+                    )}
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-12 rounded-full bg-muted overflow-hidden">
+                          <div className={cn("h-full rounded-full", getProgressColor(p.percentage))} style={{ width: `${p.percentage}%` }} />
+                        </div>
+                        <Badge variant="outline" className="text-[10px] gap-0.5 py-0">
+                          <span>{p.subjectEmoji}</span> {p.percentage}%
+                        </Badge>
                       </div>
-                      <span className="text-xs font-bold text-muted-foreground tabular-nums w-8">{s.progress}%</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className={cn("text-sm font-medium", s.daysInactive >= 7 ? "text-destructive" : s.daysInactive >= 3 ? "text-amber-600" : "text-muted-foreground")}>
-                      {s.daysInactive} {s.daysInactive === 1 ? "dia" : "dias"}
-                    </span>
-                  </TableCell>
-                  <TableCell><SemaforoRiesgo daysInactive={s.daysInactive} consecutiveFailures={s.consecutiveFailures} /></TableCell>
-                  <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{s.lastActivity}</TableCell>
-                  <TableCell>
-                    {s.phone ? (
-                      <a href={`https://wa.me/593${s.phone.slice(1)}`} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors">
-                        <Phone className="h-3 w-3" /> WhatsApp
-                      </a>
-                    ) : <span className="text-[11px] text-muted-foreground/50">—</span>}
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell>
+                      <span className={cn("text-xs font-medium", maxInactive >= 7 ? "text-destructive" : maxInactive >= 3 ? "text-amber-600" : "text-muted-foreground")}>
+                        {maxInactive} {maxInactive === 1 ? "dia" : "dias"}
+                      </span>
+                    </TableCell>
+                    <TableCell><SemaforoRiesgo daysInactive={maxInactive} consecutiveFailures={maxFailures} /></TableCell>
+                    <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
+                      {daysAgo(p.lastActivity)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
-        {filtered.length === 0 && (
+        {sorted.length === 0 && (
           <div className="py-20 text-center">
             <BarChart3 className="mx-auto h-10 w-10 text-muted-foreground/30" />
             <p className="mt-4 font-medium text-muted-foreground">No se encontraron estudiantes</p>

@@ -18,6 +18,13 @@ interface SubjectData {
   emoji: string;
 }
 
+interface CursoData {
+  id: number;
+  nombre: string;
+  nivel: string;
+  mySubjects: { subjectId: number; subjectName: string; subjectEmoji: string }[];
+}
+
 interface Question {
   id: string;
   type: "mcq" | "file_upload";
@@ -37,6 +44,8 @@ interface Assignment {
   subjectName: string;
   subjectEmoji: string;
   subjectSlug: string;
+  cursoId?: number | null;
+  cursoNombre?: string | null;
   submissionCount?: number;
 }
 
@@ -71,6 +80,7 @@ export function CreateAssignmentForm() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [subjectId, setSubjectId] = useState<number | null>(null);
+  const [cursoId, setCursoId] = useState<number | null>(null);
   const [dueDate, setDueDate] = useState("");
   const [trimester, setTrimester] = useState(1);
   const [saving, setSaving] = useState(false);
@@ -79,6 +89,7 @@ export function CreateAssignmentForm() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [subjectsList, setSubjectsList] = useState<SubjectData[]>([]);
+  const [cursosList, setCursosList] = useState<CursoData[]>([]);
 
   const [selectedAssignment, setSelectedAssignment] = useState<number | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -86,6 +97,19 @@ export function CreateAssignmentForm() {
   const [loadingSubs, setLoadingSubs] = useState(false);
   const [gradingSub, setGradingSub] = useState<{ id: number; grade: number; feedback: string } | null>(null);
   const [absentLoading, setAbsentLoading] = useState<number | null>(null);
+
+  const filteredSubjects = cursoId
+    ? subjectsList.filter(s =>
+        cursosList.find(c => c.id === cursoId)?.mySubjects?.some(ms => ms.subjectId === s.id)
+      )
+    : subjectsList;
+
+  useEffect(() => {
+    if (cursoId && filteredSubjects.length > 0) {
+      const currentIsValid = filteredSubjects.some(s => s.id === subjectId);
+      if (!currentIsValid) setSubjectId(filteredSubjects[0].id);
+    }
+  }, [cursoId]);
 
   const handleMarkAbsent = async (studentId: number) => {
     setAbsentLoading(studentId);
@@ -146,6 +170,9 @@ export function CreateAssignmentForm() {
         setSubjectId(d.subjects[0].id);
       }
     }).catch(() => {});
+    fetch("/api/teacher/courses").then(r => r.json()).then(d => {
+      setCursosList(d.cursos || []);
+    }).catch(() => {});
   }, []);
 
   const viewSubmissions = async (aid: number) => {
@@ -185,6 +212,7 @@ export function CreateAssignmentForm() {
     setDescription(a.description);
     setDueDate(a.dueDate || "");
     setSubjectId(a.subjectId || subjectsList[0]?.id || null);
+    setCursoId(a.cursoId || null);
     setShowForm(true);
     setErrorMsg("");
 
@@ -214,6 +242,7 @@ export function CreateAssignmentForm() {
     setDescription("");
     setDueDate("");
     setQuestions([]);
+    setCursoId(null);
     setSubjectId(subjectsList[0]?.id ?? null);
     setErrorMsg("");
   };
@@ -264,7 +293,7 @@ export function CreateAssignmentForm() {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...body, subjectId }),
+        body: JSON.stringify({ ...body, subjectId, cursoId: cursoId || undefined }),
       });
 
       if (res.ok) {
@@ -368,7 +397,6 @@ export function CreateAssignmentForm() {
                           </div>
                         )}
 
-                        {/* Grading section */}
                         {(s.status === "submitted" || s.status === "graded") && (
                           <div className="border-t pt-3 space-y-2">
                             {gradingSub?.id === s.id ? (
@@ -485,7 +513,7 @@ export function CreateAssignmentForm() {
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-foreground">Tareas asignadas</h2>
             {!showForm && (
-              <Button onClick={() => { setShowForm(true); setEditId(null); setTitle(""); setDescription(""); setDueDate(""); setQuestions([]); setSubjectId(subjectsList[0]?.id ?? null); setErrorMsg(""); }} size="sm" className="gap-2">
+              <Button onClick={() => { setShowForm(true); setEditId(null); setTitle(""); setDescription(""); setDueDate(""); setQuestions([]); setCursoId(null); setSubjectId(subjectsList[0]?.id ?? null); setErrorMsg(""); }} size="sm" className="gap-2">
                 <Plus className="h-4 w-4" /> Nueva Tarea
               </Button>
             )}
@@ -501,11 +529,29 @@ export function CreateAssignmentForm() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  {cursosList.length > 0 && (
+                    <div>
+                      <label className="text-sm font-semibold text-foreground mb-1.5 block">Curso</label>
+                      <select
+                        value={cursoId || ""}
+                        onChange={(e) => setCursoId(e.target.value ? Number(e.target.value) : null)}
+                        className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm"
+                      >
+                        <option value="">Sin curso (todos los estudiantes)</option>
+                        {cursosList.map((c) => (
+                          <option key={c.id} value={c.id}>{c.nombre} ({c.nivel})</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label className="text-sm font-semibold text-foreground mb-1.5 block">Materia</label>
                     <select value={subjectId ?? ""} onChange={(e) => setSubjectId(Number(e.target.value))}
                       className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm">
-                      {subjectsList.map((s) => <option key={s.id} value={s.id}>{s.emoji} {s.name}</option>)}
+                      {filteredSubjects.map((s) => <option key={s.id} value={s.id}>{s.emoji} {s.name}</option>)}
+                      {filteredSubjects.length === 0 && (
+                        <option value="" disabled>Selecciona primero un curso</option>
+                      )}
                     </select>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-4">
@@ -537,7 +583,6 @@ export function CreateAssignmentForm() {
                       className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm min-h-[80px] resize-y" required />
                   </div>
 
-                  {/* Question Builder */}
                   <div className="border-t pt-4 space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
@@ -627,11 +672,13 @@ export function CreateAssignmentForm() {
                         <div className="flex items-center gap-2">
                           <span className="text-lg">{a.subjectEmoji}</span>
                           <Badge variant="secondary" className="text-[10px]">{a.subjectName}</Badge>
+                          {a.cursoNombre && (
+                            <Badge variant="outline" className="text-[10px]">{a.cursoNombre}</Badge>
+                          )}
                         </div>
                         <h3 className="font-bold text-foreground">{a.title}</h3>
                         <p className="text-sm text-muted-foreground line-clamp-2">{a.description}</p>
                       </div>
-                      {/* Edit / Delete buttons */}
                       <div className="flex gap-1 ml-2 shrink-0">
                         <Button variant="ghost" size="icon-sm" onClick={(e) => { e.stopPropagation(); startEdit(a); }}
                           className="h-7 w-7 text-muted-foreground hover:text-primary" title="Editar">

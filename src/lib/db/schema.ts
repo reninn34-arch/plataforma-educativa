@@ -124,6 +124,7 @@ export const assignments = pgTable("assignments", {
   subjectId: integer("subject_id")
     .notNull()
     .references(() => subjects.id),
+  cursoId: integer("curso_id").references(() => cursos.id),
   title: varchar("title", { length: 200 }).notNull(),
   description: text("description").notNull(),
   dueDate: timestamp("due_date"),
@@ -259,4 +260,19 @@ export const cursoEstudiantes = pgTable("curso_estudiantes", {
     .references(() => users.id),
 }, (table) => ({
   uniqueEnrollment: unique("curso_estudiante_unique").on(table.cursoId, table.estudianteId),
+}));
+
+export const cursoProfesores = pgTable("curso_profesores", {
+  id: serial("id").primaryKey(),
+  cursoId: integer("curso_id")
+    .notNull()
+    .references(() => cursos.id),
+  teacherId: integer("teacher_id")
+    .notNull()
+    .references(() => users.id),
+  subjectId: integer("subject_id")
+    .notNull()
+    .references(() => subjects.id),
+}, (table) => ({
+  uniqueCursoProfesorSubject: unique("curso_profesor_subject_unique").on(table.cursoId, table.teacherId, table.subjectId),
 }));

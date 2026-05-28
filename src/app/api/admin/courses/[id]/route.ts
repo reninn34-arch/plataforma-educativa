@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { cursos, cursoEstudiantes } from "@/lib/db/schema";
+import { cursos, cursoEstudiantes, users, subjects, cursoProfesores } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
@@ -15,7 +15,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const cursoId = parseInt(id);
-    const { nombre, nivel, profesorId, activo } = await request.json();
+    const { nombre, nivel, profesorId, activo, teacherSubjects: teacherSubjectsData } = await request.json();
 
     const updateData: Record<string, any> = {};
     if (nombre) updateData.nombre = nombre;
@@ -23,7 +23,23 @@ export async function PUT(
     if (profesorId !== undefined) updateData.profesorId = profesorId;
     if (activo !== undefined) updateData.activo = activo;
 
-    await db.update(cursos).set(updateData).where(eq(cursos.id, cursoId));
+    if (Object.keys(updateData).length > 0) {
+      await db.update(cursos).set(updateData).where(eq(cursos.id, cursoId));
+    }
+
+    if (teacherSubjectsData !== undefined && Array.isArray(teacherSubjectsData)) {
+      await db.delete(cursoProfesores).where(eq(cursoProfesores.cursoId, cursoId));
+      if (teacherSubjectsData.length > 0) {
+        await db.insert(cursoProfesores).values(
+          teacherSubjectsData.map((ts: { teacherId: number; subjectId: number }) => ({
+            cursoId,
+            teacherId: ts.teacherId,
+            subjectId: ts.subjectId,
+          }))
+        );
+      }
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Admin update course error:", error);
@@ -43,6 +59,7 @@ export async function DELETE(
     const { id } = await params;
     const cursoId = parseInt(id);
 
+    await db.delete(cursoProfesores).where(eq(cursoProfesores.cursoId, cursoId));
     await db.delete(cursoEstudiantes).where(eq(cursoEstudiantes.cursoId, cursoId));
     await db.delete(cursos).where(eq(cursos.id, cursoId));
     return NextResponse.json({ success: true });

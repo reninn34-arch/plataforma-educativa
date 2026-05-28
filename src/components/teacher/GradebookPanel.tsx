@@ -21,7 +21,14 @@ interface StudentGrade {
   studentId: number;
   studentName: string;
   studentCedula: string;
+  studentCursoNombre?: string;
   subjects: SubjectGrade[];
+}
+
+interface CursoOption {
+  id: number;
+  nombre: string;
+  nivel: string;
 }
 
 function GradeStat({ value, isYearly }: { value: number | null; isYearly?: boolean }) {
@@ -34,22 +41,29 @@ function GradeStat({ value, isYearly }: { value: number | null; isYearly?: boole
   );
 }
 
-export function GradebookPanel() {
+export function GradebookPanel({ cursoId: initialCursoId }: { cursoId?: number | null }) {
   const [gradebook, setGradebook] = useState<StudentGrade[]>([]);
   const [loading, setLoading] = useState(true);
   const [trimesterFilter, setTrimesterFilter] = useState(0);
+  const [cursoId, setCursoId] = useState<number | null>(initialCursoId ?? null);
+  const [cursos, setCursos] = useState<CursoOption[]>([]);
 
   const fetchGradebook = () => {
     setLoading(true);
-    fetch(`/api/analytics/gradebook?trimester=${trimesterFilter}`)
+    let url = `/api/analytics/gradebook?trimester=${trimesterFilter}`;
+    if (cursoId) url += `&cursoId=${cursoId}`;
+    fetch(url)
       .then(r => r.json())
       .then(d => { setGradebook(d.gradebook || []); setLoading(false); })
       .catch(() => setLoading(false));
   };
 
-  useEffect(() => { fetchGradebook(); }, [trimesterFilter]);
+  useEffect(() => {
+    fetch("/api/teacher/courses").then(r => r.json()).then(d => setCursos(d.cursos || [])).catch(() => {});
+  }, []);
 
-  // Calculate class averages
+  useEffect(() => { fetchGradebook(); }, [trimesterFilter, cursoId]);
+
   const classStats = useMemo(() => {
     const allSubjects = new Map<number, { name: string; emoji: string; yearlyAvgs: number[]; t1Avgs: number[]; t2Avgs: number[]; t3Avgs: number[] }>();
     let totalYearlySum = 0;
@@ -86,9 +100,21 @@ export function GradebookPanel() {
 
   return (
     <div className="space-y-6 animate-fade-in-up">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-lg font-bold text-foreground">Libro de Calificaciones</h2>
         <div className="flex gap-2">
+          {cursos.length > 1 && (
+            <select
+              value={cursoId || ""}
+              onChange={e => setCursoId(e.target.value ? Number(e.target.value) : null)}
+              className="h-8 rounded-lg border border-input bg-card px-3 text-xs"
+            >
+              <option value="">Todos los cursos</option>
+              {cursos.map(c => (
+                <option key={c.id} value={c.id}>{c.nombre}</option>
+              ))}
+            </select>
+          )}
           {[0, 1, 2, 3].map(t => (
             <Badge
               key={t}
@@ -102,7 +128,6 @@ export function GradebookPanel() {
         </div>
       </div>
 
-      {/* Formula card */}
       <Card className="shadow-sm bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
         <CardContent className="p-4 text-sm">
           <p className="font-bold text-primary">Formula de calculo anual</p>
@@ -115,7 +140,6 @@ export function GradebookPanel() {
         </CardContent>
       </Card>
 
-      {/* Class Overview */}
       {classStats.generalAverage !== null && (
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <Card className="shadow-sm col-span-2 sm:col-span-1">
@@ -139,7 +163,6 @@ export function GradebookPanel() {
         </div>
       )}
 
-      {/* Per Subject Breakdown */}
       {classStats.bySubject.length > 0 && (
         <Card className="shadow-sm">
           <CardHeader className="pb-3"><CardTitle className="text-base">Promedios por Trimestre</CardTitle></CardHeader>
@@ -172,7 +195,6 @@ export function GradebookPanel() {
         </Card>
       )}
 
-      {/* Student Gradebook Table */}
       <Card className="shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
@@ -189,6 +211,7 @@ export function GradebookPanel() {
                 <thead>
                   <tr className="border-b text-xs text-muted-foreground">
                     <th className="text-left py-2 font-medium sticky left-0 bg-card">Estudiante</th>
+                    {!cursoId && <th className="text-left py-2 font-medium">Curso</th>}
                     {gradebook[0]?.subjects.map(s => (
                       <th key={s.subjectId} className="text-center py-2 font-medium">{s.subjectEmoji}</th>
                     ))}
@@ -216,6 +239,9 @@ export function GradebookPanel() {
                             <span className="font-medium text-foreground text-xs">{student.studentName}</span>
                           </div>
                         </td>
+                        {!cursoId && (
+                          <td className="py-2.5"><Badge variant="outline" className="text-[10px]">{student.studentCursoNombre || "—"}</Badge></td>
+                        )}
                         {student.subjects.map(subj => (
                           <td key={subj.subjectId} className="text-center">
                             <div className="flex flex-col items-center">

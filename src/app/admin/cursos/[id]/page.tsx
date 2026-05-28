@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Search, Loader2, X, UserPlus, Trash2, Printer, Mail } from "lucide-react";
+import { ArrowLeft, Search, Loader2, X, UserPlus, Trash2, Printer, Mail, Users as UsersIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface Student {
   id: number;
@@ -20,11 +21,31 @@ interface AvailableStudent {
   fullName: string;
 }
 
+interface CursoTeacherSubject {
+  teacherId: number;
+  teacherName: string;
+  subjectId: number;
+  subjectName: string;
+  subjectEmoji: string;
+}
+
+interface CursoInfo {
+  id: number;
+  nombre: string;
+  nivel: string;
+  profesorId: number | null;
+  profesorNombre: string | null;
+  activo: boolean;
+  studentCount: number;
+  teacherSubjects: CursoTeacherSubject[];
+}
+
 export default function CursoDetailPage() {
   const params = useParams();
   const router = useRouter();
   const cursoId = params.id as string;
 
+  const [cursoInfo, setCursoInfo] = useState<CursoInfo | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [allStudents, setAllStudents] = useState<AvailableStudent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,6 +55,15 @@ export default function CursoDetailPage() {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailFeedback, setEmailFeedback] = useState("");
   const [resetPins, setResetPins] = useState(false);
+
+  const fetchCursoInfo = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/courses");
+      const d = await res.json();
+      const found = (d.cursos || []).find((c: CursoInfo) => c.id === parseInt(cursoId));
+      if (found) setCursoInfo(found);
+    } catch {}
+  }, [cursoId]);
 
   const handleSendEmails = async () => {
     setSendingEmail(true);
@@ -66,12 +96,13 @@ export default function CursoDetailPage() {
   }, [cursoId]);
 
   useEffect(() => {
+    fetchCursoInfo();
     fetchStudents();
     fetch("/api/admin/users?role=student")
       .then(r => r.json()).then(d => setAllStudents(d.users || []))
       .catch(() => {});
     setLoading(false);
-  }, [fetchStudents, cursoId]);
+  }, [fetchCursoInfo, fetchStudents, cursoId]);
 
   const handleAddStudent = async (estudianteId: number) => {
     try {
@@ -81,6 +112,7 @@ export default function CursoDetailPage() {
         body: JSON.stringify({ estudianteId }),
       });
       fetchStudents();
+      fetchCursoInfo();
     } catch {}
   };
 
@@ -92,6 +124,7 @@ export default function CursoDetailPage() {
         body: JSON.stringify({ estudianteId }),
       });
       fetchStudents();
+      fetchCursoInfo();
     } catch {}
   };
 
@@ -101,6 +134,10 @@ export default function CursoDetailPage() {
     (s.fullName.toLowerCase().includes(addSearch.toLowerCase()) || s.cedula.includes(addSearch))
   );
 
+  const filteredStudents = students.filter(s =>
+    s.fullName.toLowerCase().includes(search.toLowerCase()) || s.cedula.includes(search)
+  );
+
   return (
     <div className="p-6 sm:p-8 w-full max-w-4xl mx-auto space-y-6 animate-fade-in-up">
       <div className="flex items-center gap-4">
@@ -108,8 +145,10 @@ export default function CursoDetailPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-foreground">Gestion de Estudiantes</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-2xl font-bold text-foreground">{cursoInfo?.nombre || "Curso"}</h1>
+          <p className="text-sm text-muted-foreground">
+            {cursoInfo?.nivel}
+            {cursoInfo && <span className="mx-2">·</span>}
             {students.length} estudiantes matriculados
           </p>
         </div>
@@ -130,6 +169,39 @@ export default function CursoDetailPage() {
           </Button>
         </div>
       </div>
+
+      {/* Course info card */}
+      {cursoInfo && (
+        <Card className="shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                  <UsersIcon className="h-3 w-3" /> {cursoInfo.studentCount} estudiantes
+                </Badge>
+              </div>
+              {cursoInfo.profesorNombre && (
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Tutor:</span>{" "}
+                  <span className="font-medium">{cursoInfo.profesorNombre}</span>
+                </div>
+              )}
+              {cursoInfo.teacherSubjects.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Profesores por materia:</span>
+                  {cursoInfo.teacherSubjects.map((ts, i) => (
+                    <Badge key={i} variant="outline" className="text-xs gap-1 py-1">
+                      <span>{ts.subjectEmoji}</span>
+                      <span>{ts.teacherName}</span>
+                      <span className="text-muted-foreground">· {ts.subjectName}</span>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {emailFeedback && (
         <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-sm font-medium text-blue-700">
@@ -173,13 +245,23 @@ export default function CursoDetailPage() {
         </Card>
       )}
 
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <input
+          type="text" value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar estudiante..."
+          className="w-full h-10 pl-10 rounded-lg border border-input bg-card px-3 text-sm"
+        />
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : (
         <Card className="shadow-sm">
           <CardContent className="p-0">
             <div className="divide-y">
-              {students.map(s => (
+              {filteredStudents.map(s => (
                 <div key={s.id} className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="h-9 w-9 shrink-0 rounded-full bg-accent flex items-center justify-center text-xs font-bold">
@@ -198,7 +280,7 @@ export default function CursoDetailPage() {
                   </Button>
                 </div>
               ))}
-              {students.length === 0 && (
+              {filteredStudents.length === 0 && (
                 <div className="py-12 text-center">
                   <p className="text-muted-foreground">No hay estudiantes en este curso</p>
                 </div>

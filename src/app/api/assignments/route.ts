@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { assignments, assignmentQuestions, assignmentSubmissions, subjects, users } from "@/lib/db/schema";
+import { assignments, assignmentQuestions, assignmentSubmissions, subjects, users, cursos, cursoProfesores } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 import { assignmentSchema } from "@/lib/api-helpers";
@@ -23,10 +23,13 @@ export async function GET(request: NextRequest) {
           subjectName: subjects.name,
           subjectEmoji: subjects.emoji,
           subjectSlug: subjects.slug,
+          cursoId: assignments.cursoId,
+          cursoNombre: cursos.nombre,
           submissionCount: db.$count(assignmentSubmissions, eq(assignmentSubmissions.assignmentId, assignments.id)),
         })
         .from(assignments)
         .leftJoin(subjects, eq(assignments.subjectId, subjects.id))
+        .leftJoin(cursos, eq(assignments.cursoId, cursos.id))
         .where(eq(assignments.teacherId, user.id))
         .orderBy(desc(assignments.createdAt));
 
@@ -44,12 +47,15 @@ export async function GET(request: NextRequest) {
         subjectName: subjects.name,
         subjectEmoji: subjects.emoji,
         subjectSlug: subjects.slug,
+        cursoId: assignments.cursoId,
+        cursoNombre: cursos.nombre,
         status: assignmentSubmissions.status,
         grade: assignmentSubmissions.grade,
       })
       .from(assignments)
       .leftJoin(subjects, eq(assignments.subjectId, subjects.id))
       .leftJoin(users, eq(assignments.teacherId, users.id))
+      .leftJoin(cursos, eq(assignments.cursoId, cursos.id))
       .leftJoin(
         assignmentSubmissions,
         and(
@@ -82,7 +88,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Datos invalidos", details: parsed.error.flatten() }, { status: 400 });
     }
 
-    const { title, description, subjectId, dueDate, trimester, questions } = parsed.data;
+    const { title, description, subjectId, cursoId, dueDate, trimester, questions } = parsed.data;
 
     const [subjectExists] = await db
       .select({ id: subjects.id })
@@ -93,11 +99,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Materia no encontrada" }, { status: 400 });
     }
 
+    if (cursoId) {
+      const belongs = await db
+        .select({ id: cursoProfesores.id })
+        .from(cursoProfesores)
+        .where(and(eq(cursoProfesores.cursoId, cursoId), eq(cursoProfesores.teacherId, user.id)))
+        .limit(1);
+      const isTutor = await db
+        .select({ id: cursos.id })
+        .from(cursos)
+        .where(and(eq(cursos.id, cursoId), eq(cursos.profesorId, user.id)))
+        .limit(1);
+      if (!belongs.length && !isTutor.length) {
+        return NextResponse.json({ error: "No perteneces a este curso" }, { status: 403 });
+      }
+    }
+
     const [assignment] = await db
       .insert(assignments)
       .values({
         teacherId: user.id,
         subjectId,
+        cursoId: cursoId || null,
         title,
         description,
         dueDate: dueDate ? new Date(dueDate) : null,

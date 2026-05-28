@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { assignments, assignmentSubmissions, subjects, users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { assignments, assignmentSubmissions, subjects, users, cursos, cursoProfesores } from "@/lib/db/schema";
+import { eq, and, inArray } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
 function escapeCSV(value: unknown): string {
@@ -17,6 +17,39 @@ export async function GET(request: NextRequest) {
       return Response.json({ error: "Solo docentes" }, { status: 403 });
     }
 
+    const cursoIdParam = request.nextUrl.searchParams.get("cursoId");
+
+    const mySubjectCourses = await db
+      .select({ cursoId: cursoProfesores.cursoId })
+      .from(cursoProfesores)
+      .where(eq(cursoProfesores.teacherId, user.id));
+
+    const tutorCourses = await db
+      .select({ id: cursos.id })
+      .from(cursos)
+      .where(eq(cursos.profesorId, user.id));
+
+    const allIds = [...new Set([
+      ...mySubjectCourses.map(r => r.cursoId),
+      ...tutorCourses.map(r => r.id),
+    ])];
+
+    let targetCursoIds: number[] | null = null;
+    if (cursoIdParam) {
+      const cid = parseInt(cursoIdParam);
+      if (!allIds.includes(cid)) {
+        return Response.json({ error: "No tienes acceso a este curso" }, { status: 403 });
+      }
+      targetCursoIds = [cid];
+    } else if (allIds.length > 0) {
+      targetCursoIds = allIds;
+    }
+
+    const conditions: any[] = [eq(assignments.teacherId, user.id)];
+    if (targetCursoIds) {
+      conditions.push(inArray(assignments.cursoId, targetCursoIds));
+    }
+
     const data = await db
       .select({
         studentName: users.fullName,
@@ -27,18 +60,20 @@ export async function GET(request: NextRequest) {
         trimester: assignments.trimester,
         grade: assignmentSubmissions.grade,
         feedback: assignmentSubmissions.feedback,
+        cursoNombre: cursos.nombre,
       })
       .from(assignmentSubmissions)
       .leftJoin(assignments, eq(assignmentSubmissions.assignmentId, assignments.id))
       .leftJoin(subjects, eq(assignments.subjectId, subjects.id))
       .leftJoin(users, eq(assignmentSubmissions.studentId, users.id))
-      .where(eq(assignments.teacherId, user.id))
+      .leftJoin(cursos, eq(assignments.cursoId, cursos.id))
+      .where(and(...conditions))
       .limit(1000);
 
     const BOM = "\uFEFF";
-    const header = "Estudiante,Cedula,Materia,Tarea,Trimestre,Nota,Feedback";
+    const header = "Estudiante,Cedula,Curso,Materia,Tarea,Trimestre,Nota,Feedback";
     const rows = data.map(r =>
-      [r.studentName, r.studentCedula, r.subjectName, r.assignmentTitle, `T${r.trimester}`, r.grade ?? "", r.feedback || ""]
+      [r.studentName, r.studentCedula, r.cursoNombre || "", r.subjectName, r.assignmentTitle, `T${r.trimester}`, r.grade ?? "", r.feedback || ""]
         .map(escapeCSV)
         .join(",")
     );

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { users, cursoProfesores, subjects } from "@/lib/db/schema";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
 function generatePin(): string {
@@ -16,16 +16,52 @@ export async function GET(request: NextRequest) {
 
   try {
     const role = request.nextUrl.searchParams.get("role") || "student";
-    const showInactive = request.nextUrl.searchParams.get("inactive") === "true";
+    const showInactive = request.nextUrl.searchParams.get("inactivos") === "true";
+    const onlyInactive = request.nextUrl.searchParams.get("soloInactivos") === "true";
     const conditions: any[] = [eq(users.role, role as any)];
-    if (!showInactive) conditions.push(eq(users.activo, true));
+    if (onlyInactive) {
+      conditions.push(eq(users.activo, false));
+    } else if (!showInactive) {
+      conditions.push(eq(users.activo, true));
+    }
     const data = await db
       .select({ id: users.id, cedula: users.cedula, fullName: users.fullName, role: users.role, email: users.email, activo: users.activo, createdAt: users.createdAt })
       .from(users)
       .where(and(...conditions))
       .orderBy(desc(users.createdAt));
 
-    return NextResponse.json({ users: data });
+    let usersWithSubjects = data;
+
+    if (role === "teacher" && data.length > 0) {
+      const teacherIds = data.map(u => u.id);
+      const tsData = await db
+        .select({
+          teacherId: cursoProfesores.teacherId,
+          subjectId: cursoProfesores.subjectId,
+          subjectName: subjects.name,
+          subjectEmoji: subjects.emoji,
+        })
+        .from(cursoProfesores)
+        .innerJoin(subjects, eq(cursoProfesores.subjectId, subjects.id))
+        .where(inArray(cursoProfesores.teacherId, teacherIds));
+
+      const subjectsByTeacher: Record<number, { subjectId: number; subjectName: string; subjectEmoji: string }[]> = {};
+      for (const ts of tsData) {
+        if (!subjectsByTeacher[ts.teacherId]) subjectsByTeacher[ts.teacherId] = [];
+        subjectsByTeacher[ts.teacherId].push({
+          subjectId: ts.subjectId,
+          subjectName: ts.subjectName,
+          subjectEmoji: ts.subjectEmoji,
+        });
+      }
+
+      usersWithSubjects = data.map(u => ({
+        ...u,
+        subjects: subjectsByTeacher[u.id] || [],
+      }));
+    }
+
+    return NextResponse.json({ users: usersWithSubjects });
   } catch (error) {
     console.error("Admin users error:", error);
     return NextResponse.json({ error: "Error al cargar usuarios" }, { status: 500 });

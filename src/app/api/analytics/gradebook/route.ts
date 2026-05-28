@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { assignments, assignmentSubmissions, subjects, users } from "@/lib/db/schema";
-import { eq, and, desc, asc, sql } from "drizzle-orm";
+import { assignments, assignmentSubmissions, subjects, users, cursos, cursoProfesores } from "@/lib/db/schema";
+import { eq, and, desc, asc, inArray } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
@@ -12,11 +12,40 @@ export async function GET(request: NextRequest) {
   }
 
   const trimester = parseInt(request.nextUrl.searchParams.get("trimester") || "0");
+  const cursoIdParam = request.nextUrl.searchParams.get("cursoId");
 
   try {
-    // Get all submissions with grades
+    const mySubjectCourses = await db
+      .select({ cursoId: cursoProfesores.cursoId })
+      .from(cursoProfesores)
+      .where(eq(cursoProfesores.teacherId, user.id));
+
+    const tutorCourses = await db
+      .select({ id: cursos.id })
+      .from(cursos)
+      .where(eq(cursos.profesorId, user.id));
+
+    const allIds = [...new Set([
+      ...mySubjectCourses.map(r => r.cursoId),
+      ...tutorCourses.map(r => r.id),
+    ])];
+
+    let targetCursoIds: number[];
+    if (cursoIdParam) {
+      const cid = parseInt(cursoIdParam);
+      if (!allIds.includes(cid)) {
+        return NextResponse.json({ error: "No tienes acceso a este curso" }, { status: 403 });
+      }
+      targetCursoIds = [cid];
+    } else {
+      targetCursoIds = allIds;
+    }
+
     const conditions: any[] = [eq(assignments.teacherId, user.id)];
     if (trimester > 0) conditions.push(eq(assignments.trimester, trimester));
+    if (targetCursoIds.length > 0) {
+      conditions.push(inArray(assignments.cursoId, targetCursoIds));
+    }
 
     const data = await db
       .select({
@@ -33,19 +62,22 @@ export async function GET(request: NextRequest) {
         grade: assignmentSubmissions.grade,
         status: assignmentSubmissions.status,
         submittedAt: assignmentSubmissions.submittedAt,
+        cursoId: assignments.cursoId,
+        cursoNombre: cursos.nombre,
       })
       .from(assignmentSubmissions)
       .leftJoin(assignments, eq(assignmentSubmissions.assignmentId, assignments.id))
       .leftJoin(subjects, eq(assignments.subjectId, subjects.id))
       .leftJoin(users, eq(assignmentSubmissions.studentId, users.id))
+      .leftJoin(cursos, eq(assignments.cursoId, cursos.id))
       .where(and(...conditions))
       .orderBy(desc(users.fullName), asc(subjects.name));
 
-    // Group by student → subject → grades + averages
     const studentMap = new Map<number, {
       studentId: number;
       studentName: string;
       studentCedula: string;
+      studentCursoNombre: string;
       subjects: Map<number, {
         subjectId: number;
         subjectName: string;
@@ -65,6 +97,7 @@ export async function GET(request: NextRequest) {
           studentId: row.studentId,
           studentName: row.studentName || "",
           studentCedula: row.studentCedula || "",
+          studentCursoNombre: row.cursoNombre || "",
           subjects: new Map(),
         });
       }
@@ -98,16 +131,14 @@ export async function GET(request: NextRequest) {
       studentId: s.studentId,
       studentName: s.studentName,
       studentCedula: s.studentCedula,
+      studentCursoNombre: s.studentCursoNombre,
       subjects: Array.from(s.subjects.values()).map(subj => ({
         subjectId: subj.subjectId,
         subjectName: subj.subjectName,
         subjectEmoji: subj.subjectEmoji,
-        // Trimester averages
         t1Avg: avg(subj.t1Grades),
         t2Avg: avg(subj.t2Grades),
         t3Avg: avg(subj.t3Grades),
-        // Yearly average formula: (T1 + T2 + T3) / 3
-        // If a trimester has no grades, use 0
         yearlyAvg: (() => {
           const t1 = avg(subj.t1Grades);
           const t2 = avg(subj.t2Grades);

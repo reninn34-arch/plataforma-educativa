@@ -109,6 +109,7 @@ export default function StudentAssignmentsPage() {
                         <p className="text-sm font-medium truncate">{a.title}</p>
                         <p className="text-xs text-muted-foreground">
                           {a.subjectName}
+                          {a.cursoNombre && ` · ${a.cursoNombre}`}
                           {a.teacherName && ` · ${a.teacherName}`}
                         </p>
                         {a.dueDate && (

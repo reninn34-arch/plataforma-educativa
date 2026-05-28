@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { assignments, assignmentQuestions, assignmentSubmissions, submissionAnswers, subjects, users } from "@/lib/db/schema";
+import { assignments, assignmentQuestions, assignmentSubmissions, submissionAnswers, subjects, users, cursoEstudiantes, cursos } from "@/lib/db/schema";
 import { eq, and, asc, inArray } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
@@ -27,11 +27,14 @@ export async function GET(
         subjectEmoji: subjects.emoji,
         subjectSlug: subjects.slug,
         subjectId: assignments.subjectId,
+        cursoId: assignments.cursoId,
+        cursoNombre: cursos.nombre,
         teacherName: users.fullName,
       })
       .from(assignments)
       .leftJoin(subjects, eq(assignments.subjectId, subjects.id))
       .leftJoin(users, eq(assignments.teacherId, users.id))
+      .leftJoin(cursos, eq(assignments.cursoId, cursos.id))
       .where(eq(assignments.id, assignmentId));
 
     if (!assignment) {
@@ -93,11 +96,23 @@ export async function GET(
         mcqTotal: questions.filter(q => q.type === "mcq").length,
       }));
 
-      // Find students who haven't submitted
-      const allStudents = await db
-        .select({ id: users.id, fullName: users.fullName, cedula: users.cedula })
-        .from(users)
-        .where(eq(users.role, "student"));
+      // Find students who haven't submitted - only from this assignment's course
+      let allStudents: { id: number; fullName: string; cedula: string }[] = [];
+      if (assignment.cursoId) {
+        allStudents = await db
+          .select({ id: users.id, fullName: users.fullName, cedula: users.cedula })
+          .from(users)
+          .innerJoin(cursoEstudiantes, eq(users.id, cursoEstudiantes.estudianteId))
+          .where(and(
+            eq(cursoEstudiantes.cursoId, assignment.cursoId),
+            eq(users.role, "student")
+          ));
+      } else {
+        allStudents = await db
+          .select({ id: users.id, fullName: users.fullName, cedula: users.cedula })
+          .from(users)
+          .where(eq(users.role, "student"));
+      }
 
       const submittedIds = new Set(submissions.map(s => s.studentId));
       notSubmitted = allStudents
@@ -179,13 +194,12 @@ export async function PUT(
     const { id } = await params;
     const assignmentId = parseInt(id);
 
-    const { title, description, dueDate, trimester, subjectId, questions } = await request.json();
+    const { title, description, dueDate, trimester, subjectId, cursoId, questions } = await request.json();
 
     if (!title || !description) {
       return NextResponse.json({ error: "Titulo y descripcion requeridos" }, { status: 400 });
     }
 
-    // Verify teacher owns this assignment
     const [existing] = await db
       .select({ teacherId: assignments.teacherId })
       .from(assignments)
@@ -195,7 +209,6 @@ export async function PUT(
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
-    // Update assignment
     const updateValues: Record<string, any> = {
       title,
       description,
@@ -203,6 +216,7 @@ export async function PUT(
       trimester: trimester || 1,
     };
     if (subjectId != null) updateValues.subjectId = subjectId;
+    if (cursoId !== undefined) updateValues.cursoId = cursoId || null;
 
     await db
       .update(assignments)

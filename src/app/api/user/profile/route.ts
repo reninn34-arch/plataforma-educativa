@@ -9,7 +9,7 @@ import { profileSchema } from "@/lib/api-helpers";
 export async function GET(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
   const user = token ? await verifyToken(token) : null;
-  if (!user || user.role !== "student") return NextResponse.json({ error: "Solo estudiantes" }, { status: 403 });
+  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   try {
     const [dbUser] = await db.select({ cedula: users.cedula, fullName: users.fullName, role: users.role })
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
   const user = token ? await verifyToken(token) : null;
-  if (!user || user.role !== "student") return NextResponse.json({ error: "Solo estudiantes" }, { status: 403 });
+  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   try {
     const body = await request.json();

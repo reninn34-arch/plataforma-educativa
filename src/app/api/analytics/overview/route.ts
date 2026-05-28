@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { practiceSessions, practiceAnswers, users, subjects } from "@/lib/db/schema";
+import { practiceSessions, practiceAnswers, users, subjects, cursoEstudiantes, cursoProfesores, cursos } from "@/lib/db/schema";
 import { eq, sql, desc, inArray, and } from "drizzle-orm";
-import { assignments, assignmentSubmissions } from "@/lib/db/schema";
 import { verifyToken } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
@@ -12,17 +11,44 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Solo docentes" }, { status: 403 });
   }
 
-  try {
-    // Get this teacher's students (via assignments)
-    const teacherStudentIds = await db
-      .select({ studentId: assignmentSubmissions.studentId })
-      .from(assignmentSubmissions)
-      .leftJoin(assignments, eq(assignmentSubmissions.assignmentId, assignments.id))
-      .where(eq(assignments.teacherId, user.id));
-    const studentIdSet = new Set(teacherStudentIds.map(r => r.studentId));
-    const studentIds = Array.from(studentIdSet);
+  const cursoIdParam = request.nextUrl.searchParams.get("cursoId");
 
-    // Overall stats (restricted to teacher's students)
+  try {
+    const mySubjectCourses = await db
+      .select({ cursoId: cursoProfesores.cursoId })
+      .from(cursoProfesores)
+      .where(eq(cursoProfesores.teacherId, user.id));
+
+    const tutorCourses = await db
+      .select({ id: cursos.id })
+      .from(cursos)
+      .where(eq(cursos.profesorId, user.id));
+
+    const allIds = [...new Set([
+      ...mySubjectCourses.map(r => r.cursoId),
+      ...tutorCourses.map(r => r.id),
+    ])];
+
+    let targetCursoIds: number[];
+    if (cursoIdParam) {
+      const cid = parseInt(cursoIdParam);
+      if (!allIds.includes(cid)) {
+        return NextResponse.json({ error: "No tienes acceso a este curso" }, { status: 403 });
+      }
+      targetCursoIds = [cid];
+    } else {
+      targetCursoIds = allIds;
+    }
+
+    let studentIds: number[] = [];
+    if (targetCursoIds.length > 0) {
+      const enrolled = await db
+        .select({ estudianteId: cursoEstudiantes.estudianteId })
+        .from(cursoEstudiantes)
+        .where(inArray(cursoEstudiantes.cursoId, targetCursoIds));
+      studentIds = [...new Set(enrolled.map(r => r.estudianteId))];
+    }
+
     const [overall] = studentIds.length > 0
       ? await db
         .select({
@@ -36,7 +62,6 @@ export async function GET(request: NextRequest) {
         .where(inArray(practiceSessions.userId, studentIds))
       : [null];
 
-    // Per subject analytics
     const bySubject = studentIds.length > 0
       ? await db
         .select({
@@ -53,7 +78,6 @@ export async function GET(request: NextRequest) {
         .orderBy(subjects.name)
       : [];
 
-    // Per student analytics
     const byStudent = studentIds.length > 0
       ? await db
         .select({
@@ -73,7 +97,6 @@ export async function GET(request: NextRequest) {
         .orderBy(desc(sql`avg(${practiceSessions.score})`))
       : [];
 
-    // Error classification: topics where students fail most
     const errorTopics = studentIds.length > 0
       ? await db
         .select({

@@ -64,6 +64,20 @@
       "when": 1779951810066,
       "tag": "0008_shocking_lord_tyger",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1779985624524,
+      "tag": "0009_cool_harpoon",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1779989734355,
+      "tag": "0010_eminent_captain_cross",
+      "breakpoints": true
     }
   ]
 }
