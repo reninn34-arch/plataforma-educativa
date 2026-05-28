@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, GraduationCap, Menu, X, LayoutDashboard, Users, BookOpen, Settings } from "lucide-react";
+import { LogOut, GraduationCap, Menu, X, LayoutDashboard, Users, BookOpen, Calendar, Settings } from "lucide-react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ const links = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/usuarios", label: "Usuarios", icon: Users },
   { href: "/admin/cursos", label: "Cursos", icon: BookOpen },
+  { href: "/admin/periodos", label: "Periodos", icon: Calendar },
   { href: "/admin/configuracion", label: "Configuracion", icon: Settings },
 ];
 

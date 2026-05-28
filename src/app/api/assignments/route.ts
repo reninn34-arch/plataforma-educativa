@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { assignments, assignmentQuestions, assignmentSubmissions, subjects, users, cursos, cursoProfesores } from "@/lib/db/schema";
+import { assignments, assignmentQuestions, assignmentSubmissions, subjects, users, cursos, cursoProfesores, periodosLectivos } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 import { assignmentSchema } from "@/lib/api-helpers";
@@ -115,6 +115,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const [activePeriod] = await db
+      .select({ id: periodosLectivos.id })
+      .from(periodosLectivos)
+      .where(eq(periodosLectivos.activo, true))
+      .limit(1);
+
     const [assignment] = await db
       .insert(assignments)
       .values({
@@ -126,6 +132,7 @@ export async function POST(request: NextRequest) {
         dueDate: dueDate ? new Date(dueDate) : null,
         trimester: trimester || 1,
         puntos: parsed.data.puntos || 10,
+        periodoLectivoId: activePeriod?.id || null,
       } as any)
       .returning();
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { users, cursoEstudiantes, cursoProfesores, cursos, progress, subjects, assignments, assignmentSubmissions } from "@/lib/db/schema";
+import { users, cursoEstudiantes, cursoProfesores, cursos, progress, subjects, assignments, assignmentSubmissions, periodosLectivos } from "@/lib/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
@@ -110,22 +110,31 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const gradesData = studentIds.length > 0 && subjectIds.length > 0 ? await db
-      .select({
-        studentId: assignmentSubmissions.studentId,
-        grade: assignmentSubmissions.grade,
-        status: assignmentSubmissions.status,
-        submittedAt: assignmentSubmissions.submittedAt,
-        assignmentId: assignmentSubmissions.assignmentId,
-        puntos: assignments.puntos,
-      })
-      .from(assignmentSubmissions)
-      .innerJoin(assignments, eq(assignmentSubmissions.assignmentId, assignments.id))
-      .where(and(
-        eq(assignments.teacherId, teacher.id),
-        inArray(assignmentSubmissions.studentId, studentIds),
-        inArray(assignments.subjectId, subjectIds),
-      )) : [];
+    const gradesData = studentIds.length > 0 && subjectIds.length > 0 ? await (async () => {
+      const [activePeriod] = await db
+        .select({ id: periodosLectivos.id })
+        .from(periodosLectivos)
+        .where(eq(periodosLectivos.activo, true))
+        .limit(1);
+
+      return db
+        .select({
+          studentId: assignmentSubmissions.studentId,
+          grade: assignmentSubmissions.grade,
+          status: assignmentSubmissions.status,
+          submittedAt: assignmentSubmissions.submittedAt,
+          assignmentId: assignmentSubmissions.assignmentId,
+          puntos: assignments.puntos,
+        })
+        .from(assignmentSubmissions)
+        .innerJoin(assignments, eq(assignmentSubmissions.assignmentId, assignments.id))
+        .where(and(
+          eq(assignments.teacherId, teacher.id),
+          inArray(assignmentSubmissions.studentId, studentIds),
+          inArray(assignments.subjectId, subjectIds),
+          ...(activePeriod ? [eq(assignments.periodoLectivoId, activePeriod.id)] : []),
+        ));
+    })() : [];
 
     const allAsignIds = [...new Set(gradesData.map(g => g.assignmentId))];
     const totalAssignments = allAsignIds.length;

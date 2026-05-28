@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { cursoEstudiantes, cursoProfesores, cursos, assignmentSubmissions, assignments, users } from "@/lib/db/schema";
+import { cursoEstudiantes, cursoProfesores, cursos, assignmentSubmissions, assignments, users, periodosLectivos } from "@/lib/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
@@ -66,6 +66,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const [activePeriod] = await db
+      .select({ id: periodosLectivos.id })
+      .from(periodosLectivos)
+      .where(eq(periodosLectivos.activo, true))
+      .limit(1);
+
     const grades = await db
       .select({
         studentId: assignmentSubmissions.studentId,
@@ -79,6 +85,7 @@ export async function GET(request: NextRequest) {
         eq(assignments.teacherId, teacher.id),
         inArray(assignmentSubmissions.studentId, uniqueIds),
         inArray(assignments.subjectId, subjectIds),
+        ...(activePeriod ? [eq(assignments.periodoLectivoId, activePeriod.id)] : []),
       ));
 
     const studentData = new Map<number, { grades: number[]; puntosArr: number[]; pending: number }>();
@@ -104,6 +111,7 @@ export async function GET(request: NextRequest) {
         eq(assignments.teacherId, teacher.id),
         inArray(assignments.subjectId, subjectIds),
         inArray(assignments.cursoId, targetIds),
+        ...(activePeriod ? [eq(assignments.periodoLectivoId, activePeriod.id)] : []),
       ));
     const assignmentIds = allAssignments.map(a => a.id);
 

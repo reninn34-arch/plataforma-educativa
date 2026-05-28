@@ -1,0 +1,2 @@
+ALTER TABLE "assignments" ADD COLUMN "periodo_lectivo_id" integer;--> statement-breakpoint
+ALTER TABLE "assignments" ADD CONSTRAINT "assignments_periodo_lectivo_id_periodos_lectivos_id_fk" FOREIGN KEY ("periodo_lectivo_id") REFERENCES "public"."periodos_lectivos"("id") ON DELETE no action ON UPDATE no action;
