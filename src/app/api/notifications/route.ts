@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       eq(assignmentSubmissions.assignmentId, assignments.id),
       eq(assignmentSubmissions.studentId, user.id)
     ))
-    .where(eq(assignmentSubmissions.status, "pending"));
+    .where(sql`${assignmentSubmissions.id} is null`);
 
   const [newGrades] = await db
     .select({ count: sql<number>`count(*)`.mapWith(Number) })

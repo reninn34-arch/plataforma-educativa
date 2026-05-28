@@ -119,7 +119,7 @@ export default function StudentAssignmentsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {a.status === "graded" && a.grade != null && (
+                      {(a.status === "graded" || a.grade != null) && (
                         <Badge variant={a.grade >= 7 ? "default" : "destructive"} className="text-[10px]">
                           {a.grade}/10
                         </Badge>

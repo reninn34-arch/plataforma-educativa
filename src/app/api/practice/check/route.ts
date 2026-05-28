@@ -38,8 +38,12 @@ async function aiSemanticCheck(
     if (!result) return null;
 
     const text = result.text.trim();
-    const parsed = JSON.parse(text);
-    if (typeof parsed.isCorrect === "boolean") return parsed.isCorrect;
+    try {
+      const parsed = JSON.parse(text);
+      if (typeof parsed.isCorrect === "boolean") return parsed.isCorrect;
+    } catch {
+      // Invalid JSON from AI, fall through to null
+    }
     return null;
   } catch {
     return null;
@@ -49,7 +53,7 @@ async function aiSemanticCheck(
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
   const user = token ? await verifyToken(token) : null;
-  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  if (!user || user.role !== "student") return NextResponse.json({ error: "Solo estudiantes" }, { status: 403 });
 
   try {
     const parsed = practiceCheckSchema.safeParse(await request.json());

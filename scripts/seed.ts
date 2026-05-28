@@ -15,6 +15,16 @@ async function seed() {
 
   console.log("🌱 Sembrando base de datos Atlas Edu...\n");
 
+  // Delete in dependency order (children first)
+  await db.delete(schema.submissionAnswers);
+  await db.delete(schema.assignmentQuestions);
+  await db.delete(schema.directMessages);
+  await db.delete(schema.assignmentSubmissions);
+  await db.delete(schema.assignments);
+  await db.delete(schema.practiceAnswers);
+  await db.delete(schema.practiceSessions);
+  await db.delete(schema.cursoEstudiantes);
+  await db.delete(schema.cursos);
   await db.delete(schema.chatMessages);
   await db.delete(schema.chatSessions);
   await db.delete(schema.progress);
@@ -32,9 +42,10 @@ async function seed() {
       { cedula: "1700000001", pin: await bcrypt.hash("1234", 10), fullName: "Jose Luis Quishpe", role: "student" },
       { cedula: "1700000002", pin: await bcrypt.hash("1234", 10), fullName: "Ana Lucia Paredes", role: "student" },
       { cedula: "1799999999", pin: await bcrypt.hash("5678", 10), fullName: "Prof. Patricio Mena", role: "teacher" },
+      { cedula: "1700000000", pin: await bcrypt.hash("0000", 10), fullName: "Administrador", role: "admin" as any },
     ])
     .returning();
-  console.log(`👤 ${users.length} usuarios creados: 3 estudiantes + 1 docente`);
+  console.log("👤 5 usuarios creados: 3 estudiantes + 1 docente + 1 admin");
 
   const subjects = await db
     .insert(schema.subjects)
@@ -212,6 +223,7 @@ async function seed() {
 
   console.log("\n✅ Seed completado!");
   console.log("\n🔑 Credenciales de prueba:");
+  console.log("   Admin:      1700000000 / PIN: 0000");
   console.log("   Estudiante: 1723456789 / PIN: 1234");
   console.log("   Docente:    1799999999 / PIN: 5678\n");
 }

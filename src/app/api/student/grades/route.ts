@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     .where(eq(assignmentSubmissions.studentId, user.id))
     .orderBy(desc(assignmentSubmissions.submittedAt));
 
-  const graded = data.filter(r => r.status === "graded" && r.grade !== null);
+  const graded = data.filter(r => r.grade !== null);
   const pending = data.filter(r => r.status === "submitted" && r.grade === null);
   const notSubmitted = data.filter(r => r.status === "pending");
 
@@ -55,11 +55,14 @@ export async function GET(request: NextRequest) {
     t2Avg: avg(s.t2),
     t3Avg: avg(s.t3),
     yearlyAvg: (() => {
-      const t1 = avg(s.t1) ?? 0;
-      const t2 = avg(s.t2) ?? 0;
-      const t3 = avg(s.t3) ?? 0;
-      const count = [t1, t2, t3].filter(t => t > 0).length;
-      return count > 0 ? Math.round(((t1 + t2 + t3) / 3) * 100) / 100 : null;
+      const t1 = avg(s.t1);
+      const t2 = avg(s.t2);
+      const t3 = avg(s.t3);
+      const t1Val = s.t1.length > 0 ? (t1 ?? 0) : null;
+      const t2Val = s.t2.length > 0 ? (t2 ?? 0) : null;
+      const t3Val = s.t3.length > 0 ? (t3 ?? 0) : null;
+      const valid = [t1Val, t2Val, t3Val].filter(t => t !== null);
+      return valid.length > 0 ? Math.round(((t1Val ?? 0) + (t2Val ?? 0) + (t3Val ?? 0)) / 3 * 100) / 100 : null;
     })(),
     totalGraded: s.all.length,
   }));

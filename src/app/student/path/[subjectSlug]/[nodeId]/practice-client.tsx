@@ -118,7 +118,8 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
         setGameState("results");
       }
     } catch {
-      // Error handled silently
+      setFeedback({ isCorrect: false, feedback: "Error al cargar ejercicios. Intenta de nuevo." });
+      setGameState("results");
     } finally {
       setRetryGenerating(false);
     }
@@ -278,8 +279,8 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
       setFeedback(data);
     } catch {
       setFeedback({
-        isCorrect: true,
-        feedback: "Respuesta registrada. Continuemos.",
+        isCorrect: false,
+        feedback: "Error de conexion. Intentalo de nuevo en la siguiente pregunta.",
       });
     }
   };

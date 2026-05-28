@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { subjects, nodes, modules, userProgress } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import { PracticeClient } from "./practice-client";
@@ -23,6 +23,29 @@ export default async function NodePracticePage({ params }: { params: Promise<{ s
   // Check if node is locked (not first node in module)
   const moduleRecord = await db.select().from(modules).where(eq(modules.id, node.moduleId)).limit(1);
   if (moduleRecord.length > 0) {
+    const mod = moduleRecord[0];
+
+    // Check module-level star requirement
+    if (mod.requiredPoints > 0) {
+      const allSubjectNodes = await db
+        .select({ id: nodes.id })
+        .from(nodes)
+        .leftJoin(modules, eq(nodes.moduleId, modules.id))
+        .where(eq(modules.subjectId, subject.id));
+      const allNodeIds = allSubjectNodes.map(n => n.id);
+
+      const allProgress = allNodeIds.length > 0
+        ? await db.select({ stars: userProgress.starsEarned })
+          .from(userProgress)
+          .where(and(eq(userProgress.userId, session.id), inArray(userProgress.nodeId, allNodeIds)))
+        : [];
+      const totalStars = allProgress.reduce((sum, p) => sum + (p.stars || 0), 0);
+
+      if (totalStars < mod.requiredPoints) {
+        redirect(`/student/path/${subject.slug}`);
+      }
+    }
+
     const firstNodeInModule = await db
       .select({ id: nodes.id })
       .from(nodes)

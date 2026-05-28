@@ -23,8 +23,10 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  const handleLogout = () => {
-    document.cookie = "atlas-edu-token=; path=/; max-age=0";
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {}
     router.push("/login");
   };
 

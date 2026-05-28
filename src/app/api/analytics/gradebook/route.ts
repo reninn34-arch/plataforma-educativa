@@ -15,6 +15,9 @@ export async function GET(request: NextRequest) {
 
   try {
     // Get all submissions with grades
+    const conditions: any[] = [eq(assignments.teacherId, user.id)];
+    if (trimester > 0) conditions.push(eq(assignments.trimester, trimester));
+
     const data = await db
       .select({
         submissionId: assignmentSubmissions.id,
@@ -35,12 +38,7 @@ export async function GET(request: NextRequest) {
       .leftJoin(assignments, eq(assignmentSubmissions.assignmentId, assignments.id))
       .leftJoin(subjects, eq(assignments.subjectId, subjects.id))
       .leftJoin(users, eq(assignmentSubmissions.studentId, users.id))
-      .where(
-        and(
-          eq(assignments.teacherId, user.id),
-          trimester > 0 ? eq(assignments.trimester, trimester) : undefined
-        )
-      )
+      .where(and(...conditions))
       .orderBy(desc(users.fullName), asc(subjects.name));
 
     // Group by student → subject → grades + averages
@@ -111,12 +109,15 @@ export async function GET(request: NextRequest) {
         // Yearly average formula: (T1 + T2 + T3) / 3
         // If a trimester has no grades, use 0
         yearlyAvg: (() => {
-          const t1 = avg(subj.t1Grades) ?? 0;
-          const t2 = avg(subj.t2Grades) ?? 0;
-          const t3 = avg(subj.t3Grades) ?? 0;
-          const trimestersWithGrades = [t1, t2, t3].filter(t => t > 0).length;
-          if (trimestersWithGrades === 0) return null;
-          return Math.round(((t1 + t2 + t3) / 3) * 100) / 100;
+          const t1 = avg(subj.t1Grades);
+          const t2 = avg(subj.t2Grades);
+          const t3 = avg(subj.t3Grades);
+          const t1Val = subj.t1Grades.length > 0 ? (t1 ?? 0) : null;
+          const t2Val = subj.t2Grades.length > 0 ? (t2 ?? 0) : null;
+          const t3Val = subj.t3Grades.length > 0 ? (t3 ?? 0) : null;
+          const valid = [t1Val, t2Val, t3Val].filter(t => t !== null);
+          if (valid.length === 0) return null;
+          return Math.round(((t1Val ?? 0) + (t2Val ?? 0) + (t3Val ?? 0)) / 3 * 100) / 100;
         })(),
         totalGrades: subj.grades.length,
         overallAvg: avg(subj.grades),

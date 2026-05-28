@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   try {
     const token = request.cookies.get("atlas-edu-token")?.value;
     const user = token ? await verifyToken(token) : null;
-    if (!user) {
+    if (!user || user.role !== "student") {
       return Response.json({ error: "No autorizado" }, { status: 401 });
     }
 

@@ -36,10 +36,13 @@ function LoginForm() {
       }
 
       const redirect = searchParams.get("redirect");
+      const safeRedirect = redirect && redirect.startsWith("/") ? redirect : null;
       if (data.user.role === "teacher") {
         router.push("/teacher/dashboard");
+      } else if (data.user.role === "admin") {
+        router.push("/admin/dashboard");
       } else {
-        router.push(redirect || "/student/dashboard");
+        router.push(safeRedirect || "/student/dashboard");
       }
     } catch {
       setError("Error de conexión. Intenta de nuevo.");

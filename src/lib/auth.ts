@@ -9,7 +9,7 @@ export interface SessionUser {
   id: number;
   cedula: string;
   fullName: string;
-  role: "student" | "teacher";
+  role: "student" | "teacher" | "admin";
 }
 
 export async function createToken(user: SessionUser): Promise<string> {
@@ -50,4 +50,5 @@ export async function setSessionCookie(token: string) {
 export async function destroySession() {
   const cookieStore = await cookies();
   cookieStore.delete(TOKEN_NAME);
+  cookieStore.set(TOKEN_NAME, "", { maxAge: 0, path: "/" });
 }

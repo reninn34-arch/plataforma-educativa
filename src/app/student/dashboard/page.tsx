@@ -67,7 +67,7 @@ export default function StudentDashboard() {
     if (a.status === "graded" || a.status === "submitted") return false;
     return a.dueDate && new Date(a.dueDate).getTime() < Date.now();
   });
-  const submittedAssignments = assignments.filter((a: any) => a.status === "submitted");
+  const submittedAssignments = assignments.filter((a: any) => a.status === "submitted" || a.status === "graded");
   const totalSessions = metrics?.totalSessions || 0;
   const accuracy = metrics?.accuracy || 0;
   const gradeAverage = metrics?.gradeAverage;
@@ -216,32 +216,30 @@ export default function StudentDashboard() {
         </div>
 
         {/* Practice stats */}
-        {totalSessions > 0 && (
-          <div className="grid grid-cols-3 gap-3">
-            <Card className="shadow-sm">
-              <CardContent className="p-3 text-center">
-                <Flame className="h-4 w-4 text-orange-500 mx-auto mb-1" />
-                <p className="text-lg font-bold">{totalSessions}</p>
-                <p className="text-[10px] text-muted-foreground">Sesiones</p>
-              </CardContent>
-            </Card>
-            <Card className="shadow-sm">
-              <CardContent className="p-3 text-center">
-                <Clock className="h-4 w-4 text-blue-500 mx-auto mb-1" />
-                <p className="text-lg font-bold">{streakDays} dias</p>
-                <p className="text-[10px] text-muted-foreground">Racha</p>
-              </CardContent>
-            </Card>
-            <Card className="shadow-sm">
-              <CardContent className="p-3 text-center">
-                <BookOpen className="h-4 w-4 text-emerald-500 mx-auto mb-1" />
-                <p className="text-lg font-bold">{accuracy}%</p>
-                <p className="text-[10px] text-muted-foreground">Precision</p>
-                <p className="text-[9px] text-muted-foreground/60">Aciertos / Total</p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+        <div className="grid grid-cols-3 gap-3">
+          <Card className="shadow-sm">
+            <CardContent className="p-3 text-center">
+              <Flame className="h-4 w-4 text-orange-500 mx-auto mb-1" />
+              <p className="text-lg font-bold">{totalSessions}</p>
+              <p className="text-[10px] text-muted-foreground">Sesiones</p>
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm">
+            <CardContent className="p-3 text-center">
+              <Clock className="h-4 w-4 text-blue-500 mx-auto mb-1" />
+              <p className="text-lg font-bold">{streakDays} dias</p>
+              <p className="text-[10px] text-muted-foreground">Racha</p>
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm">
+            <CardContent className="p-3 text-center">
+              <BookOpen className="h-4 w-4 text-emerald-500 mx-auto mb-1" />
+              <p className="text-lg font-bold">{accuracy}%</p>
+              <p className="text-[10px] text-muted-foreground">Precision</p>
+              <p className="text-[9px] text-muted-foreground/60">Aciertos / Total</p>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Subject cards */}
         <div className="grid sm:grid-cols-2 gap-3">

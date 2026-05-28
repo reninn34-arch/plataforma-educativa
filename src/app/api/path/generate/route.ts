@@ -74,8 +74,8 @@ function repairJson(text: string): string {
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
   const user = token ? await verifyToken(token) : null;
-  if (!user) {
-    return Response.json({ error: "No autorizado" }, { status: 401 });
+  if (!user || user.role !== "student") {
+    return Response.json({ error: "Solo estudiantes" }, { status: 403 });
   }
 
   try {

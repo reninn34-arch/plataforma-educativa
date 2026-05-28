@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { chatSessions, chatMessages, subjects } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 import { opencodeGoModel, logAiCall } from "@/lib/ai";
 import { streamText, convertToModelMessages } from "ai";
@@ -24,12 +24,14 @@ async function getOrCreateSession(userId: number, subjectSlug: string) {
     .where(eq(subjects.slug, subjectSlug))
     .limit(1);
 
-  const subjectId = subject?.id ?? 0;
+  if (!subject) return null;
+
+  const subjectId = subject.id;
 
   const [existing] = await db
     .select()
     .from(chatSessions)
-    .where(eq(chatSessions.userId, userId))
+    .where(and(eq(chatSessions.userId, userId), eq(chatSessions.subjectId, subjectId)))
     .limit(1);
 
   if (existing) return existing;
@@ -84,11 +86,12 @@ export async function POST(request: NextRequest) {
     result.text.then(async (fullText) => {
       try {
         const session = await getOrCreateSession(user.id, subject);
-        await db.insert(chatMessages).values({ sessionId: session.id, role: "assistant", content: fullText });
+        if (!session) return;
         const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
         if (lastUserMsg) {
           await db.insert(chatMessages).values({ sessionId: session.id, role: "user", content: typeof lastUserMsg.parts?.[0]?.text === "string" ? lastUserMsg.parts[0].text : "" });
         }
+        await db.insert(chatMessages).values({ sessionId: session.id, role: "assistant", content: fullText });
       } catch {}
     });
 

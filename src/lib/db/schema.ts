@@ -11,7 +11,7 @@ import {
   unique,
 } from "drizzle-orm/pg-core";
 
-export const roleEnum = pgEnum("role", ["student", "teacher"]);
+export const roleEnum = pgEnum("role", ["student", "teacher", "admin"]);
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -19,6 +19,8 @@ export const users = pgTable("users", {
   pin: varchar("pin", { length: 60 }).notNull(),
   fullName: varchar("full_name", { length: 200 }).notNull(),
   role: roleEnum("role").notNull().default("student"),
+  email: varchar("email", { length: 200 }),
+  activo: boolean("activo").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLogin: timestamp("last_login"),
 });
@@ -226,3 +228,35 @@ export const directMessages = pgTable("direct_messages", {
   read: boolean("read").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// --- Admin: Configuration key-value store ---
+
+export const configuracion = pgTable("configuracion", {
+  id: serial("id").primaryKey(),
+  clave: varchar("clave", { length: 100 }).notNull().unique(),
+  valor: text("valor"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// --- Admin: Courses & Enrollment ---
+
+export const cursos = pgTable("cursos", {
+  id: serial("id").primaryKey(),
+  nombre: varchar("nombre", { length: 200 }).notNull(),
+  nivel: varchar("nivel", { length: 100 }).notNull(),
+  profesorId: integer("profesor_id").references(() => users.id),
+  activo: boolean("activo").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const cursoEstudiantes = pgTable("curso_estudiantes", {
+  id: serial("id").primaryKey(),
+  cursoId: integer("curso_id")
+    .notNull()
+    .references(() => cursos.id),
+  estudianteId: integer("estudiante_id")
+    .notNull()
+    .references(() => users.id),
+}, (table) => ({
+  uniqueEnrollment: unique("curso_estudiante_unique").on(table.cursoId, table.estudianteId),
+}));

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { practiceSessions, practiceAnswers, users, subjects } from "@/lib/db/schema";
-import { eq, sql, desc } from "drizzle-orm";
+import { eq, sql, desc, inArray, and } from "drizzle-orm";
+import { assignments, assignmentSubmissions } from "@/lib/db/schema";
 import { verifyToken } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
@@ -12,63 +13,82 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Overall stats
-    const [overall] = await db
-      .select({
-        totalSessions: sql<number>`count(distinct ${practiceSessions.id})`.mapWith(Number),
-        totalAnswers: sql<number>`count(${practiceAnswers.id})`.mapWith(Number),
-        avgScore: sql<number>`round(avg(${practiceSessions.score}))`.mapWith(Number),
-        avgCorrect: sql<number>`round(avg(case when ${practiceSessions.totalCount} > 0 then cast(${practiceSessions.correctCount} as numeric) / cast(${practiceSessions.totalCount} as numeric) * 100 else null end))`.mapWith(Number),
-      })
-      .from(practiceSessions)
-      .leftJoin(practiceAnswers, eq(practiceAnswers.sessionId, practiceSessions.id));
+    // Get this teacher's students (via assignments)
+    const teacherStudentIds = await db
+      .select({ studentId: assignmentSubmissions.studentId })
+      .from(assignmentSubmissions)
+      .leftJoin(assignments, eq(assignmentSubmissions.assignmentId, assignments.id))
+      .where(eq(assignments.teacherId, user.id));
+    const studentIdSet = new Set(teacherStudentIds.map(r => r.studentId));
+    const studentIds = Array.from(studentIdSet);
+
+    // Overall stats (restricted to teacher's students)
+    const [overall] = studentIds.length > 0
+      ? await db
+        .select({
+          totalSessions: sql<number>`count(distinct ${practiceSessions.id})`.mapWith(Number),
+          totalAnswers: sql<number>`count(${practiceAnswers.id})`.mapWith(Number),
+          avgScore: sql<number>`round(avg(${practiceSessions.score}))`.mapWith(Number),
+          avgCorrect: sql<number>`round(avg(case when ${practiceSessions.totalCount} > 0 then cast(${practiceSessions.correctCount} as numeric) / cast(${practiceSessions.totalCount} as numeric) * 100 else null end))`.mapWith(Number),
+        })
+        .from(practiceSessions)
+        .leftJoin(practiceAnswers, eq(practiceAnswers.sessionId, practiceSessions.id))
+        .where(inArray(practiceSessions.userId, studentIds))
+      : [null];
 
     // Per subject analytics
-    const bySubject = await db
-      .select({
-        subjectId: subjects.id,
-        subjectName: subjects.name,
-        subjectEmoji: subjects.emoji,
-        totalAnswers: sql<number>`count(${practiceAnswers.id})`.mapWith(Number),
-        correctCount: sql<number>`sum(case when ${practiceAnswers.isCorrect} then 1 else 0 end)`.mapWith(Number),
-      })
-      .from(practiceAnswers)
-      .leftJoin(subjects, eq(practiceAnswers.subjectId, subjects.id))
-      .groupBy(subjects.id, subjects.name, subjects.emoji)
-      .orderBy(subjects.name);
+    const bySubject = studentIds.length > 0
+      ? await db
+        .select({
+          subjectId: subjects.id,
+          subjectName: subjects.name,
+          subjectEmoji: subjects.emoji,
+          totalAnswers: sql<number>`count(${practiceAnswers.id})`.mapWith(Number),
+          correctCount: sql<number>`sum(case when ${practiceAnswers.isCorrect} then 1 else 0 end)`.mapWith(Number),
+        })
+        .from(practiceAnswers)
+        .leftJoin(subjects, eq(practiceAnswers.subjectId, subjects.id))
+        .where(inArray(practiceAnswers.userId, studentIds))
+        .groupBy(subjects.id, subjects.name, subjects.emoji)
+        .orderBy(subjects.name)
+      : [];
 
     // Per student analytics
-    const byStudent = await db
-      .select({
-        userId: users.id,
-        fullName: users.fullName,
-        cedula: users.cedula,
-        sessions: sql<number>`count(distinct ${practiceSessions.id})`.mapWith(Number),
-        avgScore: sql<number>`round(avg(${practiceSessions.score}))`.mapWith(Number),
-        totalCorrect: sql<number>`sum(case when ${practiceAnswers.isCorrect} then 1 else 0 end)`.mapWith(Number),
-        totalAnswers: sql<number>`count(${practiceAnswers.id})`.mapWith(Number),
-      })
-      .from(practiceSessions)
-      .leftJoin(users, eq(practiceSessions.userId, users.id))
-      .leftJoin(practiceAnswers, eq(practiceAnswers.sessionId, practiceSessions.id))
-      .where(eq(users.role, "student"))
-      .groupBy(users.id, users.fullName, users.cedula)
-      .orderBy(desc(sql`avg(${practiceSessions.score})`));
+    const byStudent = studentIds.length > 0
+      ? await db
+        .select({
+          userId: users.id,
+          fullName: users.fullName,
+          cedula: users.cedula,
+          sessions: sql<number>`count(distinct ${practiceSessions.id})`.mapWith(Number),
+          avgScore: sql<number>`round(avg(${practiceSessions.score}))`.mapWith(Number),
+          totalCorrect: sql<number>`sum(case when ${practiceAnswers.isCorrect} then 1 else 0 end)`.mapWith(Number),
+          totalAnswers: sql<number>`count(${practiceAnswers.id})`.mapWith(Number),
+        })
+        .from(practiceSessions)
+        .leftJoin(users, eq(practiceSessions.userId, users.id))
+        .leftJoin(practiceAnswers, eq(practiceAnswers.sessionId, practiceSessions.id))
+        .where(inArray(practiceSessions.userId, studentIds))
+        .groupBy(users.id, users.fullName, users.cedula)
+        .orderBy(desc(sql`avg(${practiceSessions.score})`))
+      : [];
 
     // Error classification: topics where students fail most
-    const errorTopics = await db
-      .select({
-        topic: practiceAnswers.topic,
-        subjectName: subjects.name,
-        subjectEmoji: subjects.emoji,
-        wrongCount: sql<number>`count(*)`.mapWith(Number),
-      })
-      .from(practiceAnswers)
-      .leftJoin(subjects, eq(practiceAnswers.subjectId, subjects.id))
-      .where(eq(practiceAnswers.isCorrect, false))
-      .groupBy(practiceAnswers.topic, subjects.name, subjects.emoji)
-      .orderBy(desc(sql`count(*)`))
-      .limit(10);
+    const errorTopics = studentIds.length > 0
+      ? await db
+        .select({
+          topic: practiceAnswers.topic,
+          subjectName: subjects.name,
+          subjectEmoji: subjects.emoji,
+          wrongCount: sql<number>`count(*)`.mapWith(Number),
+        })
+        .from(practiceAnswers)
+        .leftJoin(subjects, eq(practiceAnswers.subjectId, subjects.id))
+        .where(and(eq(practiceAnswers.isCorrect, false), inArray(practiceAnswers.userId, studentIds)))
+        .groupBy(practiceAnswers.topic, subjects.name, subjects.emoji)
+        .orderBy(desc(sql`count(*)`))
+        .limit(10)
+      : [];
 
     return NextResponse.json({
       overall,

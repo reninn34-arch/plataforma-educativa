@@ -55,7 +55,7 @@ export async function POST(
         studentId,
         status: "graded",
         grade: 0,
-        feedback: "No entrego",
+        feedback: "No entregó",
       } as any)
       .returning();
 

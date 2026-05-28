@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 
-interface WindowEntry {
-  timestamps: number[];
-}
-
-const store = new Map<string, WindowEntry>();
+const store = new Map<string, { timestamps: number[]; windowMs: number }>();
 
 const CLEANUP_INTERVAL = 60_000;
 let cleanupTimer: ReturnType<typeof setInterval> | null = null;
@@ -14,7 +10,7 @@ function ensureCleanup() {
   cleanupTimer = setInterval(() => {
     const now = Date.now();
     for (const [key, entry] of store) {
-      entry.timestamps = entry.timestamps.filter((t) => now - t < 60_000);
+      entry.timestamps = entry.timestamps.filter((t) => now - t < entry.windowMs);
       if (entry.timestamps.length === 0) store.delete(key);
     }
     if (store.size === 0 && cleanupTimer) {
@@ -36,7 +32,7 @@ export function rateLimit(opts: {
 
   let entry = store.get(key);
   if (!entry) {
-    entry = { timestamps: [] };
+    entry = { timestamps: [], windowMs };
     store.set(key, entry);
   }
 

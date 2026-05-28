@@ -24,7 +24,7 @@ export async function PUT(
     }
 
     const grade = rawGrade != null ? Math.round(rawGrade) : null;
-    if (grade != null && (grade < 0 || grade > 10)) {
+    if (grade != null && (isNaN(grade) || grade < 0 || grade > 10)) {
       return NextResponse.json({ error: "Nota debe ser entre 0 y 10" }, { status: 400 });
     }
 

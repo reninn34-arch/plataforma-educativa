@@ -100,7 +100,7 @@ export async function GET(
         .where(eq(users.role, "student"));
 
       const submittedIds = new Set(submissions.map(s => s.studentId));
-      const notSubmitted = allStudents
+      notSubmitted = allStudents
         .filter(s => !submittedIds.has(s.id))
         .map(s => ({
           studentId: s.id,

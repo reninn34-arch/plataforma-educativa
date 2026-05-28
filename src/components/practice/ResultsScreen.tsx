@@ -28,7 +28,7 @@ export function ResultsScreen({
   onNextNode,
   hasNextNode,
 }: ResultsScreenProps) {
-  const percentage = Math.round((correct / total) * 100);
+  const percentage = total > 0 ? Math.round((correct / total) * 100) : 0;
   const stars = starsEarned;
 
   return (

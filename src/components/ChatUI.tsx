@@ -7,6 +7,15 @@ import { Bot, User, Send } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatNotation } from "@/lib/utils";
 
+function renderFormatted(text: string) {
+  const parts = text.split(/(<sub>.*?<\/sub>|<sup>.*?<\/sup>)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("<sub>")) return <sub key={i}>{part.replace(/<\/?sub>/g, "")}</sub>;
+    if (part.startsWith("<sup>")) return <sup key={i}>{part.replace(/<\/?sup>/g, "")}</sup>;
+    return <>{part}</>;
+  });
+}
+
 function TypingIndicator() {
   return (
     <div className="flex items-center gap-1 px-4 py-3">
@@ -22,7 +31,7 @@ export function ChatUI({ subject }: { subject: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [input, setInput] = useState("");
 
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, error } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
       body: { subject },
@@ -45,7 +54,6 @@ export function ChatUI({ subject }: { subject: string }) {
 
   return (
     <div className="flex flex-col h-full bg-card">
-      {/* Messages Area */}
       <ScrollArea className="flex-1">
         <div role="log" aria-live="polite" className="px-4 py-4 space-y-4 min-h-full">
           {messages.length === 0 && (
@@ -60,12 +68,17 @@ export function ChatUI({ subject }: { subject: string }) {
             </div>
           )}
 
+          {error && (
+            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 text-center">
+              Error al conectar con el tutor. Intenta de nuevo.
+            </div>
+          )}
+
           {messages.map((msg) => (
             <div
               key={msg.id}
               className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"} animate-fade-in-up`}
             >
-              {/* Avatar */}
               <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full mt-0.5 ${
                 msg.role === "user"
                   ? "bg-primary text-primary-foreground"
@@ -74,7 +87,6 @@ export function ChatUI({ subject }: { subject: string }) {
                 {msg.role === "user" ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
               </div>
 
-              {/* Bubble */}
               <div
                 className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
                   msg.role === "user"
@@ -82,8 +94,8 @@ export function ChatUI({ subject }: { subject: string }) {
                     : "bg-muted text-foreground border border-border rounded-tl-md"
                 }`}
               >
-                {msg.parts.map((part, i) => {
-                  if (part.type === "text") return <span key={i} dangerouslySetInnerHTML={{ __html: formatNotation(part.text) }} />;
+                {msg.parts?.map((part, i) => {
+                  if (part.type === "text") return <span key={i}>{renderFormatted(formatNotation(part.text))}</span>;
                   return null;
                 })}
               </div>
@@ -104,7 +116,6 @@ export function ChatUI({ subject }: { subject: string }) {
         </div>
       </ScrollArea>
 
-      {/* Input */}
       <form onSubmit={onSubmit} className="border-t bg-card p-4">
         <div className="flex gap-2">
           <input

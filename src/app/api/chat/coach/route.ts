@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
       ? "El estudiante no respondio a tiempo."
       : `El estudiante respondio: "${studentAnswer}".`;
 
+    const abortController = new AbortController();
     const startTime = performance.now();
     const result = await Promise.race([
       generateText({
@@ -51,6 +52,7 @@ ${contextLine}
 Genera una mini-ayuda motivadora para el estudiante:`,
         maxOutputTokens: 120,
         temperature: 0.7,
+        abortSignal: abortController.signal,
       }).then(async (r) => {
         logAiCall({
           route: "coach",
@@ -60,7 +62,10 @@ Genera una mini-ayuda motivadora para el estudiante:`,
         });
         return r;
       }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+      new Promise<null>((resolve) => setTimeout(() => {
+        abortController.abort();
+        resolve(null);
+      }, 5000)),
     ]);
 
     const coachMessage = result

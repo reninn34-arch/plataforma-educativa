@@ -6,7 +6,7 @@ import {
   assignmentSubmissions,
   subjects,
 } from "@/lib/db/schema";
-import { eq, and, desc, inArray } from "drizzle-orm";
+import { eq, and, desc, inArray, isNotNull } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
 function calculateStreak(dates: string[]): number {
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
     .where(
       and(
         eq(assignmentSubmissions.studentId, user.id),
-        eq(assignmentSubmissions.status, "graded")
+        isNotNull(assignmentSubmissions.grade)
       )
     );
 

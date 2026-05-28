@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { createToken, setSessionCookie } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { loginSchema } from "@/lib/api-helpers";
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     }
     const { cedula, pin } = parsed.data;
 
-    const [user] = await db.select().from(users).where(eq(users.cedula, cedula)).limit(1);
+    const [user] = await db.select().from(users).where(and(eq(users.cedula, cedula), eq(users.activo, true))).limit(1);
     if (!user || !await bcrypt.compare(pin, user.pin)) {
       return NextResponse.json({ error: "Credenciales incorrectas" }, { status: 401 });
     }

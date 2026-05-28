@@ -205,7 +205,7 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                               {node.title}
                             </span>
                             {node.type === "concept" && !isLocked && (
-                              <span className="block text-[10px] text-blue-500 mt-0.5">Ensenianza</span>
+                              <span className="block text-[10px] text-blue-500 mt-0.5">Enseñanza</span>
                             )}
                             {node.type === "challenge" && !isLocked && (
                               <span className="block text-[10px] text-orange-500 mt-0.5">Desafio</span>

@@ -196,7 +196,7 @@ function tryParseJson(text: string): any {
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
   const user = token ? await verifyToken(token) : null;
-  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  if (!user || user.role !== "student") return NextResponse.json({ error: "Solo estudiantes" }, { status: 403 });
 
   try {
     const inputParsed = practiceGenerateSchema.safeParse(await request.json());
