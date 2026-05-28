@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { horarios, subjects } from "@/lib/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, sql } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
 export async function GET(
@@ -30,7 +30,16 @@ export async function GET(
       .from(horarios)
       .leftJoin(subjects, eq(horarios.subjectId, subjects.id))
       .where(eq(horarios.cursoId, cursoId))
-      .orderBy(asc(horarios.horaInicio));
+      .orderBy(
+        sql`CASE ${horarios.dia}
+          WHEN 'lunes' THEN 1
+          WHEN 'martes' THEN 2
+          WHEN 'miercoles' THEN 3
+          WHEN 'jueves' THEN 4
+          WHEN 'viernes' THEN 5
+          ELSE 6 END`,
+        asc(horarios.horaInicio)
+      );
 
     return NextResponse.json({ horarios: data });
   } catch (error) {
