@@ -1,0 +1,1 @@
+ALTER TABLE "assignments" ALTER COLUMN "due_date" SET DATA TYPE timestamp;

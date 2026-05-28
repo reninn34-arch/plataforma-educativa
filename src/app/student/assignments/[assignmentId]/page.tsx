@@ -6,6 +6,7 @@ import { ArrowLeft, Upload, FileText, CheckCircle, Loader2, Calendar, User, Down
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DueTimer } from "@/components/DueTimer";
 
 interface AssignmentDetail {
   id: number;
@@ -56,6 +57,7 @@ export default function AssignmentSubmitPage() {
   const hasMcq = questions.some(q => q.type === "mcq");
   const hasFile = questions.some(q => q.type === "file_upload") || questions.length === 0;
   const isSubmitted = submission?.status === "submitted" || submission?.status === "graded";
+  const isExpired = assignment?.dueDate ? new Date(assignment.dueDate).getTime() < Date.now() : false;
 
   useEffect(() => {
     fetch(`/api/assignments/${assignmentId}`)
@@ -179,10 +181,17 @@ export default function AssignmentSubmitPage() {
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{assignment.description}</p>
             <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5"><User className="h-3.5 w-3.5" />{assignment.teacherName}</span>
-              {assignment.dueDate && (
-                <span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" />{new Date(assignment.dueDate).toLocaleDateString("es-EC")}</span>
-              )}
             </div>
+            {assignment.dueDate && (
+              <div className="flex items-center">
+                <DueTimer dueDate={assignment.dueDate} />
+              </div>
+            )}
+            {isExpired && !isSubmitted && (
+              <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm font-medium text-red-700">
+                <AlertTriangle className="h-4 w-4" /> El plazo de entrega ha vencido. No puedes enviar esta tarea.
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -293,7 +302,7 @@ export default function AssignmentSubmitPage() {
                 </div>
               )}
 
-              {!isSubmitted && (
+              {!isSubmitted && !isExpired && (
                 <Button onClick={handleSubmit} disabled={!canSubmit || uploading} size="xl" className="w-full gap-2 shadow-sm">
                   {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
                   {uploading ? "Entregando..." : "Entregar Tarea"}

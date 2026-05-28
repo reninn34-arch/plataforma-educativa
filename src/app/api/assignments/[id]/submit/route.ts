@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { db } from "@/lib/db";
-import { assignmentSubmissions, submissionAnswers, assignmentQuestions } from "@/lib/db/schema";
+import { assignmentSubmissions, submissionAnswers, assignmentQuestions, assignments } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
@@ -27,6 +27,17 @@ export async function POST(
   const assignmentId = parseInt(id);
 
   try {
+    // Check if assignment is past due
+    const [assignment] = await db
+      .select({ dueDate: assignments.dueDate })
+      .from(assignments)
+      .where(eq(assignments.id, assignmentId))
+      .limit(1);
+
+    if (assignment?.dueDate && new Date() > new Date(assignment.dueDate)) {
+      return NextResponse.json({ error: "Plazo de entrega vencido" }, { status: 400 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const answersJson = formData.get("answers") as string | null;

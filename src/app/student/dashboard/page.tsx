@@ -16,6 +16,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SUBJECTS } from "@/lib/utils";
+import { DueTimer } from "@/components/DueTimer";
 
 function ProgressBar({ percentage }: { percentage: number }) {
   return (
@@ -149,8 +150,12 @@ export default function StudentDashboard() {
                           <p className="text-sm font-medium truncate">{a.title}</p>
                           <p className="text-xs text-muted-foreground">
                             {a.subjectName}
-                            {a.dueDate && ` · Vence: ${new Date(a.dueDate).toLocaleDateString("es-EC")}`}
                           </p>
+                          {a.dueDate && (
+                            <div className="mt-0.5">
+                              <DueTimer dueDate={a.dueDate} compact />
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">

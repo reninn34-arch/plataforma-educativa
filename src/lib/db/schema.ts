@@ -7,7 +7,6 @@ import {
   serial,
   pgEnum,
   boolean,
-  date,
   jsonb,
   unique,
 } from "drizzle-orm/pg-core";
@@ -125,7 +124,7 @@ export const assignments = pgTable("assignments", {
     .references(() => subjects.id),
   title: varchar("title", { length: 200 }).notNull(),
   description: text("description").notNull(),
-  dueDate: date("due_date"),
+  dueDate: timestamp("due_date"),
   trimester: integer("trimester").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DueTimer } from "@/components/DueTimer";
 
 interface SubjectData {
   id: number;
@@ -454,8 +455,8 @@ export function CreateAssignmentForm() {
                         className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm" required />
                     </div>
                     <div>
-                      <label className="text-sm font-semibold text-foreground mb-1.5 block">Fecha de entrega</label>
-                      <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
+                      <label className="text-sm font-semibold text-foreground mb-1.5 block">Fecha y hora de cierre</label>
+                      <input type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
                         className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm" />
                     </div>
                     <div>
@@ -582,7 +583,7 @@ export function CreateAssignmentForm() {
                       </div>
                     </div>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground cursor-pointer" onClick={() => viewSubmissions(a.id)}>
-                      {a.dueDate && <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(a.dueDate).toLocaleDateString("es-EC")}</span>}
+                      {a.dueDate && <DueTimer dueDate={a.dueDate} compact />}
                       <span className="flex items-center gap-1"><FileText className="h-3 w-3" />{a.submissionCount ?? 0} entregas</span>
                     </div>
                   </CardContent>
