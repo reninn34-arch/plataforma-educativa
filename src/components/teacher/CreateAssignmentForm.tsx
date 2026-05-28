@@ -48,6 +48,8 @@ interface Assignment {
   cursoNombre?: string | null;
   periodoNombre?: string | null;
   submissionCount?: number;
+  puntos?: number;
+  trimester?: number;
 }
 
 interface Submission {
@@ -220,6 +222,8 @@ export function CreateAssignmentForm() {
     setDueDate(a.dueDate || "");
     setSubjectId(a.subjectId || subjectsList[0]?.id || null);
     setCursoId(a.cursoId || null);
+    setTrimester(a.trimester || 1);
+    setPuntos(a.puntos || 10);
     setShowForm(true);
     setErrorMsg("");
 

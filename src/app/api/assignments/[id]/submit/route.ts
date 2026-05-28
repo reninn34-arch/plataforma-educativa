@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { db } from "@/lib/db";
-import { assignmentSubmissions, submissionAnswers, assignmentQuestions, assignments } from "@/lib/db/schema";
+import { assignmentSubmissions, submissionAnswers, assignmentQuestions, assignments, cursoEstudiantes } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
@@ -29,13 +29,31 @@ export async function POST(
   try {
     // Check if assignment is past due
     const [assignment] = await db
-      .select({ dueDate: assignments.dueDate })
+      .select({ dueDate: assignments.dueDate, cursoId: assignments.cursoId, puntos: assignments.puntos })
       .from(assignments)
       .where(eq(assignments.id, assignmentId))
       .limit(1);
 
+    if (!assignment) {
+      return NextResponse.json({ error: "Tarea no encontrada" }, { status: 404 });
+    }
+
     if (assignment?.dueDate && new Date() > new Date(assignment.dueDate)) {
       return NextResponse.json({ error: "Plazo de entrega vencido" }, { status: 400 });
+    }
+
+    if (assignment.cursoId) {
+      const enrolled = await db
+        .select({ id: cursoEstudiantes.id })
+        .from(cursoEstudiantes)
+        .where(and(
+          eq(cursoEstudiantes.cursoId, assignment.cursoId),
+          eq(cursoEstudiantes.estudianteId, user.id)
+        ))
+        .limit(1);
+      if (!enrolled.length) {
+        return NextResponse.json({ error: "No estas inscrito en este curso" }, { status: 403 });
+      }
     }
 
     const formData = await request.formData();
@@ -85,6 +103,8 @@ export async function POST(
         .set({
           ...(fileUrl && { fileUrl, content }),
           status: "submitted",
+          grade: null,
+          feedback: null,
           submittedAt: new Date(),
         })
         .where(eq(assignmentSubmissions.id, existing.id));
@@ -134,28 +154,37 @@ export async function POST(
 
     if (hasOnlyMcq) {
       const allAnswers = await db
-        .select({ isCorrect: submissionAnswers.isCorrect })
+        .select({
+          isCorrect: submissionAnswers.isCorrect,
+          questionId: submissionAnswers.questionId,
+        })
         .from(submissionAnswers)
         .where(eq(submissionAnswers.submissionId, submissionId));
 
-      const correct = allAnswers.filter(a => a.isCorrect).length;
-      const total = allAnswers.length;
-      const autoGrade = total > 0 ? Math.round((correct / total) * 10) : null;
+      const questionsWithPoints = await db
+        .select({ id: assignmentQuestions.id, points: assignmentQuestions.points })
+        .from(assignmentQuestions)
+        .where(eq(assignmentQuestions.assignmentId, assignmentId));
+
+      const pointMap = new Map(questionsWithPoints.map(q => [q.id, q.points || 1]));
+      const correctIds = new Set(allAnswers.filter(a => a.isCorrect).map(a => a.questionId));
+
+      let correctPts = 0;
+      let totalPts = 0;
+      for (const q of questionsWithPoints) {
+        const pts = pointMap.get(q.id) || 1;
+        totalPts += pts;
+        if (correctIds.has(q.id)) correctPts += pts;
+      }
+
+      const assgnPts = assignment?.puntos || 10;
+      const autoGrade = totalPts > 0 ? Math.round((correctPts / totalPts) * assgnPts) : null;
 
       if (autoGrade !== null) {
-        // Only auto-grade if no previous teacher grade exists
-        const [sub] = await db
-          .select({ grade: assignmentSubmissions.grade })
-          .from(assignmentSubmissions)
-          .where(eq(assignmentSubmissions.id, submissionId))
-          .limit(1);
-
-        if (!sub || sub.grade == null) {
-          await db
-            .update(assignmentSubmissions)
-            .set({ grade: autoGrade })
-            .where(eq(assignmentSubmissions.id, submissionId));
-        }
+        await db
+          .update(assignmentSubmissions)
+          .set({ grade: autoGrade })
+          .where(eq(assignmentSubmissions.id, submissionId));
       }
     }
 

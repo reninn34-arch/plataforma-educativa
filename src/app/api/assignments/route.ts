@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { assignments, assignmentQuestions, assignmentSubmissions, subjects, users, cursos, cursoProfesores, periodosLectivos } from "@/lib/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { assignments, assignmentQuestions, assignmentSubmissions, subjects, users, cursos, cursoProfesores, periodosLectivos, cursoEstudiantes } from "@/lib/db/schema";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 import { assignmentSchema } from "@/lib/api-helpers";
 
-// GET: list assignments
 export async function GET(request: NextRequest) {
   try {
     const token = request.cookies.get("atlas-edu-token")?.value;
@@ -26,6 +25,8 @@ export async function GET(request: NextRequest) {
           cursoId: assignments.cursoId,
           cursoNombre: cursos.nombre,
           periodoNombre: periodosLectivos.nombre,
+          puntos: assignments.puntos,
+          trimester: assignments.trimester,
           submissionCount: db.$count(assignmentSubmissions, eq(assignmentSubmissions.assignmentId, assignments.id)),
         })
         .from(assignments)
@@ -38,7 +39,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ assignments: data });
     }
 
-    const data = await db
+    // Student: only show assignments from their enrolled courses
+    const enrolledCourses = await db
+      .select({ cursoId: cursoEstudiantes.cursoId })
+      .from(cursoEstudiantes)
+      .where(eq(cursoEstudiantes.estudianteId, user.id));
+    const enrolledIds = new Set(enrolledCourses.map(c => c.cursoId));
+
+    if (enrolledIds.size === 0) {
+      return NextResponse.json({ assignments: [] });
+    }
+
+    const raw = await db
       .select({
         id: assignments.id,
         title: assignments.title,
@@ -67,6 +79,8 @@ export async function GET(request: NextRequest) {
       )
       .orderBy(desc(assignments.createdAt));
 
+    const data = (raw as any[]).filter((a: any) => enrolledIds.has(a.cursoId));
+
     return NextResponse.json({ assignments: data });
   } catch (error) {
     console.error("GET /api/assignments error:", error);
@@ -74,7 +88,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST: create assignment with optional questions
 export async function POST(request: NextRequest) {
   try {
     const token = request.cookies.get("atlas-edu-token")?.value;
@@ -133,14 +146,14 @@ export async function POST(request: NextRequest) {
         description,
         dueDate: dueDate ? new Date(dueDate) : null,
         trimester: trimester || 1,
-        puntos: parsed.data.puntos || 10,
+        puntos: parsed.data.puntos ?? 10,
         periodoLectivoId: activePeriod?.id || null,
       } as any)
       .returning();
 
     if (questions && questions.length > 0) {
       await db.insert(assignmentQuestions).values(
-        questions.map((q: { type: string; question: string; options?: string[]; correctIndex?: number; points?: number }, i: number) => ({
+        questions.map((q: any, i: number) => ({
           assignmentId: assignment.id,
           type: q.type,
           question: q.question,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { assignments, assignmentQuestions, assignmentSubmissions, submissionAnswers, subjects, users, cursoEstudiantes, cursos } from "@/lib/db/schema";
+import { assignments, assignmentQuestions, assignmentSubmissions, submissionAnswers, subjects, users, cursoEstudiantes, cursos, cursoProfesores } from "@/lib/db/schema";
 import { eq, and, asc, inArray } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
@@ -29,6 +29,8 @@ export async function GET(
         subjectId: assignments.subjectId,
         cursoId: assignments.cursoId,
         cursoNombre: cursos.nombre,
+        puntos: assignments.puntos,
+        trimester: assignments.trimester,
         teacherName: users.fullName,
       })
       .from(assignments)
@@ -108,10 +110,34 @@ export async function GET(
             eq(users.role, "student")
           ));
       } else {
-        allStudents = await db
-          .select({ id: users.id, fullName: users.fullName, cedula: users.cedula })
-          .from(users)
-          .where(eq(users.role, "student"));
+        const teacherCourses = await db
+          .select({ cursoId: cursoEstudiantes.cursoId })
+          .from(cursoEstudiantes)
+          .innerJoin(cursoProfesores, eq(cursoEstudiantes.cursoId, cursoProfesores.cursoId))
+          .where(eq(cursoProfesores.teacherId, user.id));
+
+        const teacherTutorCourses = await db
+          .select({ id: cursos.id })
+          .from(cursos)
+          .where(eq(cursos.profesorId, user.id));
+
+        const uniqueCourses = [...new Set([
+          ...teacherCourses.map(c => c.cursoId),
+          ...teacherTutorCourses.map(c => c.id),
+        ])];
+
+        if (uniqueCourses.length > 0) {
+          allStudents = await db
+            .select({ id: users.id, fullName: users.fullName, cedula: users.cedula })
+            .from(users)
+            .innerJoin(cursoEstudiantes, eq(users.id, cursoEstudiantes.estudianteId))
+            .where(and(
+              inArray(cursoEstudiantes.cursoId, uniqueCourses),
+              eq(users.role, "student")
+            ));
+        } else {
+          allStudents = [];
+        }
       }
 
       const submittedIds = new Set(submissions.map(s => s.studentId));
@@ -194,7 +220,7 @@ export async function PUT(
     const { id } = await params;
     const assignmentId = parseInt(id);
 
-    const { title, description, dueDate, trimester, subjectId, cursoId, questions } = await request.json();
+    const { title, description, dueDate, trimester, subjectId, cursoId, puntos, questions } = await request.json();
 
     if (!title || !description) {
       return NextResponse.json({ error: "Titulo y descripcion requeridos" }, { status: 400 });
@@ -217,6 +243,7 @@ export async function PUT(
     };
     if (subjectId != null) updateValues.subjectId = subjectId;
     if (cursoId !== undefined) updateValues.cursoId = cursoId || null;
+    if (puntos !== undefined) updateValues.puntos = puntos;
 
     await db
       .update(assignments)

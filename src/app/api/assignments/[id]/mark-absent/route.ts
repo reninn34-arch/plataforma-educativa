@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { assignments, assignmentSubmissions } from "@/lib/db/schema";
+import { assignments, assignmentSubmissions, cursoEstudiantes } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
@@ -23,9 +23,8 @@ export async function POST(
       return NextResponse.json({ error: "studentId requerido" }, { status: 400 });
     }
 
-    // Verify teacher owns the assignment
     const [assg] = await db
-      .select({ teacherId: assignments.teacherId })
+      .select({ teacherId: assignments.teacherId, cursoId: assignments.cursoId })
       .from(assignments)
       .where(eq(assignments.id, assignmentId))
       .limit(1);
@@ -34,7 +33,20 @@ export async function POST(
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
-    // Check if student already has a submission
+    if (assg.cursoId) {
+      const enrolled = await db
+        .select({ id: cursoEstudiantes.id })
+        .from(cursoEstudiantes)
+        .where(and(
+          eq(cursoEstudiantes.cursoId, assg.cursoId),
+          eq(cursoEstudiantes.estudianteId, studentId)
+        ))
+        .limit(1);
+      if (!enrolled.length) {
+        return NextResponse.json({ error: "El estudiante no pertenece a este curso" }, { status: 400 });
+      }
+    }
+
     const [existing] = await db
       .select({ id: assignmentSubmissions.id })
       .from(assignmentSubmissions)
@@ -48,18 +60,17 @@ export async function POST(
       return NextResponse.json({ error: "El estudiante ya tiene una entrega" }, { status: 400 });
     }
 
-    const [submission] = await db
+    await db
       .insert(assignmentSubmissions)
       .values({
         assignmentId,
         studentId,
         status: "graded",
         grade: 0,
-        feedback: "No entregó",
-      } as any)
-      .returning();
+        feedback: "No entrego",
+      } as any);
 
-    return NextResponse.json({ success: true, submission });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("POST /api/assignments/[id]/mark-absent error:", error);
     return NextResponse.json({ error: "Error al marcar como no entregado" }, { status: 500 });
