@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
         subjectId,
         title,
         description,
-        dueDate: dueDate || null,
+        dueDate: dueDate ? new Date(dueDate) : null,
         trimester: trimester || 1,
       } as any)
       .returning();

@@ -182,7 +182,7 @@ export async function PUT(
     const updateValues: Record<string, any> = {
       title,
       description,
-      dueDate: dueDate || null,
+      dueDate: dueDate ? new Date(dueDate) : null,
       trimester: trimester || 1,
     };
     if (subjectId != null) updateValues.subjectId = subjectId;
