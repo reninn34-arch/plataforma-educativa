@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 
-const publicPaths = ["/login", "/api/auth/login"];
+const publicPaths = ["/login", "/api/auth/login", "/api/auth/forgot-pin", "/api/auth/reset-pin", "/recuperar-pin"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -33,10 +33,16 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (pathname.startsWith("/teacher") && user.role !== "teacher") {
+  if (pathname.startsWith("/teacher") && user.role !== "teacher" && user.role !== "admin") {
     return NextResponse.redirect(new URL("/student/dashboard", request.url));
   }
-  if (pathname.startsWith("/student") && user.role !== "student") {
+  if (pathname.startsWith("/student") && user.role !== "student" && user.role !== "admin") {
+    return NextResponse.redirect(new URL("/teacher/dashboard", request.url));
+  }
+  if (pathname.startsWith("/parent") && user.role !== "parent" && user.role !== "admin") {
+    return NextResponse.redirect(new URL("/student/dashboard", request.url));
+  }
+  if (pathname.startsWith("/admin") && user.role !== "admin") {
     return NextResponse.redirect(new URL("/teacher/dashboard", request.url));
   }
 

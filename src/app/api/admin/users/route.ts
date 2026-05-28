@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     if (!cedula || cedula.length !== 10 || !fullName || !role) {
       return NextResponse.json({ error: "Cedula (10 digitos), nombre y rol requeridos" }, { status: 400 });
     }
-    if (!["student", "teacher"].includes(role)) {
+    if (!["student", "teacher", "parent"].includes(role)) {
       return NextResponse.json({ error: "Rol invalido" }, { status: 400 });
     }
 

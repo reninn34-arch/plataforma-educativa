@@ -9,14 +9,14 @@ export interface SessionUser {
   id: number;
   cedula: string;
   fullName: string;
-  role: "student" | "teacher" | "admin";
+  role: "student" | "teacher" | "admin" | "parent";
 }
 
-export async function createToken(user: SessionUser): Promise<string> {
+export async function createToken(user: SessionUser, expiresIn = "24h"): Promise<string> {
   return new SignJWT({ ...user })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("24h")
+    .setExpirationTime(expiresIn)
     .sign(JWT_SECRET);
 }
 

@@ -399,6 +399,14 @@ export default function AdminCursosPage() {
                 >
                   Gestionar estudiantes <ArrowRight className="h-3 w-3" />
                 </button>
+                {c.studentCount > 0 && (
+                  <button
+                    onClick={() => router.push(`/admin/boletin/${c.id}`)}
+                    className="flex items-center gap-1 text-xs text-emerald-600 font-medium hover:underline"
+                  >
+                    Ver boletin <ArrowRight className="h-3 w-3" />
+                  </button>
+                )}
               </CardContent>
             </Card>
           ))}

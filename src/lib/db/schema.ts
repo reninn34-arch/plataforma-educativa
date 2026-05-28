@@ -11,7 +11,7 @@ import {
   unique,
 } from "drizzle-orm/pg-core";
 
-export const roleEnum = pgEnum("role", ["student", "teacher", "admin"]);
+export const roleEnum = pgEnum("role", ["student", "teacher", "admin", "parent"]);
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -275,4 +275,39 @@ export const cursoProfesores = pgTable("curso_profesores", {
     .references(() => subjects.id),
 }, (table) => ({
   uniqueCursoProfesorSubject: unique("curso_profesor_subject_unique").on(table.cursoId, table.teacherId, table.subjectId),
+}));
+
+export const periodosLectivos = pgTable("periodos_lectivos", {
+  id: serial("id").primaryKey(),
+  nombre: varchar("nombre", { length: 50 }).notNull(),
+  activo: boolean("activo").notNull().default(false),
+  fechaInicio: timestamp("fecha_inicio"),
+  fechaFin: timestamp("fecha_fin"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const asistencia = pgTable("asistencia", {
+  id: serial("id").primaryKey(),
+  cursoId: integer("curso_id")
+    .notNull()
+    .references(() => cursos.id),
+  studentId: integer("student_id")
+    .notNull()
+    .references(() => users.id),
+  fecha: timestamp("fecha", { mode: "date" }).notNull(),
+  estado: varchar("estado", { length: 20 }).notNull().default("presente"),
+}, (table) => ({
+  uniqueAsistencia: unique("asistencia_unique").on(table.cursoId, table.studentId, table.fecha),
+}));
+
+export const parentStudents = pgTable("parent_students", {
+  id: serial("id").primaryKey(),
+  parentId: integer("parent_id")
+    .notNull()
+    .references(() => users.id),
+  studentId: integer("student_id")
+    .notNull()
+    .references(() => users.id),
+}, (table) => ({
+  uniqueParentStudent: unique("parent_student_unique").on(table.parentId, table.studentId),
 }));

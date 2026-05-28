@@ -32,7 +32,7 @@ interface BulkResultItem {
 }
 
 export default function AdminUsersPage() {
-  const [tab, setTab] = useState<"student" | "teacher">("student");
+  const [tab, setTab] = useState<"student" | "teacher" | "parent">("student");
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -234,7 +234,7 @@ export default function AdminUsersPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Usuarios</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {tab === "student" ? "Estudiantes" : "Profesores"} registrados
+            {tab === "student" ? "Estudiantes" : tab === "teacher" ? "Profesores" : "Padres"} registrados
           </p>
         </div>
         <div className="flex gap-2">
@@ -242,7 +242,7 @@ export default function AdminUsersPage() {
             <Upload className="h-4 w-4" /> Importar CSV
           </Button>
           <Button onClick={() => { setShowCreate(true); setCreatedPin(null); setError(""); resetForm(); }} size="sm" className="gap-2">
-            <UserPlus className="h-4 w-4" /> Nuevo {tab === "student" ? "estudiante" : "profesor"}
+            <UserPlus className="h-4 w-4" />           Nuevo {tab === "student" ? "estudiante" : tab === "teacher" ? "profesor" : "padre"}
           </Button>
         </div>
       </div>
@@ -378,7 +378,7 @@ export default function AdminUsersPage() {
         <Card className="shadow-sm animate-scale-in">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Crear {tab === "student" ? "estudiante" : "profesor"}</CardTitle>
+              <CardTitle className="text-base">Crear {tab === "student" ? "estudiante" : tab === "teacher" ? "profesor" : "padre"}</CardTitle>
               <Button variant="ghost" size="icon-sm" onClick={() => setShowCreate(false)}><X className="h-4 w-4" /></Button>
             </div>
           </CardHeader>
@@ -430,7 +430,7 @@ export default function AdminUsersPage() {
           <Card className="max-w-md w-full mx-4 shadow-xl animate-scale-in max-h-[90vh] overflow-y-auto">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Editar {editUser.role === "student" ? "estudiante" : "profesor"}</CardTitle>
+                <CardTitle className="text-base">Editar {editUser.role === "student" ? "estudiante" : editUser.role === "teacher" ? "profesor" : "padre"}</CardTitle>
                 <Button variant="ghost" size="icon-sm" onClick={() => setEditUser(null)}><X className="h-4 w-4" /></Button>
               </div>
             </CardHeader>
@@ -546,6 +546,12 @@ export default function AdminUsersPage() {
         >
           Profesores
         </button>
+        <button
+          onClick={() => setTab("parent")}
+          className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all ${tab === "parent" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}
+        >
+          Padres
+        </button>
       </div>
 
       {/* Search */}
@@ -610,7 +616,7 @@ export default function AdminUsersPage() {
                       <Badge variant="destructive" className="text-[10px]">Inactivo</Badge>
                     )}
                     <Badge variant="secondary" className="text-[10px]">
-                      {u.role === "student" ? "Estudiante" : "Profesor"}
+                      {u.role === "student" ? "Estudiante" : u.role === "teacher" ? "Profesor" : "Padre"}
                     </Badge>
                     <Button variant="ghost" size="icon-sm" onClick={() => openEdit(u)} className="text-muted-foreground hover:text-primary" title="Editar">
                       <Pencil className="h-4 w-4" />
