@@ -75,7 +75,6 @@ export default function StudentDashboard() {
   const submittedAssignments = assignments.filter((a: any) => a.status === "submitted" || a.status === "graded");
   const totalSessions = metrics?.totalSessions || 0;
   const accuracy = metrics?.accuracy || 0;
-  const gradeAverage = metrics?.gradeAverage;
 
   return (
     <div className="flex-1 p-4 sm:p-8 w-full max-w-5xl mx-auto space-y-10 animate-fade-in-up">
@@ -126,17 +125,6 @@ export default function StudentDashboard() {
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground mb-1">Entregadas</p>
               <p className="text-2xl font-bold">{submittedAssignments.length}</p>
-            </CardContent>
-          </Card>
-          <Card className="shadow-sm border-l-4 border-l-purple-500">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground mb-1">Promedio oficial</p>
-              <p className="text-2xl font-bold">
-                {gradeAverage != null ? `${gradeAverage}%` : "--"}
-              </p>
-              {gradeAverage == null && (
-                <p className="text-[10px] text-muted-foreground mt-0.5">Sin notas aun</p>
-              )}
             </CardContent>
           </Card>
         </div>
