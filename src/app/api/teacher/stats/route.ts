@@ -64,6 +64,7 @@ export async function GET(request: NextRequest) {
 
     const risikoData = await db
       .select({
+        userId: progress.userId,
         daysInactive: progress.daysInactive,
         consecutiveFailures: progress.consecutiveFailures,
         percentage: progress.percentage,
@@ -71,10 +72,31 @@ export async function GET(request: NextRequest) {
       .from(progress)
       .where(inArray(progress.userId, uniqueStudentIds));
 
-    const enRiesgo = risikoData.filter(p => p.consecutiveFailures >= 3 || p.daysInactive >= 7).length;
-    const inactivos = risikoData.filter(p => p.daysInactive >= 14).length;
-    const promedio = risikoData.length > 0
-      ? Math.round(risikoData.reduce((sum, p) => sum + p.percentage, 0) / risikoData.length)
+    const enRiesgoSet = new Set<number>();
+    const inactivosSet = new Set<number>();
+    const studentProgressMap = new Map<number, number[]>();
+
+    for (const r of risikoData) {
+      if (r.consecutiveFailures >= 3 || r.daysInactive >= 7) {
+        enRiesgoSet.add(r.userId);
+      }
+      if (r.daysInactive >= 14) {
+        inactivosSet.add(r.userId);
+      }
+      if (!studentProgressMap.has(r.userId)) {
+        studentProgressMap.set(r.userId, []);
+      }
+      studentProgressMap.get(r.userId)!.push(r.percentage);
+    }
+
+    const enRiesgo = enRiesgoSet.size;
+    const inactivos = inactivosSet.size;
+
+    const studentAvgs = Array.from(studentProgressMap.values())
+      .map(grades => grades.reduce((a, b) => a + b, 0) / grades.length);
+
+    const promedio = studentAvgs.length > 0
+      ? Math.round(studentAvgs.reduce((a, b) => a + b, 0) / studentAvgs.length)
       : 0;
 
     return NextResponse.json({
