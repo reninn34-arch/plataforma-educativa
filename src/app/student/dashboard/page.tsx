@@ -37,7 +37,12 @@ export default function StudentDashboard() {
   const [metrics, setMetrics] = useState<any>(null);
 
   useEffect(() => {
-    setUserName("Estudiante");
+    fetch("/api/user/profile")
+      .then(r => r.json())
+      .then(d => {
+        if (d.fullName) setUserName(d.fullName);
+      })
+      .catch(() => setUserName("Estudiante"));
 
     fetch("/api/student/progress")
       .then(r => r.json())

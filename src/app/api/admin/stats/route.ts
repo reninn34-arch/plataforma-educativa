@@ -14,9 +14,12 @@ export async function GET(request: NextRequest) {
     const [teacherCount] = await db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(users).where(eq(users.role, "teacher"));
     const [courseCount] = await db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(cursos).where(eq(cursos.activo, true));
 
+    const [parentCount] = await db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(users).where(eq(users.role, "parent"));
+
     return NextResponse.json({
       totalEstudiantes: studentCount?.count || 0,
       totalProfesores: teacherCount?.count || 0,
+      totalPadres: parentCount?.count || 0,
       totalCursos: courseCount?.count || 0,
     });
   } catch (error) {

@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Award, Calendar, User } from "lucide-react";
+import { Home, ClipboardList, Award, Calendar, User } from "lucide-react";
 
 const links = [
   { href: "/student/dashboard", label: "Inicio", icon: Home },
+  { href: "/student/assignments", label: "Tareas", icon: ClipboardList },
   { href: "/student/grades", label: "Notas", icon: Award },
   { href: "/student/calendar", label: "Calendario", icon: Calendar },
   { href: "/student/profile", label: "Perfil", icon: User },

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 
 interface AppLayoutProps {
   children: React.ReactNode;
-  role: "student" | "teacher";
+  role: "student" | "teacher" | "parent";
   links: { href: string; label: string; icon: any }[];
   title: string;
 }

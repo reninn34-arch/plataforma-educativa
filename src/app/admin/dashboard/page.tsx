@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [stats, setStats] = useState({ totalEstudiantes: 0, totalProfesores: 0, totalCursos: 0 });
+  const [stats, setStats] = useState({ totalEstudiantes: 0, totalProfesores: 0, totalPadres: 0, totalCursos: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export default function AdminDashboard() {
         <p className="text-sm text-muted-foreground mt-1">Gestiona la institucion, usuarios y cursos.</p>
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-4 gap-4">
         <Card className="shadow-sm border-l-4 border-l-blue-500">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
@@ -50,6 +50,15 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
         <Card className="shadow-sm border-l-4 border-l-purple-500">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Padres</p>
+              <p className="text-3xl font-bold">{stats.totalPadres}</p>
+            </div>
+            <Users className="h-8 w-8 text-purple-500/30" />
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm border-l-4 border-l-slate-500">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground mb-1">Cursos activos</p>

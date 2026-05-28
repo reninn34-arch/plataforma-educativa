@@ -238,9 +238,11 @@ export default function AdminUsersPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowBulkImport(true)}>
-            <Upload className="h-4 w-4" /> Importar CSV
-          </Button>
+          {tab === "student" && (
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowBulkImport(true)}>
+              <Upload className="h-4 w-4" /> Importar CSV
+            </Button>
+          )}
           <Button onClick={() => { setShowCreate(true); setCreatedPin(null); setError(""); resetForm(); }} size="sm" className="gap-2">
             <UserPlus className="h-4 w-4" />           Nuevo {tab === "student" ? "estudiante" : tab === "teacher" ? "profesor" : "padre"}
           </Button>
@@ -581,7 +583,7 @@ export default function AdminUsersPage() {
       ) : filtered.length === 0 ? (
         <Card className="shadow-sm">
           <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">No hay {tab === "student" ? "estudiantes" : "profesores"} registrados</p>
+            <p className="text-muted-foreground">No hay {tab === "student" ? "estudiantes" : tab === "teacher" ? "profesores" : "padres"} registrados</p>
           </CardContent>
         </Card>
       ) : (
