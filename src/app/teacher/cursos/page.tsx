@@ -23,12 +23,23 @@ export default function TeacherCursosPage() {
   const router = useRouter();
   const [cursos, setCursos] = useState<CursoInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [schedule, setSchedule] = useState<Record<number, any[]>>({});
 
   useEffect(() => {
     fetch("/api/teacher/courses")
       .then(r => r.json())
       .then(d => {
         setCursos(d.cursos || []);
+        return fetch("/api/teacher/horario");
+      })
+      .then(r => r.json())
+      .then(d => {
+        const byCurso: Record<number, any[]> = {};
+        for (const h of d.horarios || []) {
+          if (!byCurso[h.cursoId]) byCurso[h.cursoId] = [];
+          byCurso[h.cursoId].push(h);
+        }
+        setSchedule(byCurso);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -73,7 +84,29 @@ export default function TeacherCursosPage() {
                     <div className="flex gap-1">
                       {c.isTutor && (
                         <Badge variant="secondary" className="text-[10px]">Tutor</Badge>
+                )}
+
+                {schedule[c.id] && schedule[c.id].length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                      🕐 Tu horario en este curso
+                    </p>
+                    <div className="space-y-1">
+                      {schedule[c.id].slice(0, 5).map((h: any, i: number) => (
+                        <div key={i} className="flex items-center gap-2 text-xs">
+                          <span className="text-muted-foreground capitalize w-8">{h.dia.slice(0, 3)}</span>
+                          <span className="text-muted-foreground font-mono w-20">{h.horaInicio}-{h.horaFin}</span>
+                          <span>{h.subjectEmoji} {h.subjectName}</span>
+                        </div>
+                      ))}
+                      {schedule[c.id].length > 5 && (
+                        <p className="text-[10px] text-muted-foreground pl-28">
+                          +{schedule[c.id].length - 5} bloques mas
+                        </p>
                       )}
+                    </div>
+                  </div>
+                )}
                       <Badge variant="secondary" className="text-[10px] flex items-center gap-1">
                         <UsersIcon className="h-3 w-3" /> {c.studentCount}
                       </Badge>

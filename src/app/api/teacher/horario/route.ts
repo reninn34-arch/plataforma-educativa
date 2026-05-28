@@ -1,0 +1,61 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { horarios, subjects, cursoProfesores } from "@/lib/db/schema";
+import { eq, and, inArray, asc } from "drizzle-orm";
+import { verifyToken } from "@/lib/auth";
+
+export async function GET(request: NextRequest) {
+  const token = request.cookies.get("atlas-edu-token")?.value;
+  const teacher = token ? await verifyToken(token) : null;
+  if (!teacher || teacher.role !== "teacher") {
+    return NextResponse.json({ error: "Solo docentes" }, { status: 403 });
+  }
+
+  try {
+    const cursoIdParam = request.nextUrl.searchParams.get("cursoId");
+
+    const myCourses = await db
+      .select({ cursoId: cursoProfesores.cursoId, subjectId: cursoProfesores.subjectId })
+      .from(cursoProfesores)
+      .where(eq(cursoProfesores.teacherId, teacher.id));
+
+    const mySubjectIds = [...new Set(myCourses.map(r => r.subjectId))];
+    let targetCursoIds = [...new Set(myCourses.map(r => r.cursoId))];
+
+    if (cursoIdParam) {
+      const cid = parseInt(cursoIdParam);
+      if (!targetCursoIds.includes(cid)) {
+        return NextResponse.json({ horarios: [] });
+      }
+      targetCursoIds = [cid];
+    }
+
+    if (targetCursoIds.length === 0 || mySubjectIds.length === 0) {
+      return NextResponse.json({ horarios: [] });
+    }
+
+    const data = await db
+      .select({
+        id: horarios.id,
+        dia: horarios.dia,
+        horaInicio: horarios.horaInicio,
+        horaFin: horarios.horaFin,
+        subjectId: horarios.subjectId,
+        subjectName: subjects.name,
+        subjectEmoji: subjects.emoji,
+        tipo: horarios.tipo,
+        cursoId: horarios.cursoId,
+      })
+      .from(horarios)
+      .leftJoin(subjects, eq(horarios.subjectId, subjects.id))
+      .where(and(
+        inArray(horarios.cursoId, targetCursoIds),
+        inArray(horarios.subjectId, mySubjectIds),
+      ))
+      .orderBy(asc(horarios.horaInicio));
+
+    return NextResponse.json({ horarios: data });
+  } catch (error) {
+    return NextResponse.json({ error: "Error al cargar horario" }, { status: 500 });
+  }
+}
