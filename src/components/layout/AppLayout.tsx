@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { LogOut, GraduationCap, Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/fetch-utils";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -25,7 +26,7 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await apiFetch("/api/auth/logout", { method: "POST" });
     } catch {}
     router.push("/login");
   };

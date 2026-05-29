@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { apiFetch } from "@/lib/fetch-utils";
 
 interface Periodo {
   id: number;
@@ -34,7 +35,7 @@ export default function AdminPeriodosPage() {
 
   const fetchPeriodos = () => {
     setLoading(true);
-    fetch("/api/admin/periodos")
+    apiFetch("/api/admin/periodos")
       .then(r => r.json())
       .then(d => { setPeriodos(d.periodos || []); setLoading(false); })
       .catch(() => setLoading(false));
@@ -48,7 +49,7 @@ export default function AdminPeriodosPage() {
     setSaving(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/periodos", {
+      const res = await apiFetch("/api/admin/periodos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nombre, fechaInicio: fechaInicio || null, fechaFin: fechaFin || null }),
@@ -70,7 +71,7 @@ export default function AdminPeriodosPage() {
 
   const toggleActivo = async (p: Periodo) => {
     try {
-      await fetch(`/api/admin/periodos/${p.id}`, {
+      await apiFetch(`/api/admin/periodos/${p.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activo: !p.activo }),
@@ -82,7 +83,7 @@ export default function AdminPeriodosPage() {
   const doDelete = async () => {
     if (!deletePeriodo) return;
     try {
-      await fetch(`/api/admin/periodos/${deletePeriodo.id}`, { method: "DELETE" });
+      await apiFetch(`/api/admin/periodos/${deletePeriodo.id}`, { method: "DELETE" });
       fetchPeriodos();
     } catch {}
     setDeletePeriodo(null);
@@ -100,7 +101,7 @@ export default function AdminPeriodosPage() {
     if (!editNombre || !editId) return;
     setSaving(true);
     try {
-      await fetch(`/api/admin/periodos/${editId}`, {
+      await apiFetch(`/api/admin/periodos/${editId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

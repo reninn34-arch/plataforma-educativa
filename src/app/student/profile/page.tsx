@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StudentBottomNav } from "@/components/StudentBottomNav";
+import { apiFetch } from "@/lib/fetch-utils";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -18,7 +19,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch("/api/user/profile")
+    apiFetch("/api/user/profile")
       .then(r => r.json())
       .then(d => setProfile(d))
       .catch(() => {});
@@ -31,7 +32,7 @@ export default function ProfilePage() {
     setFeedback(null);
 
     try {
-      const res = await fetch("/api/user/profile", {
+      const res = await apiFetch("/api/user/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ currentPin, newPin }),

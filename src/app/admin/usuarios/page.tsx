@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
+import { apiFetch } from "@/lib/fetch-utils";
 
 interface UserData {
   id: number;
@@ -72,7 +73,7 @@ export default function AdminUsersPage() {
     try {
       const params = new URLSearchParams({ role: tab });
       if (showInactive) params.set("inactivos", "true");
-      const res = await fetch(`/api/admin/users?${params}`);
+      const res = await apiFetch(`/api/admin/users?${params}`);
       const d = await res.json();
       setUsers(d.users || []);
     } catch {}
@@ -87,7 +88,7 @@ export default function AdminUsersPage() {
     setSaving(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/users", {
+      const res = await apiFetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cedula: newCedula, fullName: newName, role: tab, email: newEmail || null }),
@@ -111,7 +112,7 @@ export default function AdminUsersPage() {
   const doDeactivate = async () => {
     if (!deactivateUser) return;
     try {
-      await fetch(`/api/admin/users/${deactivateUser.id}`, { method: "DELETE" });
+      await apiFetch(`/api/admin/users/${deactivateUser.id}`, { method: "DELETE" });
       setFeedback(`Usuario ${deactivateUser.fullName} desactivado.`);
       fetchUsers();
     } catch {}
@@ -125,7 +126,7 @@ export default function AdminUsersPage() {
   const doReactivate = async () => {
     if (!reactivateUser) return;
     try {
-      await fetch(`/api/admin/users/${reactivateUser.id}`, {
+      await apiFetch(`/api/admin/users/${reactivateUser.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activo: true }),
@@ -151,7 +152,7 @@ export default function AdminUsersPage() {
     setSaving(true);
     setEditError("");
     try {
-      const res = await fetch(`/api/admin/users/${editUser.id}`, {
+      const res = await apiFetch(`/api/admin/users/${editUser.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -212,7 +213,7 @@ export default function AdminUsersPage() {
     try {
       const formData = new FormData();
       formData.append("file", bulkFile);
-      const res = await fetch("/api/admin/users/bulk", { method: "POST", body: formData });
+      const res = await apiFetch("/api/admin/users/bulk", { method: "POST", body: formData });
       const d = await res.json();
       setBulkResults(d.resultados || []);
       if (res.ok) {

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DueTimer } from "@/components/DueTimer";
+import { apiFetch } from "@/lib/fetch-utils";
 
 interface SubjectData {
   id: number;
@@ -119,7 +120,7 @@ export function CreateAssignmentForm() {
   const handleMarkAbsent = async (studentId: number) => {
     setAbsentLoading(studentId);
     try {
-      const res = await fetch(`/api/assignments/${selectedAssignment}/mark-absent`, {
+      const res = await apiFetch(`/api/assignments/${selectedAssignment}/mark-absent`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ studentId }),
@@ -139,7 +140,7 @@ export function CreateAssignmentForm() {
   const handleGrade = async (submissionId: number, grade: number, feedback: string) => {
     try {
       const gradeInt = Math.round(grade);
-      const res = await fetch(`/api/assignments/${selectedAssignment}/grade`, {
+      const res = await apiFetch(`/api/assignments/${selectedAssignment}/grade`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ submissionId, grade: gradeInt, feedback }),
@@ -158,7 +159,7 @@ export function CreateAssignmentForm() {
   const fetchAssignments = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/assignments");
+      const res = await apiFetch("/api/assignments");
       const data = await res.json();
       if (data.assignments) setAssignments(data.assignments);
     } catch {
@@ -169,17 +170,17 @@ export function CreateAssignmentForm() {
 
   useEffect(() => {
     fetchAssignments();
-    fetch("/api/subjects").then(r => r.json()).then(d => {
+    apiFetch("/api/subjects").then(r => r.json()).then(d => {
       if (d.subjects && d.subjects.length > 0) {
         setSubjectsList(d.subjects);
         setSubjectId(d.subjects[0].id);
       }
     }).catch(() => {});
-    fetch("/api/teacher/courses").then(r => r.json()).then(d => {
+    apiFetch("/api/teacher/courses").then(r => r.json()).then(d => {
       setCursosList(d.cursos || []);
     }).catch(() => {});
 
-    fetch("/api/teacher/periodos").then(r => r.json()).then(d => {
+    apiFetch("/api/teacher/periodos").then(r => r.json()).then(d => {
       if (d.active) setActivePeriod(d.active.nombre);
     }).catch(() => {});
   }, []);
@@ -188,7 +189,7 @@ export function CreateAssignmentForm() {
     setSelectedAssignment(aid);
     setLoadingSubs(true);
     try {
-      const res = await fetch(`/api/assignments/${aid}`);
+      const res = await apiFetch(`/api/assignments/${aid}`);
       const data = await res.json();
       if (data.submissions) setSubmissions(data.submissions);
       if (data.notSubmitted) setNotSubmitted(data.notSubmitted);
@@ -201,7 +202,7 @@ export function CreateAssignmentForm() {
   const handleDelete = async (aid: number) => {
     setDeleteConfirm(null);
     try {
-      const res = await fetch(`/api/assignments/${aid}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/assignments/${aid}`, { method: "DELETE" });
       if (!res.ok) {
         const d = await res.json();
         setErrorMsg(d.error || "Error al eliminar");
@@ -228,7 +229,7 @@ export function CreateAssignmentForm() {
     setErrorMsg("");
 
     try {
-      const res = await fetch(`/api/assignments/${a.id}`);
+      const res = await apiFetch(`/api/assignments/${a.id}`);
       const data = await res.json();
       if (data.questions) {
         setQuestions(data.questions.map((q: any) => ({
@@ -301,7 +302,7 @@ export function CreateAssignmentForm() {
       const url = editId ? `/api/assignments/${editId}` : "/api/assignments";
       const method = editId ? "PUT" : "POST";
 
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...body, subjectId, puntos, cursoId: cursoId || undefined }),
@@ -384,7 +385,7 @@ export function CreateAssignmentForm() {
                           </div>
                           <div className="flex items-center gap-2">
                             {s.fileUrl && (
-                              <a href={s.fileUrl} download className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground hover:bg-primary/90">
+                              <a href={s.fileUrl} className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground hover:bg-primary/90">
                                 <Download className="h-3 w-3" /> Archivo
                               </a>
                             )}

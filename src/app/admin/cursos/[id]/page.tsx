@@ -6,6 +6,7 @@ import { ArrowLeft, Search, Loader2, X, UserPlus, Trash2, Printer, Mail, Users a
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { apiFetch } from "@/lib/fetch-utils";
 
 interface Student {
   id: number;
@@ -69,7 +70,7 @@ export default function CursoDetailPage() {
 
   const fetchHorario = useCallback(async () => {
     try {
-      const res = await fetch(`/api/admin/courses/${cursoId}/horarios`);
+      const res = await apiFetch(`/api/admin/courses/${cursoId}/horarios`);
       const d = await res.json();
       const hor = d.horarios || [];
       if (hor.length > 0) {
@@ -141,7 +142,7 @@ export default function CursoDetailPage() {
 
   const fetchCursoInfo = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/courses");
+      const res = await apiFetch("/api/admin/courses");
       const d = await res.json();
       const found = (d.cursos || []).find((c: CursoInfo) => c.id === parseInt(cursoId));
       if (found) setCursoInfo(found);
@@ -152,7 +153,7 @@ export default function CursoDetailPage() {
     setSendingEmail(true);
     setEmailFeedback("");
     try {
-      const res = await fetch("/api/admin/credentials/email", {
+      const res = await apiFetch("/api/admin/credentials/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cursoId: parseInt(cursoId), resetPins }),
@@ -172,7 +173,7 @@ export default function CursoDetailPage() {
 
   const fetchStudents = useCallback(async () => {
     try {
-      const res = await fetch(`/api/admin/courses/${cursoId}/students`);
+      const res = await apiFetch(`/api/admin/courses/${cursoId}/students`);
       const d = await res.json();
       setStudents(d.students || []);
     } catch {}
@@ -182,7 +183,7 @@ export default function CursoDetailPage() {
     fetchCursoInfo();
     fetchStudents();
     fetchHorario();
-    fetch("/api/admin/users?role=student")
+    apiFetch("/api/admin/users?role=student")
       .then(r => r.json()).then(d => setAllStudents(d.users || []))
       .catch(() => {});
     setLoading(false);
@@ -190,7 +191,7 @@ export default function CursoDetailPage() {
 
   const handleAddStudent = async (estudianteId: number) => {
     try {
-      await fetch(`/api/admin/courses/${cursoId}/students`, {
+      await apiFetch(`/api/admin/courses/${cursoId}/students`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ estudianteId }),
@@ -202,7 +203,7 @@ export default function CursoDetailPage() {
 
   const handleRemoveStudent = async (estudianteId: number) => {
     try {
-      await fetch(`/api/admin/courses/${cursoId}/students`, {
+      await apiFetch(`/api/admin/courses/${cursoId}/students`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ estudianteId }),
@@ -402,7 +403,7 @@ export default function CursoDetailPage() {
                     subjectId: b.subjectId,
                     tipo: b.tipo,
                   }));
-                  await fetch(`/api/admin/courses/${cursoId}/horarios`, {
+                  await apiFetch(`/api/admin/courses/${cursoId}/horarios`, {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ bloques }),

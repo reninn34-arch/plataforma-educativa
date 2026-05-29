@@ -5,6 +5,7 @@ import { LogOut, GraduationCap, Menu, X, LayoutDashboard, Users, BookOpen, Calen
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/fetch-utils";
 
 const links = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -25,7 +26,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await apiFetch("/api/auth/logout", { method: "POST" });
     } catch {}
     router.push("/login");
   };

@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 
 const publicPaths = ["/login", "/api/auth/login", "/api/auth/logout", "/api/auth/forgot-pin", "/api/auth/reset-pin", "/recuperar-pin"];
+const CSRF_COOKIE = "csrf-token";
+const CSRF_HEADER = "x-csrf-token";
+const STATE_CHANGING = ["POST", "PUT", "DELETE", "PATCH"];
 
-export async function proxy(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const method = request.method;
 
   if (publicPaths.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
@@ -29,8 +33,7 @@ export async function proxy(request: NextRequest) {
 
   const user = await verifyToken(token);
   if (!user) {
-    const loginUrl = new URL("/login", request.url);
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   if (pathname.startsWith("/teacher") && user.role !== "teacher" && user.role !== "admin") {
@@ -46,7 +49,29 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/teacher/dashboard", request.url));
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+
+  if (method === "GET" && !request.cookies.get(CSRF_COOKIE)) {
+    const csrfToken = crypto.randomUUID();
+    response.cookies.set(CSRF_COOKIE, csrfToken, {
+      httpOnly: false,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 86400,
+    });
+  }
+
+  if (STATE_CHANGING.includes(method) && pathname.startsWith("/api/")) {
+    const headerToken = request.headers.get(CSRF_HEADER);
+    const cookieToken = request.cookies.get(CSRF_COOKIE)?.value;
+
+    if (!headerToken || !cookieToken || headerToken !== cookieToken) {
+      return NextResponse.json({ error: "Token CSRF invalido" }, { status: 403 });
+    }
+  }
+
+  return response;
 }
 
 export const config = {

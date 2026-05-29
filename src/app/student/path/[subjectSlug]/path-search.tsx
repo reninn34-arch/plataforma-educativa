@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/fetch-utils";
 
 interface PathSearchProps {
   subjectSlug: string;
@@ -26,7 +27,7 @@ export function PathSearch({ subjectSlug, suggestedTopics }: PathSearchProps) {
     setError("");
 
     try {
-      const res = await fetch("/api/path/generate", {
+      const res = await apiFetch("/api/path/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subject: subjectSlug, topic: query }),

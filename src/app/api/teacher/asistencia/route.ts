@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
-import postgres from "postgres";
-import { getEnv } from "@/lib/env";
-
-function getSql() {
-  return postgres(getEnv().DATABASE_URL!);
-}
+import { db } from "@/lib/db";
+import { asistencia } from "@/lib/db/schema";
+import { sql, eq, and } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
@@ -20,15 +17,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Datos requeridos: cursoId, fecha, registros" }, { status: 400 });
     }
 
-    const sql = getSql();
     for (const r of registros) {
-      await sql`
-        INSERT INTO asistencia (curso_id, student_id, fecha, estado)
-        VALUES (${cursoId}, ${r.studentId}, ${fecha}::date, ${r.estado})
-        ON CONFLICT (curso_id, student_id, fecha) DO UPDATE SET estado = ${r.estado}
-      `;
+      await db
+        .insert(asistencia)
+        .values({
+          cursoId,
+          studentId: r.studentId,
+          fecha: new Date(fecha),
+          estado: r.estado,
+        })
+        .onConflictDoUpdate({
+          target: [asistencia.cursoId, asistencia.studentId, asistencia.fecha],
+          set: { estado: r.estado },
+        });
     }
-    await sql.end();
 
     return NextResponse.json({ success: true });
   } catch (error) {

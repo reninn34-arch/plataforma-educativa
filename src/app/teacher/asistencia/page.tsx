@@ -6,6 +6,7 @@ import { Loader2, Check, X, Clock, FileText, Save, ChevronLeft, ChevronRight } f
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { apiFetch } from "@/lib/fetch-utils";
 
 interface AsistenciaRow {
   studentId: number;
@@ -47,7 +48,7 @@ export default function TeacherAsistenciaPage() {
   const [feedback, setFeedback] = useState("");
 
   useEffect(() => {
-    fetch("/api/teacher/courses")
+    apiFetch("/api/teacher/courses")
       .then(r => r.json())
       .then(d => {
         const lista = d.cursos || [];
@@ -61,7 +62,7 @@ export default function TeacherAsistenciaPage() {
     if (!cursoId) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/teacher/asistencia/${cursoId}?fecha=${fecha}`);
+      const res = await apiFetch(`/api/teacher/asistencia/${cursoId}?fecha=${fecha}`);
       const d = await res.json();
       setAsistencia(d.asistencia || []);
     } catch {}
@@ -99,7 +100,7 @@ export default function TeacherAsistenciaPage() {
         return;
       }
 
-      const res = await fetch("/api/teacher/asistencia", {
+      const res = await apiFetch("/api/teacher/asistencia", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cursoId, fecha, registros }),

@@ -72,7 +72,7 @@ export async function POST(
         return NextResponse.json({ error: "Formato no permitido" }, { status: 400 });
       }
 
-      const uploadsDir = join(process.cwd(), "public", "uploads", "assignments");
+      const uploadsDir = join(process.cwd(), "uploads", "assignments");
       await mkdir(uploadsDir, { recursive: true });
 
       const timestamp = Date.now();
@@ -82,7 +82,7 @@ export async function POST(
       const bytes = await file.arrayBuffer();
       await writeFile(join(uploadsDir, fileName), Buffer.from(bytes));
 
-      fileUrl = `/uploads/assignments/${fileName}`;
+      fileUrl = `/api/uploads/assignments/${fileName}`;
       content = file.name;
     }
 

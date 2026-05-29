@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DueTimer } from "@/components/DueTimer";
+import { apiFetch } from "@/lib/fetch-utils";
 
 interface AssignmentDetail {
   id: number;
@@ -60,7 +61,7 @@ export default function AssignmentSubmitPage() {
   const isExpired = assignment?.dueDate ? new Date(assignment.dueDate).getTime() < Date.now() : false;
 
   useEffect(() => {
-    fetch(`/api/assignments/${assignmentId}`)
+    apiFetch(`/api/assignments/${assignmentId}`)
       .then(r => r.json())
       .then(d => {
         setAssignment(d.assignment);
@@ -107,7 +108,7 @@ export default function AssignmentSubmitPage() {
         formData.append("answers", JSON.stringify(answers));
       }
 
-      const res = await fetch(`/api/assignments/${assignmentId}/submit`, {
+      const res = await apiFetch(`/api/assignments/${assignmentId}/submit`, {
         method: "POST",
         body: formData,
       });
@@ -259,7 +260,7 @@ export default function AssignmentSubmitPage() {
                     <p className="text-sm font-medium text-foreground truncate">{submission.content}</p>
                     {submission.submittedAt && <p className="text-xs text-muted-foreground">Entregado: {new Date(submission.submittedAt).toLocaleString("es-EC")}</p>}
                   </div>
-                  <a href={submission.fileUrl} download className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90">
+                  <a href={submission.fileUrl} className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90">
                     <Download className="h-3.5 w-3.5" /> Ver
                   </a>
                 </div>

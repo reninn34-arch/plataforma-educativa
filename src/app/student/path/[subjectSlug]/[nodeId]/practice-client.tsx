@@ -10,6 +10,7 @@ import { Hearts } from "@/components/practice/Hearts";
 import { LessonView } from "@/components/practice/LessonView";
 import { useRouter } from "next/navigation";
 import { formatNotation } from "@/lib/utils";
+import { apiFetch } from "@/lib/fetch-utils";
 
 interface Exercise {
   id: number;
@@ -92,7 +93,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
   const fetchExercises = useCallback(async (isRetry = false) => {
     setGameState("loading");
     try {
-      const res = await fetch("/api/practice/generate", {
+      const res = await apiFetch("/api/practice/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -133,7 +134,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
   useEffect(() => {
     if (gameState === "results" && !sessionSavedRef.current) {
       sessionSavedRef.current = true;
-      savePromiseRef.current = fetch("/api/practice/save-session", {
+      savePromiseRef.current = apiFetch("/api/practice/save-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -193,7 +194,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     setCoachMessage("Analizando tu respuesta...");
 
     try {
-      const res = await fetch("/api/chat/coach", {
+      const res = await apiFetch("/api/chat/coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -238,7 +239,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
       : (currentExercise.correctAnswer ? [String(currentExercise.correctAnswer)] : []);
 
     try {
-      const res = await fetch("/api/practice/check", {
+      const res = await apiFetch("/api/practice/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

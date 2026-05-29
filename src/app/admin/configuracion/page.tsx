@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Save, Loader2, CheckCircle, AlertCircle, Mail, Server } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/fetch-utils";
 
 const PROVIDERS: Record<string, { host: string; port: string; label: string; instructions: string }> = {
   gmail: {
@@ -52,7 +53,7 @@ export default function ConfiguracionPage() {
   const [testResult, setTestResult] = useState("");
 
   useEffect(() => {
-    fetch("/api/admin/config")
+    apiFetch("/api/admin/config")
       .then(r => r.json())
       .then(d => {
         setHost(d.smtp_host || "");
@@ -87,7 +88,7 @@ export default function ConfiguracionPage() {
     setSaving(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/config", {
+      const res = await apiFetch("/api/admin/config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -113,7 +114,7 @@ export default function ConfiguracionPage() {
     setTesting(true);
     setTestResult("");
     try {
-      const res = await fetch("/api/admin/config/test", {
+      const res = await apiFetch("/api/admin/config/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ smtp_host: host, smtp_port: port, smtp_user: user, smtp_pass: pass, smtp_from_name: fromName }),

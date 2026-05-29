@@ -6,6 +6,7 @@ import { ArrowLeft, Shield, Eye, EyeOff, CheckCircle, Loader2, User } from "luci
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { apiFetch } from "@/lib/fetch-utils";
 
 export default function TeacherProfilePage() {
   const router = useRouter();
@@ -17,7 +18,7 @@ export default function TeacherProfilePage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch("/api/user/profile")
+    apiFetch("/api/user/profile")
       .then(r => r.json())
       .then(d => setProfile(d))
       .catch(() => {});
@@ -29,7 +30,7 @@ export default function TeacherProfilePage() {
     setSaving(true);
     setFeedback(null);
     try {
-      const res = await fetch("/api/user/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ currentPin, newPin }) });
+      const res = await apiFetch("/api/user/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ currentPin, newPin }) });
       const data = await res.json();
       setFeedback({ ok: res.ok, msg: res.ok ? "PIN actualizado" : data.error });
       if (res.ok) { setCurrentPin(""); setNewPin(""); }

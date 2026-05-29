@@ -6,6 +6,7 @@ import { Plus, Loader2, X, Trash2, ArrowRight, Users as UsersIcon, Pencil, Alert
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { apiFetch } from "@/lib/fetch-utils";
 
 interface TeacherSubjectRow {
   teacherId: number | null;
@@ -81,9 +82,9 @@ export default function AdminCursosPage() {
     setLoading(true);
     try {
       const [cr, pr, sr] = await Promise.all([
-        fetch("/api/admin/courses").then(r => r.json()),
-        fetch("/api/admin/users?role=teacher").then(r => r.json()),
-        fetch("/api/subjects").then(r => r.json()),
+        apiFetch("/api/admin/courses").then(r => r.json()),
+        apiFetch("/api/admin/users?role=teacher").then(r => r.json()),
+        apiFetch("/api/subjects").then(r => r.json()),
       ]);
       setCursos(cr.cursos || []);
       setProfesores(pr.users || []);
@@ -119,7 +120,7 @@ export default function AdminCursosPage() {
       .map(ts => ({ teacherId: ts.teacherId!, subjectId: ts.subjectId! }));
 
     try {
-      const res = await fetch("/api/admin/courses", {
+      const res = await apiFetch("/api/admin/courses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nombre, nivel, profesorId, teacherSubjects: validTeacherSubjects }),
@@ -183,7 +184,7 @@ export default function AdminCursosPage() {
       .map(ts => ({ teacherId: ts.teacherId!, subjectId: ts.subjectId! }));
 
     try {
-      const res = await fetch(`/api/admin/courses/${editingCurso.id}`, {
+      const res = await apiFetch(`/api/admin/courses/${editingCurso.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -209,7 +210,7 @@ export default function AdminCursosPage() {
   const doDelete = async () => {
     if (!deleteCurso) return;
     try {
-      await fetch(`/api/admin/courses/${deleteCurso.id}`, { method: "DELETE" });
+      await apiFetch(`/api/admin/courses/${deleteCurso.id}`, { method: "DELETE" });
       fetchData();
     } catch {}
     setDeleteCurso(null);

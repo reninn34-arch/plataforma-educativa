@@ -5,6 +5,7 @@ import { Sparkles, Loader2, BookOpen, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatNotation } from "@/lib/utils";
+import { apiFetch } from "@/lib/fetch-utils";
 
 export function StudyMaterial({ subjectId }: { subjectId: string }) {
   const [content, setContent] = useState("");
@@ -13,7 +14,7 @@ export function StudyMaterial({ subjectId }: { subjectId: string }) {
   const generate = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/study-material", {
+      const res = await apiFetch("/api/study-material", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subject: subjectId }),

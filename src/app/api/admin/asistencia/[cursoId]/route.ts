@@ -10,15 +10,15 @@ export async function GET(
 ) {
   const token = request.cookies.get("atlas-edu-token")?.value;
   const user = token ? await verifyToken(token) : null;
-  if (!user || user.role !== "teacher") {
-    return NextResponse.json({ error: "Solo docentes" }, { status: 403 });
+  if (!user || user.role !== "admin") {
+    return NextResponse.json({ error: "Solo administradores" }, { status: 403 });
   }
 
   try {
     const { cursoId } = await params;
     const fecha = request.nextUrl.searchParams.get("fecha") || new Date().toISOString().slice(0, 10);
 
-    const data = await db
+    const attendanceData = await db
       .select({
         studentId: asistencia.studentId,
         studentName: users.fullName,
@@ -52,8 +52,8 @@ export async function GET(
       )
       .orderBy(users.fullName);
 
-    const attendanceMap = new Map(data.map((r: any) => [r.studentId, r.estado]));
-    const allStudents = enrolled.map((s: any) => ({
+    const attendanceMap = new Map(attendanceData.map((r) => [r.studentId, r.estado]));
+    const allStudents = enrolled.map((s) => ({
       studentId: s.id,
       studentName: s.fullName,
       cedula: s.cedula,
@@ -62,7 +62,7 @@ export async function GET(
 
     return NextResponse.json({ fecha, asistencia: allStudents });
   } catch (error) {
-    console.error("Attendance fetch error:", error);
+    console.error("Admin attendance fetch error:", error);
     return NextResponse.json({ error: "Error al cargar asistencia" }, { status: 500 });
   }
 }
