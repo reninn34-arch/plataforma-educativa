@@ -228,24 +228,26 @@ export default function StudentDashboard() {
 
         {/* Subject cards */}
         <div className="grid sm:grid-cols-2 gap-3">
-          {SUBJECTS.map((subject) => {
-            const p = progress[subject.id];
-            const pct = p?.percentage ?? 0;
-            const completed = p?.completedNodes ?? 0;
-            const total = p?.totalNodes ?? 0;
-            const stars = p?.totalStars ?? 0;
+          {Object.entries(progress).map(([slug, p]) => {
+            const subjDef = SUBJECTS.find(s => s.id === slug);
+            const name = subjDef?.name || slug;
+            const emoji = subjDef?.emoji || "📚";
+            const pct = p.percentage ?? 0;
+            const completed = p.completedNodes ?? 0;
+            const total = p.totalNodes ?? 0;
+            const stars = p.totalStars ?? 0;
             return (
               <Link
-                key={subject.id}
-                href={`/student/path/${subject.id}`}
+                key={slug}
+                href={`/student/path/${slug}`}
                 className="flex items-center gap-4 p-4 bg-card border rounded-xl hover:border-primary/40 hover:shadow-md transition-all group"
               >
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted/50 text-2xl">
-                  {subject.emoji}
+                  {emoji}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-sm">{subject.name}</h3>
+                    <h3 className="font-semibold text-sm">{name}</h3>
                     <ChevronRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary transition-colors" />
                   </div>
                   <div className="mt-2">

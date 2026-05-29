@@ -69,7 +69,7 @@ export default function BoletinPage() {
       yearly: (() => {
         const t1a = avg(subj.t1); const t2a = avg(subj.t2); const t3a = avg(subj.t3);
         const vals = [t1a, t2a, t3a].filter(v => v !== null);
-        return vals.length > 0 ? (vals.reduce((a, b) => a + b, 0) / 3) : null;
+        return vals.length > 0 ? (vals.reduce((a, b) => a + b, 0) / vals.length) : null;
       })(),
     })),
   }));

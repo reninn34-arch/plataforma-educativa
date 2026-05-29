@@ -145,7 +145,7 @@ export default function TeacherAsistenciaPage() {
       </div>
 
       {feedback && (
-        <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-medium text-emerald-700 flex items-center justify-between">
+        <div className={`rounded-lg px-4 py-3 text-sm font-medium flex items-center justify-between ${feedback.startsWith("Error") ? "bg-red-50 border border-red-200 text-red-700" : "bg-emerald-50 border border-emerald-200 text-emerald-700"}`}>
           <span>{feedback}</span>
           <Button variant="ghost" size="icon-sm" onClick={() => setFeedback("")}><X className="h-3 w-3" /></Button>
         </div>

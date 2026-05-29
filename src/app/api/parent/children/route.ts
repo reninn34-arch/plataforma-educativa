@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { parentStudents, users, cursoEstudiantes, cursos, progress, subjects, assignmentSubmissions, assignments } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { parentStudents, users, cursoEstudiantes, cursos, progress, subjects, assignmentSubmissions, assignments, cursoProfesores } from "@/lib/db/schema";
+import { eq, and, inArray } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
@@ -36,18 +36,29 @@ export async function GET(request: NextRequest) {
         .innerJoin(cursos, eq(cursoEstudiantes.cursoId, cursos.id))
         .where(eq(cursoEstudiantes.estudianteId, link.studentId));
 
-      const courseIds = studentCourses.map(c => c.cursoId);
+      const coursesWithProgress = await Promise.all(studentCourses.map(async (c) => {
+        const subjectIds = await db
+          .select({ subjectId: cursoProfesores.subjectId })
+          .from(cursoProfesores)
+          .where(eq(cursoProfesores.cursoId, c.cursoId));
 
-      const progressData = courseIds.length > 0 ? await db
-        .select({
-          percentage: progress.percentage,
-        })
-        .from(progress)
-        .where(eq(progress.userId, link.studentId)) : [];
+        const sIds = subjectIds.map(s => s.subjectId);
+        const prog = sIds.length > 0
+          ? await db
+              .select({ percentage: progress.percentage })
+              .from(progress)
+              .where(and(eq(progress.userId, link.studentId), inArray(progress.subjectId, sIds)))
+          : await db
+              .select({ percentage: progress.percentage })
+              .from(progress)
+              .where(eq(progress.userId, link.studentId));
 
-      const avgProgress = progressData.length > 0
-        ? Math.round(progressData.reduce((a, b) => a + b.percentage, 0) / progressData.length)
-        : 0;
+        const avg = prog.length > 0
+          ? Math.round(prog.reduce((a, b) => a + b.percentage, 0) / prog.length)
+          : 0;
+
+        return { ...c, progress: avg };
+      }));
 
       const grades = await db
         .select({
@@ -78,7 +89,7 @@ export async function GET(request: NextRequest) {
         studentId: link.studentId,
         studentName: link.studentName,
         studentCedula: link.studentCedula,
-        cursos: studentCourses.map(c => ({ ...c, progress: avgProgress })),
+        cursos: coursesWithProgress,
         grades: gradeSummaries,
       };
     }));

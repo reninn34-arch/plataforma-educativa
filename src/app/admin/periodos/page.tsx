@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Plus, X, Pencil, Trash2, Calendar, CheckCircle2, Clock } from "lucide-react";
+import { Loader2, Plus, X, Pencil, Trash2, Calendar, CheckCircle2, Clock, AlertTriangle, Power } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 interface Periodo {
   id: number;
@@ -19,6 +20,7 @@ export default function AdminPeriodosPage() {
   const [periodos, setPeriodos] = useState<Periodo[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState("");
+  const [deletePeriodo, setDeletePeriodo] = useState<Periodo | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [nombre, setNombre] = useState("");
   const [fechaInicio, setFechaInicio] = useState("");
@@ -77,11 +79,13 @@ export default function AdminPeriodosPage() {
     } catch {}
   };
 
-  const handleDelete = async (id: number) => {
+  const doDelete = async () => {
+    if (!deletePeriodo) return;
     try {
-      await fetch(`/api/admin/periodos/${id}`, { method: "DELETE" });
+      await fetch(`/api/admin/periodos/${deletePeriodo.id}`, { method: "DELETE" });
       fetchPeriodos();
     } catch {}
+    setDeletePeriodo(null);
   };
 
   const openEdit = (p: Periodo) => {
@@ -261,12 +265,12 @@ export default function AdminPeriodosPage() {
                       {p.activo ? <><CheckCircle2 className="h-3 w-3" /> Activo</> : <><Clock className="h-3 w-3" /> Inactivo</>}
                     </Badge>
                     <Button variant="ghost" size="icon-sm" onClick={() => toggleActivo(p)} title={p.activo ? "Desactivar" : "Activar"} className="text-muted-foreground hover:text-primary">
-                      <Pencil className="h-3.5 w-3.5" />
+                      <Power className="h-3.5 w-3.5" />
                     </Button>
                     <Button variant="ghost" size="icon-sm" onClick={() => openEdit(p)} className="text-muted-foreground hover:text-blue-600" title="Editar">
-                      <Calendar className="h-3.5 w-3.5" />
+                      <Pencil className="h-3.5 w-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(p.id)} className="text-muted-foreground hover:text-destructive" title="Eliminar">
+                    <Button variant="ghost" size="icon-sm" onClick={() => setDeletePeriodo(p)} className="text-muted-foreground hover:text-destructive" title="Eliminar">
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
@@ -276,6 +280,30 @@ export default function AdminPeriodosPage() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={!!deletePeriodo} onOpenChange={(open) => { if (!open) setDeletePeriodo(null); }}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <div className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              <DialogTitle>Eliminar periodo</DialogTitle>
+            </div>
+            <DialogDescription>
+              {deletePeriodo && (
+                <>
+                  ¿Estas seguro de eliminar <strong>{deletePeriodo.nombre}</strong>?
+                  <br /><br />
+                  Si hay tareas asociadas a este periodo, el sistema no permitira eliminarlo.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeletePeriodo(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={doDelete}>Eliminar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

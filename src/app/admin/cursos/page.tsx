@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Loader2, X, Trash2, ArrowRight, Users as UsersIcon, Pencil } from "lucide-react";
+import { Plus, Loader2, X, Trash2, ArrowRight, Users as UsersIcon, Pencil, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,11 @@ interface CursoData {
   studentCount: number;
   createdAt: string;
   teacherSubjects: CursoTeacherSubject[];
+}
+
+interface CursoDeleteData {
+  id: number;
+  nombre: string;
 }
 
 interface ProfesorOption {
@@ -70,6 +75,7 @@ export default function AdminCursosPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [deleteCurso, setDeleteCurso] = useState<CursoDeleteData | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -200,11 +206,13 @@ export default function AdminCursosPage() {
   };
 
   // ---- DELETE ----
-  const handleDelete = async (id: number) => {
+  const doDelete = async () => {
+    if (!deleteCurso) return;
     try {
-      await fetch(`/api/admin/courses/${id}`, { method: "DELETE" });
+      await fetch(`/api/admin/courses/${deleteCurso.id}`, { method: "DELETE" });
       fetchData();
     } catch {}
+    setDeleteCurso(null);
   };
 
   // Helper: check if teacher+subject combo already exists in current rows
@@ -368,7 +376,7 @@ export default function AdminCursosPage() {
                     <Button variant="ghost" size="icon-sm" onClick={() => openEdit(c)} className="text-muted-foreground hover:text-primary" title="Editar curso">
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(c.id)} className="text-muted-foreground hover:text-destructive" title="Eliminar curso">
+                    <Button variant="ghost" size="icon-sm" onClick={() => setDeleteCurso({ id: c.id, nombre: c.nombre })} className="text-muted-foreground hover:text-destructive" title="Eliminar curso">
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
@@ -410,6 +418,28 @@ export default function AdminCursosPage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {deleteCurso && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="max-w-sm w-full mx-4 shadow-xl animate-scale-in rounded-xl bg-popover p-4 text-sm ring-1 ring-foreground/10">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-red-600">
+                <AlertTriangle className="h-5 w-5" />
+                <span className="font-heading text-base leading-none font-medium">Eliminar curso</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Estas seguro de eliminar <strong>{deleteCurso.nombre}</strong>?
+                <br /><br />
+                Se eliminaran permanentemente: el curso, todos los estudiantes matriculados, las tareas y calificaciones asociadas.
+              </p>
+            </div>
+            <div className="-mx-4 -mb-4 flex gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:justify-end mt-4">
+              <Button variant="outline" onClick={() => setDeleteCurso(null)}>Cancelar</Button>
+              <Button variant="destructive" onClick={doDelete}>Eliminar</Button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -479,4 +509,4 @@ function renderTeacherSubjectSection(
       </div>
     </div>
   );
-}
+}  

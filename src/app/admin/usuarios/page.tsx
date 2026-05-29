@@ -47,6 +47,7 @@ export default function AdminUsersPage() {
   const [error, setError] = useState("");
 
   const [createdPin, setCreatedPin] = useState<string | null>(null);
+  const [createdCedula, setCreatedCedula] = useState("");
   const [copied, setCopied] = useState(false);
 
   const [editUser, setEditUser] = useState<UserData | null>(null);
@@ -95,6 +96,7 @@ export default function AdminUsersPage() {
       if (!res.ok) { setError(d.error); setSaving(false); return; }
 
       setCreatedPin(d.pin);
+      setCreatedCedula(newCedula);
       setFeedback(`Usuario ${newName} creado.`);
       fetchUsers();
       resetForm();
@@ -182,7 +184,7 @@ export default function AdminUsersPage() {
 
   const copyCredentials = () => {
     if (createdPin) {
-      navigator.clipboard.writeText(`Cedula: ${editCedula || newCedula}\nPIN: ${createdPin}`);
+      navigator.clipboard.writeText(`Cedula: ${createdCedula || editCedula || newCedula}\nPIN: ${createdPin}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -263,7 +265,7 @@ export default function AdminUsersPage() {
               <Check className="h-5 w-5" /> PIN generado exitosamente
             </div>
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><span className="text-muted-foreground">Cedula:</span> <strong>{editCedula || newCedula}</strong></div>
+              <div><span className="text-muted-foreground">Cedula:</span> <strong>{createdCedula || editCedula || newCedula}</strong></div>
               <div><span className="text-muted-foreground">PIN:</span> <strong className="text-xl tracking-widest">{createdPin}</strong></div>
             </div>
             <div className="flex gap-2">
