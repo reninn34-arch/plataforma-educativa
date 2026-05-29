@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import {
   Plus, Loader2, CheckCircle, Calendar, BookOpen, FileText, Download,
   ArrowLeft, Trash2, ListChecks, Upload, FileUp,
-  Pencil, X, AlertCircle,
+  Pencil, X, AlertCircle, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -104,6 +104,12 @@ export function CreateAssignmentForm() {
   const [gradingSub, setGradingSub] = useState<{ id: number; grade: number; feedback: string } | null>(null);
   const [absentLoading, setAbsentLoading] = useState<number | null>(null);
 
+  const [showAiPanel, setShowAiPanel] = useState(false);
+  const [aiTopic, setAiTopic] = useState("");
+  const [aiQuestionCount, setAiQuestionCount] = useState(5);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiError, setAiError] = useState("");
+
   const filteredSubjects = cursoId
     ? subjectsList.filter(s =>
         cursosList.find(c => c.id === cursoId)?.mySubjects?.some(ms => ms.subjectId === s.id)
@@ -135,6 +141,59 @@ export function CreateAssignmentForm() {
       setErrorMsg("Error de conexion");
     }
     setAbsentLoading(null);
+  };
+
+  const handleAiGenerate = async () => {
+    if (!aiTopic.trim() || !subjectId) {
+      setAiError("Ingresa un tema y selecciona una materia");
+      return;
+    }
+    setAiGenerating(true);
+    setAiError("");
+
+    const selectedSubject = subjectsList.find(s => s.id === subjectId);
+    const subjectName = selectedSubject?.name || "";
+
+    try {
+      const res = await apiFetch("/api/teacher/ai/generate-assignment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: subjectName,
+          topic: aiTopic.trim(),
+          questionCount: aiQuestionCount,
+          trimester,
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        setAiError(d.error || "Error al generar");
+        setAiGenerating(false);
+        return;
+      }
+
+      const data = d.data;
+      setTitle(data.title || "");
+      setDescription(data.description || "");
+      const generatedQuestions: Question[] = (data.questions || []).map(
+        (q: any, i: number) => ({
+          id: `q_ai_${++qCounter}`,
+          type: q.type,
+          question: q.question,
+          options: q.type === "mcq" ? q.options : [],
+          correctIndex: q.type === "mcq" ? q.correctIndex : 0,
+          points: q.points || 1,
+        })
+      );
+      setQuestions(generatedQuestions);
+      setShowAiPanel(false);
+      setAiTopic("");
+      setFeedback("Tarea generada con IA. Revisa y edita antes de publicar.");
+      setTimeout(() => setFeedback(""), 4000);
+    } catch {
+      setAiError("Error de conexion");
+    }
+    setAiGenerating(false);
   };
 
   const handleGrade = async (submissionId: number, grade: number, feedback: string) => {
@@ -607,6 +666,75 @@ export function CreateAssignmentForm() {
                       className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm min-h-[80px] resize-y" required />
                   </div>
 
+                  {showAiPanel && (
+                    <div className="rounded-xl border-2 border-violet-200 bg-violet-50/30 p-4 space-y-3 animate-scale-in">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-bold text-violet-700 flex items-center gap-2">
+                          <Sparkles className="h-4 w-4" /> Generar tarea con IA
+                        </h4>
+                        <button
+                          type="button"
+                          onClick={() => { setShowAiPanel(false); setAiError(""); }}
+                          className="text-violet-400 hover:text-violet-600"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <p className="text-xs text-violet-600">
+                        La IA generara titulo, descripcion y preguntas en base a un tema. Podras editar todo antes de publicar.
+                      </p>
+                      <div>
+                        <label className="text-xs font-semibold text-foreground mb-1 block">
+                          Tema de la tarea
+                        </label>
+                        <input
+                          type="text"
+                          value={aiTopic}
+                          onChange={(e) => setAiTopic(e.target.value)}
+                          placeholder={`Ej: Suma de fracciones, Leyes de Newton, Simple Past...`}
+                          className="w-full h-10 rounded-lg border border-violet-200 bg-white px-3 text-sm"
+                          onKeyDown={(e) => { if (e.key === "Enter" && !aiGenerating) handleAiGenerate(); }}
+                          disabled={aiGenerating}
+                        />
+                      </div>
+                      <div className="flex gap-4 items-end">
+                        <div>
+                          <label className="text-xs font-semibold text-foreground mb-1 block">
+                            Cantidad de preguntas
+                          </label>
+                          <select
+                            value={aiQuestionCount}
+                            onChange={(e) => setAiQuestionCount(Number(e.target.value))}
+                            className="h-10 rounded-lg border border-violet-200 bg-white px-3 text-sm"
+                            disabled={aiGenerating}
+                          >
+                            {[3, 4, 5, 6, 8, 10].map(n => (
+                              <option key={n} value={n}>{n} preguntas</option>
+                            ))}
+                          </select>
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={handleAiGenerate}
+                          disabled={aiGenerating || !aiTopic.trim() || !subjectId}
+                          className="gap-2 bg-violet-600 hover:bg-violet-700 text-white h-10"
+                        >
+                          {aiGenerating ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-4 w-4" />
+                          )}
+                          {aiGenerating ? "Generando..." : "Generar"}
+                        </Button>
+                      </div>
+                      {aiError && (
+                        <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
+                          {aiError}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="border-t pt-4 space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
@@ -614,6 +742,11 @@ export function CreateAssignmentForm() {
                         Preguntas ({questions.length})
                       </h3>
                       <div className="flex gap-2">
+                        {!showAiPanel && (
+                          <Button type="button" variant="outline" size="sm" onClick={() => { setShowAiPanel(true); setAiError(""); if (!aiTopic && title) setAiTopic(title); }} className="gap-1 text-xs h-8 border-violet-200 text-violet-600 hover:bg-violet-50">
+                            <Sparkles className="h-3 w-3" /> IA
+                          </Button>
+                        )}
                         <Button type="button" variant="outline" size="sm" onClick={() => addQuestion("mcq")} className="gap-1 text-xs h-8">
                           <Pencil className="h-3 w-3" /> + Opcion multiple
                         </Button>
