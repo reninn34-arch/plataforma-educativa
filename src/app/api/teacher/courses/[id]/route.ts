@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { cursos, cursoEstudiantes, cursoProfesores, users, subjects } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
+import { teacherHasCourseAccess } from "@/lib/course-helpers";
 
 export async function GET(
   request: NextRequest,
@@ -18,19 +19,8 @@ export async function GET(
     const { id } = await params;
     const cursoId = parseInt(id);
 
-    const isMember = await db
-      .select({ id: cursoProfesores.id })
-      .from(cursoProfesores)
-      .where(and(eq(cursoProfesores.cursoId, cursoId), eq(cursoProfesores.teacherId, teacher.id)))
-      .limit(1);
-
-    const isTutor = await db
-      .select({ id: cursos.id })
-      .from(cursos)
-      .where(and(eq(cursos.id, cursoId), eq(cursos.profesorId, teacher.id)))
-      .limit(1);
-
-    if (!isMember.length && !isTutor.length) {
+    const hasAccess = await teacherHasCourseAccess(teacher.id, cursoId);
+    if (!hasAccess) {
       return NextResponse.json({ error: "No tienes acceso a este curso" }, { status: 403 });
     }
 

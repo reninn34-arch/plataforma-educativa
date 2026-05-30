@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { practiceSessions, practiceAnswers, users, subjects, cursoEstudiantes, cursoProfesores, cursos } from "@/lib/db/schema";
+import { practiceSessions, practiceAnswers, users, subjects, cursoEstudiantes } from "@/lib/db/schema";
 import { eq, sql, desc, inArray, and } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
+import { getTeacherCourseIds } from "@/lib/course-helpers";
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
@@ -14,20 +15,7 @@ export async function GET(request: NextRequest) {
   const cursoIdParam = request.nextUrl.searchParams.get("cursoId");
 
   try {
-    const mySubjectCourses = await db
-      .select({ cursoId: cursoProfesores.cursoId })
-      .from(cursoProfesores)
-      .where(eq(cursoProfesores.teacherId, user.id));
-
-    const tutorCourses = await db
-      .select({ id: cursos.id })
-      .from(cursos)
-      .where(eq(cursos.profesorId, user.id));
-
-    const allIds = [...new Set([
-      ...mySubjectCourses.map(r => r.cursoId),
-      ...tutorCourses.map(r => r.id),
-    ])];
+    const allIds = await getTeacherCourseIds(user.id);
 
     let targetCursoIds: number[];
     if (cursoIdParam) {

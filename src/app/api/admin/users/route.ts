@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { users, cursoProfesores, subjects } from "@/lib/db/schema";
 import { eq, desc, and, inArray } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
+import type { UserRole } from "@/lib/types";
 
 function generatePin(): string {
   return String(Math.floor(1000 + Math.random() * 9000));
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
     const role = request.nextUrl.searchParams.get("role") || "student";
     const showInactive = request.nextUrl.searchParams.get("inactivos") === "true";
     const onlyInactive = request.nextUrl.searchParams.get("soloInactivos") === "true";
-    const conditions: any[] = [eq(users.role, role as any)];
+    const conditions: any[] = [eq(users.role, role as UserRole)];
     if (onlyInactive) {
       conditions.push(eq(users.activo, false));
     } else if (!showInactive) {
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
     const [existing] = await db.select({ id: users.id, activo: users.activo }).from(users).where(eq(users.cedula, cedula)).limit(1);
     if (existing) {
       if (!existing.activo) {
-        await db.update(users).set({ activo: true, fullName, role: role as any, email: email || null }).where(eq(users.id, existing.id));
+        await db.update(users).set({ activo: true, fullName, role: role as UserRole, email: email || null }).where(eq(users.id, existing.id));
         const pin = generatePin();
         const hashed = await bcrypt.hash(pin, 10);
         await db.update(users).set({ pin: hashed }).where(eq(users.id, existing.id));
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
     const [created] = await db.insert(users).values({
       cedula,
       fullName,
-      role: role as any,
+      role: role as UserRole,
       email: email || null,
       pin: hashed,
     }).returning();

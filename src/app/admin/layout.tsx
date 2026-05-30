@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/fetch-utils";
+import { AiAssistant } from "@/components/ai/AiAssistant";
 
 const links = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -130,6 +131,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex-1 flex flex-col min-h-screen lg:pl-64 pt-16 lg:pt-0">
         {children}
       </div>
+      <AiAssistant />
     </div>
   );
 }

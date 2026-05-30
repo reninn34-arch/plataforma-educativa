@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 
 const publicPaths = ["/login", "/api/auth/login", "/api/auth/logout", "/api/auth/forgot-pin", "/api/auth/reset-pin", "/recuperar-pin"];
+const csrfBypassPaths = ["/api/ai/"];
 const CSRF_COOKIE = "csrf-token";
 const CSRF_HEADER = "x-csrf-token";
 const STATE_CHANGING = ["POST", "PUT", "DELETE", "PATCH"];
@@ -62,7 +63,7 @@ export default async function middleware(request: NextRequest) {
     });
   }
 
-  if (STATE_CHANGING.includes(method) && pathname.startsWith("/api/")) {
+  if (STATE_CHANGING.includes(method) && pathname.startsWith("/api/") && !csrfBypassPaths.some(p => pathname.startsWith(p))) {
     const headerToken = request.headers.get(CSRF_HEADER);
     const cookieToken = request.cookies.get(CSRF_COOKIE)?.value;
 

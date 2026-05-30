@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { assignments, assignmentQuestions, assignmentSubmissions, submissionAnswers, subjects, users, cursoEstudiantes, cursos, cursoProfesores } from "@/lib/db/schema";
+import { assignments, assignmentQuestions, assignmentSubmissions, submissionAnswers, subjects, users, cursoEstudiantes, cursos } from "@/lib/db/schema";
 import { eq, and, asc, inArray } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
+import { getTeacherCourseIds } from "@/lib/course-helpers";
 
 export async function GET(
   request: NextRequest,
@@ -110,21 +111,7 @@ export async function GET(
             eq(users.role, "student")
           ));
       } else {
-        const teacherCourses = await db
-          .select({ cursoId: cursoEstudiantes.cursoId })
-          .from(cursoEstudiantes)
-          .innerJoin(cursoProfesores, eq(cursoEstudiantes.cursoId, cursoProfesores.cursoId))
-          .where(eq(cursoProfesores.teacherId, user.id));
-
-        const teacherTutorCourses = await db
-          .select({ id: cursos.id })
-          .from(cursos)
-          .where(eq(cursos.profesorId, user.id));
-
-        const uniqueCourses = [...new Set([
-          ...teacherCourses.map(c => c.cursoId),
-          ...teacherTutorCourses.map(c => c.id),
-        ])];
+        const uniqueCourses = await getTeacherCourseIds(user.id);
 
         if (uniqueCourses.length > 0) {
           allStudents = await db

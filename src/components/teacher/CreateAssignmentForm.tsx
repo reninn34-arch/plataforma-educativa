@@ -101,7 +101,7 @@ export function CreateAssignmentForm() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [notSubmitted, setNotSubmitted] = useState<{ studentId: number; studentName: string; studentCedula: string; expired: boolean }[]>([]);
   const [loadingSubs, setLoadingSubs] = useState(false);
-  const [gradingSub, setGradingSub] = useState<{ id: number; grade: number; feedback: string } | null>(null);
+  const [gradingSub, setGradingSub] = useState<{ id?: number; studentId?: number; grade: number; feedback: string } | null>(null);
   const [absentLoading, setAbsentLoading] = useState<number | null>(null);
 
   const [showAiPanel, setShowAiPanel] = useState(false);
@@ -196,13 +196,17 @@ export function CreateAssignmentForm() {
     setAiGenerating(false);
   };
 
-  const handleGrade = async (submissionId: number, grade: number, feedback: string) => {
+  const handleGrade = async (submissionId: number | null, studentId: number | null, grade: number, feedback: string) => {
     try {
       const gradeInt = Math.round(grade);
+      const body: any = { grade: gradeInt, feedback };
+      if (submissionId) body.submissionId = submissionId;
+      if (studentId) body.studentId = studentId;
+
       const res = await apiFetch(`/api/assignments/${selectedAssignment}/grade`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ submissionId, grade: gradeInt, feedback }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const d = await res.json();
@@ -495,7 +499,7 @@ export function CreateAssignmentForm() {
                                 <div className="flex gap-2">
                                   <Button
                                     size="sm"
-                                    onClick={() => handleGrade(s.id, gradingSub.grade, gradingSub.feedback)}
+                                    onClick={() => handleGrade(s.id, null, gradingSub.grade, gradingSub.feedback)}
                                     className="h-7 text-xs"
                                   >
                                     Guardar nota
@@ -547,29 +551,72 @@ export function CreateAssignmentForm() {
                     No entregados ({notSubmitted.length})
                   </p>
                   {notSubmitted.map((ns) => (
-                    <div key={ns.studentId} className="flex items-center justify-between rounded-lg border bg-card p-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${ns.expired ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-600"}`}>
-                          {ns.expired ? "❌" : "⏳"}
+                    <div key={ns.studentId} className="flex flex-col rounded-lg border bg-card p-3 gap-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${ns.expired ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-600"}`}>
+                            {ns.expired ? "❌" : "⏳"}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{ns.studentName}</p>
+                            <p className="text-xs text-muted-foreground">{ns.studentCedula}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{ns.studentName}</p>
-                          <p className="text-xs text-muted-foreground">{ns.studentCedula}</p>
+                        <div className="flex items-center gap-2">
+                          {ns.expired ? (
+                            <Badge variant="destructive" className="text-[10px]">Plazo vencido</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">Pendiente</Badge>
+                          )}
+                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                            disabled={absentLoading === ns.studentId}
+                            onClick={() => handleMarkAbsent(ns.studentId)}>
+                            {absentLoading === ns.studentId ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+                            No entrego (0)
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-7 text-xs"
+                            onClick={() => setGradingSub({ studentId: ns.studentId, grade: 0, feedback: "" })}>
+                            Calificar
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {ns.expired ? (
-                          <Badge variant="destructive" className="text-[10px]">Plazo vencido</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">Pendiente</Badge>
-                        )}
-                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
-                          disabled={absentLoading === ns.studentId}
-                          onClick={() => handleMarkAbsent(ns.studentId)}>
-                          {absentLoading === ns.studentId ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
-                          No entrego (0)
-                        </Button>
-                      </div>
+
+                      {gradingSub?.studentId === ns.studentId && (
+                        <div className="border-t pt-3 flex flex-col gap-2">
+                          <div className="flex items-center gap-3">
+                            <label className="text-xs font-medium text-muted-foreground">Nota manual:</label>
+                            <input
+                              type="number"
+                              min={0}
+                              max={10}
+                              step={1}
+                              value={gradingSub.grade}
+                              onChange={(e) => setGradingSub({ ...gradingSub, grade: parseFloat(e.target.value) || 0 })}
+                              className="w-16 h-8 rounded border border-input bg-card px-2 text-sm text-center"
+                            />
+                            <span className="text-xs text-muted-foreground">/10</span>
+                          </div>
+                          <input
+                            type="text"
+                            value={gradingSub.feedback}
+                            onChange={(e) => setGradingSub({ ...gradingSub, feedback: e.target.value })}
+                            placeholder="Feedback o justificación..."
+                            className="w-full h-8 rounded border border-input bg-card px-2 text-xs"
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => handleGrade(null, ns.studentId, gradingSub.grade, gradingSub.feedback)}
+                              className="h-7 text-xs"
+                            >
+                              Guardar nota
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => setGradingSub(null)} className="h-7 text-xs">
+                              Cancelar
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -839,7 +886,12 @@ export function CreateAssignmentForm() {
                         <h3 className="font-bold text-foreground">{a.title}</h3>
                         <p className="text-sm text-muted-foreground line-clamp-2">{a.description}</p>
                       </div>
-                      <div className="flex gap-1 ml-2 shrink-0">
+                      <div className="flex gap-1 ml-2 shrink-0 items-center">
+                        <a href={`/api/assignments/${a.id}/export`} download
+                          className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-muted transition-colors" title="Exportar a Word/Impresión"
+                          onClick={(e) => e.stopPropagation()}>
+                          <Download className="h-4 w-4" />
+                        </a>
                         <Button variant="ghost" size="icon-sm" onClick={(e) => { e.stopPropagation(); startEdit(a); }}
                           className="h-7 w-7 text-muted-foreground hover:text-primary" title="Editar">
                           <Pencil className="h-3.5 w-3.5" />

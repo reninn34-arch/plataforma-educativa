@@ -1,8 +1,9 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { assignments, assignmentSubmissions, subjects, users, cursos, cursoProfesores } from "@/lib/db/schema";
+import { assignments, assignmentSubmissions, subjects, users, cursos } from "@/lib/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
+import { getTeacherCourseIds } from "@/lib/course-helpers";
 
 function escapeCSV(value: unknown): string {
   const str = value === null || value === undefined ? "" : String(value);
@@ -19,20 +20,7 @@ export async function GET(request: NextRequest) {
 
     const cursoIdParam = request.nextUrl.searchParams.get("cursoId");
 
-    const mySubjectCourses = await db
-      .select({ cursoId: cursoProfesores.cursoId })
-      .from(cursoProfesores)
-      .where(eq(cursoProfesores.teacherId, user.id));
-
-    const tutorCourses = await db
-      .select({ id: cursos.id })
-      .from(cursos)
-      .where(eq(cursos.profesorId, user.id));
-
-    const allIds = [...new Set([
-      ...mySubjectCourses.map(r => r.cursoId),
-      ...tutorCourses.map(r => r.id),
-    ])];
+    const allIds = await getTeacherCourseIds(user.id);
 
     let targetCursoIds: number[] | null = null;
     if (cursoIdParam) {

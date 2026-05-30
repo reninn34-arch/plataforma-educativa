@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { assignments, assignmentQuestions, assignmentSubmissions, subjects, users, cursos, cursoProfesores, periodosLectivos, cursoEstudiantes } from "@/lib/db/schema";
+import { assignments, assignmentQuestions, assignmentSubmissions, subjects, users, cursos, periodosLectivos, cursoEstudiantes } from "@/lib/db/schema";
 import { eq, and, desc, inArray } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
+import { teacherHasCourseAccess } from "@/lib/course-helpers";
 import { assignmentSchema } from "@/lib/api-helpers";
 
 export async function GET(request: NextRequest) {
@@ -115,17 +116,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (cursoId) {
-      const belongs = await db
-        .select({ id: cursoProfesores.id })
-        .from(cursoProfesores)
-        .where(and(eq(cursoProfesores.cursoId, cursoId), eq(cursoProfesores.teacherId, user.id)))
-        .limit(1);
-      const isTutor = await db
-        .select({ id: cursos.id })
-        .from(cursos)
-        .where(and(eq(cursos.id, cursoId), eq(cursos.profesorId, user.id)))
-        .limit(1);
-      if (!belongs.length && !isTutor.length) {
+      const hasAccess = await teacherHasCourseAccess(user.id, cursoId);
+      if (!hasAccess) {
         return NextResponse.json({ error: "No perteneces a este curso" }, { status: 403 });
       }
     }

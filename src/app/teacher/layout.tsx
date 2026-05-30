@@ -2,6 +2,7 @@
 
 import { AppLayout } from "@/components/layout/AppLayout";
 import { BookOpen, Users, Clock, ClipboardList, Pencil, BarChart3, ClipboardCheck, User } from "lucide-react";
+import { AiAssistant } from "@/components/ai/AiAssistant";
 
 const teacherLinks = [
   { href: "/teacher/cursos", label: "Mis Cursos", icon: BookOpen },
@@ -18,6 +19,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   return (
     <AppLayout role="teacher" links={teacherLinks} title="Administracion Docente">
       {children}
+      <AiAssistant />
     </AppLayout>
   );
 }
