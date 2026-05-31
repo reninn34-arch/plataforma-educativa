@@ -54,8 +54,8 @@ export function ChatUI({ subject }: { subject: string }) {
 
   return (
     <div className="flex flex-col h-full bg-card">
-      <ScrollArea className="flex-1">
-        <div role="log" aria-live="polite" className="px-4 py-4 space-y-4 min-h-full">
+      <ScrollArea className="flex-1 min-h-0">
+        <div role="log" aria-live="polite" className="px-4 py-4 space-y-4">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent mb-4 shadow-sm">
