@@ -320,6 +320,8 @@ export function CreateAssignmentForm() {
     setCursoId(null);
     setSubjectId(subjectsList[0]?.id ?? null);
     setErrorMsg("");
+    setSaving(false);
+    setFeedback("");
   };
 
   const addQuestion = (type: "mcq" | "file_upload") => {
@@ -342,9 +344,14 @@ export function CreateAssignmentForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !description.trim()) return;
+    if (!title.trim() || !description.trim()) {
+      setErrorMsg("El titulo y la descripcion son requeridos");
+      setSaving(false);
+      return;
+    }
     setSaving(true);
     setFeedback("");
+    setErrorMsg("");
 
     const body = {
       title: title.trim(),
@@ -631,7 +638,7 @@ export function CreateAssignmentForm() {
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-foreground">Tareas asignadas</h2>
             {!showForm && (
-              <Button onClick={() => { setShowForm(true); setEditId(null); setTitle(""); setDescription(""); setDueDate(""); setQuestions([]); setCursoId(null); setSubjectId(subjectsList[0]?.id ?? null); setErrorMsg(""); }} size="sm" className="gap-2">
+              <Button onClick={() => { setShowForm(true); setSaving(false); setFeedback(""); setEditId(null); setTitle(""); setDescription(""); setDueDate(""); setQuestions([]); setCursoId(null); setSubjectId(subjectsList[0]?.id ?? null); setErrorMsg(""); }} size="sm" className="gap-2">
                 <Plus className="h-4 w-4" /> Nueva Tarea
               </Button>
             )}
