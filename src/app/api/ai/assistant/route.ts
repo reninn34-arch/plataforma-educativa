@@ -33,7 +33,12 @@ export async function POST(request: NextRequest) {
 
     const tools = getToolsForRole(user.role, user.id, user.fullName);
 
-    const coreMessages = await convertToModelMessages(messages);
+    const MAX_MESSAGES = 30;
+    const recentMessages = messages.length > MAX_MESSAGES
+      ? messages.slice(-MAX_MESSAGES)
+      : messages;
+
+    const coreMessages = await convertToModelMessages(recentMessages);
 
     const start = Date.now();
 
