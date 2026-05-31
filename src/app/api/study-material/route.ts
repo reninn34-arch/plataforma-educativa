@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { verifyToken } from "@/lib/auth";
-import { opencodeGoModel, logAiCall, DEFAULT_MODEL } from "@/lib/ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel } from "@/lib/ai";
 import { generateText } from "ai";
 import { rateLimit } from "@/lib/rate-limit";
 import { studyMaterialSchema } from "@/lib/api-helpers";
@@ -27,21 +27,48 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return Response.json({ error: "Materia requerida" }, { status: 400 });
     }
-    const { subject, topic } = parsed.data;
+    const { subject, topic, model } = parsed.data;
+    const resolved = resolveModel(model);
+    if (resolved.error) {
+      return Response.json({ error: resolved.error }, { status: 400 });
+    }
+    const candidates = getChatModelCandidates(model);
     const ctx = SUBJECT_CONTEXT[subject] || SUBJECT_CONTEXT.matematicas;
 
     const startTime = performance.now();
-    const result = await generateText({
-      model: opencodeGoModel,
-      system: "Eres un profesor experto en educacion acelerada para adultos (PCEI). Genera contenido educativo claro, con ejemplos practicos y lenguaje sencillo. Usa maximo 250 palabras.",
-      prompt: `AREA: ${ctx}${topic ? `\n\nTema especifico: ${topic}.` : ""}\n\nGenera un resumen teorico con:\n- Concepto clave (1 oracion)\n- Explicacion sencilla (2-3 oraciones)\n- 2 ejemplos practicos\n- Dato curioso o aplicacion en la vida real`,
-      maxOutputTokens: 400,
-      temperature: 0.7,
-    });
+    let result: Awaited<ReturnType<typeof generateText>> | null = null;
+    let usedModel = resolved;
+    let lastError: unknown;
+    const REQUEST_TIMEOUT_MS = 60_000;
+
+    for (const candidate of candidates) {
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MS);
+
+      try {
+        result = await generateText({
+          model: getChatModel(candidate),
+          system: "Eres un profesor experto en educacion acelerada para adultos (PCEI). Genera contenido educativo claro, con ejemplos practicos y lenguaje sencillo. Usa maximo 250 palabras.",
+          prompt: `AREA: ${ctx}${topic ? `\n\nTema especifico: ${topic}.` : ""}\n\nGenera un resumen teorico con:\n- Concepto clave (1 oracion)\n- Explicacion sencilla (2-3 oraciones)\n- 2 ejemplos practicos\n- Dato curioso o aplicacion en la vida real`,
+          maxOutputTokens: 400,
+          temperature: 0.7,
+          abortSignal: abortController.signal,
+        });
+        clearTimeout(timeoutId);
+        usedModel = candidate;
+        break;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        lastError = error;
+        if (!isRetryableModelError(error)) throw error;
+      }
+    }
+
+    if (!result) throw (lastError ?? new Error("No se pudo generar material con los modelos configurados"));
 
     logAiCall({
       route: "study-material",
-      model: DEFAULT_MODEL,
+      model: usedModel.modelId,
       durationMs: Math.round(performance.now() - startTime),
       usage: { inputTokens: result.usage?.inputTokens, outputTokens: result.usage?.outputTokens, totalTokens: (result.usage?.inputTokens ?? 0) + (result.usage?.outputTokens ?? 0) },
     });

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { opencodeGoModel, logAiCall, DEFAULT_MODEL } from "@/lib/ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel } from "@/lib/ai";
 import { db } from "@/lib/db";
 import { nodes } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -203,7 +203,13 @@ export async function POST(request: NextRequest) {
     if (!inputParsed.success) {
       return Response.json({ error: "Materia requerida" }, { status: 400 });
     }
-    const { subject, topic, aiPromptContext, nodeId, retry } = inputParsed.data;
+    const { subject, topic, aiPromptContext, nodeId, retry, model } = inputParsed.data;
+
+    const resolved = resolveModel(model);
+    if (resolved.error) {
+      return Response.json({ error: resolved.error }, { status: 400 });
+    }
+    const candidates = getChatModelCandidates(model);
 
     if (nodeId && !retry) {
       const nodeRecord = await db
@@ -229,63 +235,87 @@ export async function POST(request: NextRequest) {
       ? `${aiPromptContext}`
       : (topic || ctx.topics.slice(0, 1).join(", "));
 
-    // ── Llamada 1: Leccion + ejercicios ──
-    const lessonPromise = generateText({
-      model: opencodeGoModel,
-      prompt: `${LESSON_PROMPT}\n\nAREA: ${ctx.area}\nTema: ${topicContext}`,
-      temperature: 0.6,
-      maxOutputTokens: 8000,
-    });
+    const REQUEST_TIMEOUT_MS = 60_000;
+    let lessonResult: Awaited<ReturnType<typeof generateText>> | null = null;
+    let diagram: z.infer<typeof diagramSchema> | null = null;
+    let usedModel = resolved;
+    let lastError: unknown;
 
-    // ── Llamada 2: Diagrama (solo si la materia lo permite, en paralelo) ──
-    let diagramPromise: Promise<z.infer<typeof diagramSchema> | null> = Promise.resolve(null);
+    for (const candidate of candidates) {
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MS);
 
-    if (ctx.canHaveDiagram) {
-      const diagramStart = performance.now();
-      diagramPromise = generateText({
-        model: opencodeGoModel,
-        prompt: `${DIAGRAM_PROMPT}\n\nAREA: ${ctx.area}\nTema: ${topicContext}\n\nGenera un diagrama Mermaid.js educativo para este tema.`,
-        temperature: 0.3,
-        maxOutputTokens: 1500,
-      }).then((r) => {
-        logAiCall({
-          route: "practice-diagram",
-          model: DEFAULT_MODEL,
-          durationMs: Math.round(performance.now() - diagramStart),
-          usage: { inputTokens: r.usage?.inputTokens, outputTokens: r.usage?.outputTokens, totalTokens: (r.usage?.inputTokens ?? 0) + (r.usage?.outputTokens ?? 0) },
+      try {
+        const aiModel = getChatModel(candidate);
+
+        const lessonPromise = generateText({
+          model: aiModel,
+          prompt: `${LESSON_PROMPT}\n\nAREA: ${ctx.area}\nTema: ${topicContext}`,
+          temperature: 0.6,
+          maxOutputTokens: 4000,
+          abortSignal: abortController.signal,
         });
-        try {
-          const json = tryParseJson(r.text);
-          return diagramSchema.parse(json);
-        } catch (e) {
-          console.error("[diagram] JSON parse/schema error:", e);
-          console.log("[diagram] raw output (first 300 chars):", r.text.substring(0, 300));
-          return null;
+
+        let diagramPromise: Promise<z.infer<typeof diagramSchema> | null> = Promise.resolve(null);
+        if (ctx.canHaveDiagram) {
+          const diagramStart = performance.now();
+          diagramPromise = generateText({
+            model: aiModel,
+            prompt: `${DIAGRAM_PROMPT}\n\nAREA: ${ctx.area}\nTema: ${topicContext}\n\nGenera un diagrama Mermaid.js educativo para este tema.`,
+            temperature: 0.3,
+            maxOutputTokens: 1500,
+            abortSignal: abortController.signal,
+          }).then((r) => {
+            logAiCall({
+              route: "practice-diagram",
+              model: candidate.modelId,
+              durationMs: Math.round(performance.now() - diagramStart),
+              usage: { inputTokens: r.usage?.inputTokens, outputTokens: r.usage?.outputTokens, totalTokens: (r.usage?.inputTokens ?? 0) + (r.usage?.outputTokens ?? 0) },
+            });
+            try {
+              const json = tryParseJson(r.text);
+              return diagramSchema.parse(json);
+            } catch (e) {
+              console.error("[diagram] JSON parse/schema error:", e);
+              console.log("[diagram] raw output (first 300 chars):", r.text.substring(0, 300));
+              return null;
+            }
+          }).catch((err) => {
+            console.error("[diagram] generateText failed:", err?.message || err);
+            logAiCall({
+              route: "practice-diagram",
+              model: candidate.modelId,
+              durationMs: Math.round(performance.now() - diagramStart),
+              error: err?.message || "unknown",
+            });
+            return null;
+          });
         }
-      }).catch((err) => {
-        console.error("[diagram] generateText failed:", err?.message || err);
+
+        const startTime = performance.now();
+        const [lessonAttempt, diagramAttempt] = await Promise.all([lessonPromise, diagramPromise]);
+        const durationMs = Math.round(performance.now() - startTime);
+        clearTimeout(timeoutId);
+
         logAiCall({
-          route: "practice-diagram",
-          model: DEFAULT_MODEL,
-          durationMs: Math.round(performance.now() - diagramStart),
-          error: err?.message || "unknown",
+          route: "practice-generate",
+          model: candidate.modelId,
+          durationMs,
+          usage: { inputTokens: lessonAttempt.usage?.inputTokens, outputTokens: lessonAttempt.usage?.outputTokens, totalTokens: (lessonAttempt.usage?.inputTokens ?? 0) + (lessonAttempt.usage?.outputTokens ?? 0) },
         });
-        return null;
-      });
+
+        lessonResult = lessonAttempt;
+        diagram = diagramAttempt;
+        usedModel = candidate;
+        break;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        lastError = error;
+        if (!isRetryableModelError(error)) throw error;
+      }
     }
 
-    const startTime = performance.now();
-
-    const [lessonResult, diagram] = await Promise.all([lessonPromise, diagramPromise]);
-
-    const durationMs = Math.round(performance.now() - startTime);
-
-    logAiCall({
-      route: "practice-generate",
-      model: DEFAULT_MODEL,
-      durationMs,
-      usage: { inputTokens: lessonResult.usage?.inputTokens, outputTokens: lessonResult.usage?.outputTokens, totalTokens: (lessonResult.usage?.inputTokens ?? 0) + (lessonResult.usage?.outputTokens ?? 0) },
-    });
+    if (!lessonResult) throw (lastError ?? new Error("No se pudo generar practica con los modelos configurados"));
 
     const jsonData = tryParseJson(lessonResult.text);
     const parsed = practiceResponseSchema.parse(jsonData);
@@ -307,7 +337,7 @@ export async function POST(request: NextRequest) {
         .where(eq(nodes.id, nodeId));
     }
 
-    return Response.json(parsed);
+    return Response.json({ ...parsed, modelUsed: usedModel.modelId });
   } catch (error) {
     console.error("Generate exercises error:", error);
     return Response.json(

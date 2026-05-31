@@ -9,7 +9,7 @@ import {
   periodosLectivos, directMessages, modules,
 } from "@/lib/db/schema";
 import { eq, and, sql, desc, inArray } from "drizzle-orm";
-import { opencodeGoModel, logAiCall, DEFAULT_MODEL } from "@/lib/ai";
+import { opencodeGoModel, logAiCall, DEFAULT_MODEL_ID } from "@/lib/ai";
 import { generateText } from "ai";
 import { getSmtpConfig } from "@/lib/smtp-config";
 
@@ -637,7 +637,7 @@ FORMATO:
 
       const start = Date.now();
       const aiResult = await generateText({ model: opencodeGoModel, prompt: aiPrompt, temperature: 0.6, maxOutputTokens: 8000 });
-      logAiCall({ route: "ai-tool/generate-assignment", model: DEFAULT_MODEL, durationMs: Date.now() - start, usage: aiResult.usage ? { inputTokens: aiResult.usage.inputTokens, outputTokens: aiResult.usage.outputTokens, totalTokens: (aiResult.usage.inputTokens ?? 0) + (aiResult.usage.outputTokens ?? 0) } : undefined });
+      logAiCall({ route: "ai-tool/generate-assignment", model: DEFAULT_MODEL_ID, durationMs: Date.now() - start, usage: aiResult.usage ? { inputTokens: aiResult.usage.inputTokens, outputTokens: aiResult.usage.outputTokens, totalTokens: (aiResult.usage.inputTokens ?? 0) + (aiResult.usage.outputTokens ?? 0) } : undefined });
 
       let text = aiResult.text || "";
       text = text.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
@@ -1388,7 +1388,7 @@ FORMATO JSON:
 
       const start = Date.now();
       const aiResult = await generateText({ model: opencodeGoModel, prompt: aiPrompt, temperature: 0.5, maxOutputTokens: 8000 });
-      logAiCall({ route: "ai-tool/generate-exam-template", model: DEFAULT_MODEL, durationMs: Date.now() - start, usage: aiResult.usage ? { inputTokens: aiResult.usage.inputTokens, outputTokens: aiResult.usage.outputTokens, totalTokens: (aiResult.usage.inputTokens ?? 0) + (aiResult.usage.outputTokens ?? 0) } : undefined });
+      logAiCall({ route: "ai-tool/generate-exam-template", model: DEFAULT_MODEL_ID, durationMs: Date.now() - start, usage: aiResult.usage ? { inputTokens: aiResult.usage.inputTokens, outputTokens: aiResult.usage.outputTokens, totalTokens: (aiResult.usage.inputTokens ?? 0) + (aiResult.usage.outputTokens ?? 0) } : undefined });
 
       let text = aiResult.text || "";
       text = text.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();

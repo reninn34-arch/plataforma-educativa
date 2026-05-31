@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { opencodeGoModel, logAiCall, DEFAULT_MODEL } from "@/lib/ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, type ResolvedModel } from "@/lib/ai";
 import { generateText } from "ai";
 import { z } from "zod/v4";
 import { verifyToken } from "@/lib/auth";
@@ -27,49 +27,31 @@ const generateResponseSchema = z.object({
     .max(15),
 });
 
-const GENERATE_PROMPT = `Eres un docente experto creando tareas y evaluaciones para educacion secundaria acelerada de adultos (PCEI en Ecuador). Genera una tarea completa en formato JSON.
+const GENERATE_PROMPT = `Eres un docente experto creando tareas para educacion secundaria acelerada de adultos (PCEI Ecuador). Responde EXCLUSIVAMENTE con JSON valido.
 
-DATOS DE ENTRADA:
-- Materia (subject)
-- Tema (topic)
-- Cantidad de preguntas deseada (questionCount)
-- Trimestre: 1, 2 o 3
+USA SOLO PREGUNTAS MCQ (multiple choice). NO uses file_upload a menos que el tema sea imposible sin ello. Las MCQ deben tener EXACTAMENTE 4 campos obligatorios: type, question, options, correctIndex, points.
 
-REGLAS:
-1. El titulo debe ser claro y descriptivo (max 200 caracteres).
-2. La descripcion debe incluir instrucciones claras para el estudiante adulto, contexto practico y relevancia del tema (min 2 parrafos).
-3. Las preguntas deben ser variadas: maximo 25% de tipo "file_upload", el resto "mcq". Solo usa "file_upload" si el tema realmente lo amerita (ej: redaccion, ejercicios practicos, graficos).
-4. Preguntas MCQ:
-   - 4 opciones (A, B, C, D) plausibles, no obvias
-   - La opcion correcta debe ser la unica claramente correcta
-   - Las distractoras deben ser errores comunes o conceptos relacionados
-   - "points": entre 1 y 5, siendo mas altos para preguntas mas complejas
-   - "correctIndex": 0 para A, 1 para B, 2 para C, 3 para D
-5. Preguntas file_upload:
-   - Describe claramente que debe entregar el estudiante
-   - "points": entre 5 y 10
-6. Lenguaje adaptado a adultos, no infantil. Contexto practico y laboral cuando aplique.
-7. IMPORTANTISIMO: Responde UNICAMENTE con JSON puro. La respuesta empieza con { y termina con }. Sin markdown, sin explicaciones.
-
-FORMATO JSON EXACTO:
+FORMATO JSON OBLIGATORIO (copia esta estructura exacta):
 {
-  "title": "Titulo de la tarea",
-  "description": "Instrucciones detalladas...",
+  "title": "Titulo claro (max 80 chars)",
+  "description": "2 parrafos con instrucciones y contexto practico para adultos",
   "questions": [
     {
       "type": "mcq",
-      "question": "¿Cual es la capital de Ecuador?",
-      "options": ["Quito", "Guayaquil", "Cuenca", "Manta"],
+      "question": "Enunciado de la pregunta",
+      "options": ["Opcion A", "Opcion B", "Opcion C", "Opcion D"],
       "correctIndex": 0,
-      "points": 1
-    },
-    {
-      "type": "file_upload",
-      "question": "Elabora un mapa conceptual sobre los tipos de energia.",
-      "points": 8
+      "points": 2
     }
   ]
-}`;
+}
+
+REGLAS ESTRICTAS:
+1. Solo preguntas MCQ. NUNCA omitas "question", "options", "correctIndex" o "points".
+2. "options": EXACTAMENTE 4 strings en array. "correctIndex": 0-3 (A=0, B=1, C=2, D=3).
+3. "points": 1-3 para preguntas faciles, 4-5 para dificiles.
+4. Lenguaje adulto, practico, laboral. Contexto ecuatoriano.
+5. CRITICO: responde SOLO el JSON. Sin markdown, sin triple backtick, sin texto antes/despues.`;
 
 const REPAIR_SYSTEM_PROMPT = `Eres un reparador de JSON. El siguiente texto deberia ser JSON valido pero tiene errores de formato.
 Corrige los errores (comas faltantes, llaves desbalanceadas, strings sin cerrar) y devuelve UNICAMENTE el JSON reparado, sin markdown ni explicaciones.`;
@@ -113,9 +95,9 @@ function tryParseJson(text: string): any {
   throw new Error("No se pudo extraer JSON valido de la respuesta");
 }
 
-async function repairWithAi(malformed: string): Promise<any> {
+async function repairWithAi(malformed: string, resolvedModel: ResolvedModel): Promise<any> {
   const { text } = await generateText({
-    model: opencodeGoModel,
+    model: getChatModel(resolvedModel),
     system: REPAIR_SYSTEM_PROMPT,
     prompt: malformed,
     temperature: 0.1,
@@ -140,7 +122,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { subject, topic, questionCount = 5 } = body;
+    const { subject, topic, questionCount = 5, model } = body;
+
+    const resolved = resolveModel(model);
+    if (resolved.error) {
+      return NextResponse.json({ error: resolved.error }, { status: 400 });
+    }
+    const candidates = getChatModelCandidates(model);
 
     if (!subject || !topic) {
       return NextResponse.json(
@@ -155,24 +143,27 @@ export async function POST(request: NextRequest) {
 
     const start = Date.now();
     let rawText = "";
-    let result: any;
-    let attempts = 0;
-    const maxAttempts = 2;
+    const REQUEST_TIMEOUT_MS = 60_000;
+    let lastError: unknown;
 
-    while (attempts < maxAttempts) {
-      attempts++;
+    for (const candidate of candidates) {
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MS);
+
       try {
         const response = await generateText({
-          model: opencodeGoModel,
+          model: getChatModel(candidate),
           prompt,
           temperature: 0.6,
-          maxOutputTokens: 8000,
+          maxOutputTokens: 4000,
+          abortSignal: abortController.signal,
         });
+        clearTimeout(timeoutId);
         rawText = response.text || "";
 
         logAiCall({
           route: "teacher/ai/generate-assignment",
-          model: DEFAULT_MODEL,
+          model: candidate.modelId,
           durationMs: Date.now() - start,
           usage: response.usage ? {
             inputTokens: response.usage.inputTokens,
@@ -181,18 +172,13 @@ export async function POST(request: NextRequest) {
           } : undefined,
         });
 
+        let result: any;
         try {
           result = tryParseJson(rawText);
         } catch {
           try {
-            result = await repairWithAi(rawText);
+            result = await repairWithAi(rawText, candidate);
           } catch {
-            if (attempts >= maxAttempts) {
-              return NextResponse.json(
-                { error: "La IA genero un formato invalido. Intenta de nuevo con otro tema." },
-                { status: 422 }
-              );
-            }
             continue;
           }
         }
@@ -202,30 +188,53 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({
             success: true,
             data: parsed.data,
+            modelUsed: candidate.modelId,
           });
         }
 
-        console.error("[AI Assignment] Schema validation failed:", parsed.error.issues);
-        if (attempts >= maxAttempts) {
-          return NextResponse.json(
-            { error: "La IA genero datos incompletos. Intenta de nuevo con otro tema." },
-            { status: 422 }
-          );
-        }
-
+        console.error(
+          `[AI Assignment] Schema validation failed with ${candidate.modelId}:`,
+          parsed.error.issues.map((i: any) => i.path?.join(".") || i.message).slice(0, 5),
+        );
       } catch (aiError: any) {
+        clearTimeout(timeoutId);
+        lastError = aiError;
+
+        const wasAborted = aiError?.name === "AbortError" || String(aiError?.message || "").includes("abort");
         logAiCall({
           route: "teacher/ai/generate-assignment",
-          model: DEFAULT_MODEL,
+          model: candidate.modelId,
           durationMs: Date.now() - start,
-          error: aiError.message || "AI error",
+          error: wasAborted ? `Timeout (${REQUEST_TIMEOUT_MS / 1000}s)` : (aiError.message || "AI error"),
         });
-        return NextResponse.json(
-          { error: "Error al generar con IA. Intenta de nuevo." },
-          { status: 502 }
-        );
+
+        if (!isRetryableModelError(aiError) && !wasAborted) {
+          return NextResponse.json(
+            { error: "Error al generar con IA. Intenta de nuevo." },
+            { status: 502 }
+          );
+        }
       }
     }
+
+    if (lastError) {
+      const msg = String((lastError as any)?.message || "");
+      if (msg.includes("abort") || msg.includes("Timeout")) {
+        return NextResponse.json(
+          { error: "La generacion excedio el tiempo limite con todos los modelos. Intenta con menos preguntas." },
+          { status: 504 }
+        );
+      }
+      return NextResponse.json(
+        { error: "No se pudo generar con los modelos configurados. Ajusta AI_FALLBACK_MODELS o envia un model valido." },
+        { status: 502 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Ningun modelo pudo generar datos completos. Intenta con otro tema." },
+      { status: 422 }
+    );
   } catch (error) {
     console.error("Generate assignment error:", error);
     return NextResponse.json(

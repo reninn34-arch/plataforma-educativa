@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
-import { opencodeGoModel } from "@/lib/ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, resolveModel } from "@/lib/ai";
 import { generateText } from "ai";
 import { practiceCheckSchema } from "@/lib/api-helpers";
 
@@ -21,33 +21,37 @@ function isDeterministicMatch(studentAnswer: string, accepted: string[]): boolea
 async function aiSemanticCheck(
   question: string,
   studentAnswer: string,
-  acceptedAnswers: string[]
+  acceptedAnswers: string[],
+  requestedModel?: unknown
 ): Promise<boolean | null> {
-  try {
-    const result = await Promise.race([
-      generateText({
-        model: opencodeGoModel,
-        system: SEMANTIC_CHECK_PROMPT,
-        prompt: `Pregunta: ${question}\n\nRespuesta del estudiante: "${studentAnswer}"\n\nRespuestas aceptadas: ${JSON.stringify(acceptedAnswers)}\n\nEvalua si la respuesta del estudiante es semanticamente equivalente a alguna de las aceptadas. Responde solo con el JSON.`,
-        maxOutputTokens: 30,
-        temperature: 0,
-      }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
-    ]);
-
-    if (!result) return null;
-
-    const text = result.text.trim();
+  const candidates = getChatModelCandidates(requestedModel);
+  for (const candidate of candidates) {
     try {
-      const parsed = JSON.parse(text);
-      if (typeof parsed.isCorrect === "boolean") return parsed.isCorrect;
-    } catch {
-      // Invalid JSON from AI, fall through to null
+      const result = await Promise.race([
+        generateText({
+          model: getChatModel(candidate),
+          system: SEMANTIC_CHECK_PROMPT,
+          prompt: `Pregunta: ${question}\n\nRespuesta del estudiante: "${studentAnswer}"\n\nRespuestas aceptadas: ${JSON.stringify(acceptedAnswers)}\n\nEvalua si la respuesta del estudiante es semanticamente equivalente a alguna de las aceptadas. Responde solo con el JSON.`,
+          maxOutputTokens: 30,
+          temperature: 0,
+        }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
+      ]);
+
+      if (!result) continue;
+
+      const text = result.text.trim();
+      try {
+        const parsed = JSON.parse(text);
+        if (typeof parsed.isCorrect === "boolean") return parsed.isCorrect;
+      } catch {
+        // Invalid JSON from AI, try fallback model
+      }
+    } catch (error) {
+      if (!isRetryableModelError(error)) return null;
     }
-    return null;
-  } catch {
-    return null;
   }
+  return null;
 }
 
 export async function POST(request: NextRequest) {
@@ -60,7 +64,12 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return Response.json({ error: "Datos invalidos" }, { status: 400 });
     }
-    const { question, type, studentAnswer, correctAnswer } = parsed.data;
+    const { question, type, studentAnswer, correctAnswer, model } = parsed.data;
+
+    const resolved = resolveModel(model);
+    if (resolved.error) {
+      return Response.json({ error: resolved.error }, { status: 400 });
+    }
 
     let isCorrect = false;
 
@@ -76,7 +85,7 @@ export async function POST(request: NextRequest) {
       if (isDeterministicMatch(String(studentAnswer), accepted)) {
         isCorrect = true;
       } else {
-        const aiResult = await aiSemanticCheck(question, String(studentAnswer), accepted);
+        const aiResult = await aiSemanticCheck(question, String(studentAnswer), accepted, model);
         if (aiResult !== null) {
           isCorrect = aiResult;
         }

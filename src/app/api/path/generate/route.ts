@@ -3,7 +3,7 @@ import { verifyToken } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { subjects, modules, nodes } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { opencodeGoModel, logAiCall, DEFAULT_MODEL } from "@/lib/ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel } from "@/lib/ai";
 import { generateText } from "ai";
 import { z } from "zod/v4";
 import { rateLimit } from "@/lib/rate-limit";
@@ -83,7 +83,13 @@ export async function POST(request: NextRequest) {
     if (!inputParsed.success) {
       return Response.json({ error: "Materia y tema (min 3 caracteres) requeridos" }, { status: 400 });
     }
-    const { subject: subjectSlug, topic } = inputParsed.data;
+    const { subject: subjectSlug, topic, model } = inputParsed.data;
+
+    const resolved = resolveModel(model);
+    if (resolved.error) {
+      return Response.json({ error: resolved.error }, { status: 400 });
+    }
+    const candidates = getChatModelCandidates(model);
 
     const rl = rateLimit({ key: `path-gen:${user.id}`, maxRequests: 10, windowMs: 60_000 });
     if (rl) return rl;
@@ -100,20 +106,42 @@ export async function POST(request: NextRequest) {
     const areaContext = SUBJECT_META[subjectSlug] || subject.name;
 
     const startTime = performance.now();
-    const result = await generateText({
-      model: opencodeGoModel,
-      system: SYSTEM_PROMPT + "\n\nIMPORTANTE: Responde UNICAMENTE con JSON valido. No uses bloques de markdown ni texto adicional. Solo el JSON puro.",
-      prompt: `AREA: ${areaContext}
+    let result: Awaited<ReturnType<typeof generateText>> | null = null;
+    let usedModel = resolved;
+    let lastError: unknown;
+    const REQUEST_TIMEOUT_MS = 60_000;
+
+    for (const candidate of candidates) {
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MS);
+
+      try {
+        result = await generateText({
+          model: getChatModel(candidate),
+          system: SYSTEM_PROMPT + "\n\nIMPORTANTE: Responde UNICAMENTE con JSON valido. No uses bloques de markdown ni texto adicional. Solo el JSON puro.",
+          prompt: `AREA: ${areaContext}
 TEMA SOLICITADO POR EL ESTUDIANTE: "${topic}"
 
 Genera un Learning Path de 6-8 nodos para este tema. Los primeros nodos deben ser de tipo "concept" (enseñanza) y los ultimos de tipo "quiz" o "challenge" (practica).`,
-      temperature: 0.8,
-      maxOutputTokens: 6000,
-    });
+          temperature: 0.8,
+          maxOutputTokens: 4000,
+          abortSignal: abortController.signal,
+        });
+        clearTimeout(timeoutId);
+        usedModel = candidate;
+        break;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        lastError = error;
+        if (!isRetryableModelError(error)) throw error;
+      }
+    }
+
+    if (!result) throw (lastError ?? new Error("No se pudo generar el learning path con los modelos configurados"));
 
     logAiCall({
       route: "path-generate",
-      model: DEFAULT_MODEL,
+      model: usedModel.modelId,
       durationMs: Math.round(performance.now() - startTime),
       usage: { inputTokens: result.usage?.inputTokens, outputTokens: result.usage?.outputTokens, totalTokens: (result.usage?.inputTokens ?? 0) + (result.usage?.outputTokens ?? 0) },
     });

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { verifyToken } from "@/lib/auth";
-import { opencodeGoModel, logAiCall, DEFAULT_MODEL } from "@/lib/ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel } from "@/lib/ai";
 import { generateText } from "ai";
 import { coachSchema } from "@/lib/api-helpers";
 
@@ -33,40 +33,73 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return Response.json({ error: "Datos invalidos" }, { status: 400 });
     }
-    const { question, studentAnswer, topic, wasTimeout } = parsed.data;
+    const { question, studentAnswer, topic, wasTimeout, model } = parsed.data;
+
+    const resolved = resolveModel(model);
+    if (resolved.error) {
+      return Response.json({ error: resolved.error }, { status: 400 });
+    }
+    const candidates = getChatModelCandidates(model);
 
     const contextLine = wasTimeout
       ? "El estudiante no respondio a tiempo."
       : `El estudiante respondio: "${studentAnswer}".`;
 
-    const abortController = new AbortController();
     const startTime = performance.now();
-    const result = await Promise.race([
-      generateText({
-        model: opencodeGoModel,
-        system: COACH_PROMPT,
-        prompt: `Contexto del tema: ${topic || "Tronco comun"}
+    let result: Awaited<ReturnType<typeof generateText>> | null = null;
+    let usedModel = resolved;
+    let lastError: unknown;
+
+    for (const candidate of candidates) {
+      const abortController = new AbortController();
+      try {
+        const attempt = await Promise.race([
+          generateText({
+            model: getChatModel(candidate),
+            system: COACH_PROMPT,
+            prompt: `Contexto del tema: ${topic || "Tronco comun"}
 Pregunta del ejercicio: ${question}
 ${contextLine}
 
 Genera una mini-ayuda motivadora para el estudiante:`,
-        maxOutputTokens: 120,
-        temperature: 0.7,
-        abortSignal: abortController.signal,
-      }).then(async (r) => {
-        logAiCall({
-          route: "coach",
-          model: DEFAULT_MODEL,
-          durationMs: Math.round(performance.now() - startTime),
-          usage: { inputTokens: r.usage?.inputTokens, outputTokens: r.usage?.outputTokens, totalTokens: (r.usage?.inputTokens ?? 0) + (r.usage?.outputTokens ?? 0) },
-        });
-        return r;
-      }),
-      new Promise<null>((resolve) => setTimeout(() => {
-        abortController.abort();
-        resolve(null);
-      }, 5000)),
-    ]);
+            maxOutputTokens: 120,
+            temperature: 0.7,
+            abortSignal: abortController.signal,
+          }),
+          new Promise<null>((resolve) => setTimeout(() => {
+            abortController.abort();
+            resolve(null);
+          }, 5000)),
+        ]);
+
+        if (!attempt) {
+          lastError = new Error("AI timeout");
+          continue;
+        }
+
+        result = attempt;
+        usedModel = candidate;
+        break;
+      } catch (error) {
+        lastError = error;
+        if (!isRetryableModelError(error)) {
+          throw error;
+        }
+      }
+    }
+
+    if (!result && lastError && !isRetryableModelError(lastError)) {
+      throw lastError;
+    }
+
+    if (result) {
+      logAiCall({
+        route: "coach",
+        model: usedModel.modelId,
+        durationMs: Math.round(performance.now() - startTime),
+        usage: { inputTokens: result.usage?.inputTokens, outputTokens: result.usage?.outputTokens, totalTokens: (result.usage?.inputTokens ?? 0) + (result.usage?.outputTokens ?? 0) },
+      });
+    }
 
     const coachMessage = result
       ? result.text

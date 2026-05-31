@@ -7,6 +7,8 @@ import {
   assignmentSchema,
   messageSchema,
   studyMaterialSchema,
+  embeddingSchema,
+  embeddingSimilaritySchema,
 } from "@/lib/api-helpers";
 
 describe("rateLimit", () => {
@@ -190,6 +192,38 @@ describe("validation schemas", () => {
     it("accepts request with topic", () => {
       const result = studyMaterialSchema.safeParse({ subject: "fisica", topic: "newton" });
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe("embeddingSchema", () => {
+    it("accepts valid embedding request", () => {
+      const result = embeddingSchema.safeParse({ text: "Hola mundo", model: "openai:text-embedding-3-small" });
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects empty text", () => {
+      const result = embeddingSchema.safeParse({ text: "" });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("embeddingSimilaritySchema", () => {
+    it("accepts valid similarity request", () => {
+      const result = embeddingSimilaritySchema.safeParse({
+        query: "matematicas basicas",
+        candidates: ["sumas y restas", "historia del ecuador"],
+        topK: 1,
+        model: "openai:text-embedding-3-small",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects empty candidates", () => {
+      const result = embeddingSimilaritySchema.safeParse({
+        query: "test",
+        candidates: [],
+      });
+      expect(result.success).toBe(false);
     });
   });
 });

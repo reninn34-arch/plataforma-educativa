@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { chatSessions, chatMessages, subjects } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
-import { opencodeGoModel, logAiCall, DEFAULT_MODEL } from "@/lib/ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, type ResolvedModel } from "@/lib/ai";
 import { streamText, convertToModelMessages } from "ai";
 import { rateLimit } from "@/lib/rate-limit";
 import { chatSchema } from "@/lib/api-helpers";
@@ -61,11 +61,35 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return Response.json({ error: "messages y subject son requeridos" }, { status: 400 });
     }
-    const { messages, subject } = parsed.data;
+    const { messages, subject, model } = parsed.data;
+
+    const resolved = resolveModel(model);
+    if (resolved.error) {
+      return Response.json({ error: resolved.error }, { status: 400 });
+    }
+    const candidates = getChatModelCandidates(model);
+    let selectedModel: ResolvedModel = resolved;
+    let modelInstance: any;
+    let initError: unknown;
+    for (const candidate of candidates) {
+      try {
+        modelInstance = getChatModel(candidate);
+        selectedModel = candidate;
+        break;
+      } catch (error) {
+        initError = error;
+        if (!isRetryableModelError(error)) {
+          return Response.json({ error: "Error al inicializar el modelo IA" }, { status: 502 });
+        }
+      }
+    }
+    if (!modelInstance) {
+      return Response.json({ error: String((initError as any)?.message ?? "No hay modelos IA disponibles") }, { status: 502 });
+    }
 
     const startTime = performance.now();
     const result = streamText({
-      model: opencodeGoModel,
+      model: modelInstance,
       system: `${SYSTEM_PROMPT}\n\nEl tema actual en el que el estudiante esta trabajando es: ${subject || "Tronco comun"}.`,
       messages: await convertToModelMessages(messages),
       maxOutputTokens: 300,
@@ -76,7 +100,7 @@ export async function POST(request: NextRequest) {
       try {
         logAiCall({
           route: "chat",
-          model: DEFAULT_MODEL,
+          model: selectedModel.modelId,
           durationMs: Math.round(performance.now() - startTime),
           usage: { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, totalTokens: (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0) },
         });

@@ -11,7 +11,7 @@ Plataforma educativa integral para el sistema PCEI (Programa de Curricular para 
 | Base de datos | PostgreSQL + Drizzle ORM |
 | Estilos | Tailwind CSS v4 + shadcn/ui |
 | Autenticación | JWT (jose) + bcrypt |
-| IA | Vercel AI SDK (Kimi K2.5 vía OpenCode) |
+| IA | Vercel AI SDK (OpenCode/OpenAI/Anthropic/Gemini) |
 | PWA | Service Worker + Web Manifest |
 | Email | Nodemailer (SMTP) |
 | Testing | Vitest |
@@ -109,6 +109,19 @@ DATABASE_URL="postgresql://usuario:contraseña@localhost:5432/atlas_edu"
 JWT_SECRET="secret-aleatorio-de-al-menos-16-caracteres"
 OPENCODE_GO_API_KEY="sk-tu-api-key"
 OPENCODE_GO_BASE_URL="https://opencode.ai/zen/go/v1"
+OPENAI_API_KEY="sk-tu-api-key-openai"
+ANTHROPIC_API_KEY="sk-ant-tu-api-key"
+GOOGLE_GENERATIVE_AI_API_KEY="tu-api-key-google"
+AI_DEFAULT_PROVIDER="opencode"
+AI_DEFAULT_MODEL="kimi-k2.5"
+AI_ALLOWED_MODELS="opencode:kimi-k2.5,openai:gpt-5.3-codex,anthropic:claude-sonnet-4.6,google:gemini-3.5-flash"
+AI_ENFORCE_ALLOWLIST="false"
+AI_FALLBACK_MODELS="opencode:deepseek-v4-flash-free,openai:gpt-5.3-codex,anthropic:claude-sonnet-4.6,google:gemini-3.5-flash"
+AI_DEFAULT_EMBEDDING_PROVIDER="opencode"
+AI_DEFAULT_EMBEDDING_MODEL="text-embedding-3-small"
+AI_ALLOWED_EMBEDDING_MODELS="opencode:text-embedding-3-small,openai:text-embedding-3-small"
+AI_ENFORCE_EMBEDDING_ALLOWLIST="false"
+AI_FALLBACK_EMBEDDING_MODELS="openai:text-embedding-3-small"
 
 # SMTP (opcional)
 SMTP_HOST=smtp.gmail.com
@@ -117,6 +130,27 @@ SMTP_USER=tu-correo@gmail.com
 SMTP_PASS=tu-contrasena-app
 SMTP_FROM="Atlas Edu <noreply@atlas.edu>"
 ```
+
+Notas sobre seleccion de modelo IA:
+
+- `AI_DEFAULT_PROVIDER`: proveedor por defecto cuando `model` no trae prefijo.
+- `AI_DEFAULT_MODEL`: modelo por defecto usado cuando el frontend no envia `model`.
+- `AI_ALLOWED_MODELS`: lista separada por comas con formato `proveedor:modelo`.
+- `AI_ENFORCE_ALLOWLIST`: si es `true`, bloquea modelos fuera de `AI_ALLOWED_MODELS`.
+- `AI_FALLBACK_MODELS`: cadena de modelos de respaldo para reintentos automaticos.
+- `AI_DEFAULT_EMBEDDING_PROVIDER`: proveedor por defecto para embeddings.
+- `AI_DEFAULT_EMBEDDING_MODEL`: modelo por defecto para embeddings.
+- `AI_ALLOWED_EMBEDDING_MODELS`: allowlist de embeddings en formato `proveedor:modelo`.
+- `AI_ENFORCE_EMBEDDING_ALLOWLIST`: aplica allowlist estricta en embeddings.
+- `AI_FALLBACK_EMBEDDING_MODELS`: cadena de respaldo para embeddings.
+- El campo `model` en las APIs acepta `proveedor:modelo` (ej: `anthropic:claude-sonnet-4.6`).
+- Si envias solo `modelo` (sin `proveedor`), se asume `AI_DEFAULT_PROVIDER`.
+- Si `AI_ENFORCE_ALLOWLIST=true` y se envia un `model` no permitido, la API responde `400` con el detalle.
+
+Endpoint de embeddings:
+
+- `POST /api/ai/embedding` con body `{ "text": "...", "model": "openai:text-embedding-3-small" }`.
+- `POST /api/ai/embedding/similarity` con body `{ "query": "...", "candidates": ["...", "..."], "topK": 3, "model": "openai:text-embedding-3-small" }`.
 
 Generar un JWT_SECRET seguro:
 

@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { opencodeGoModel, logAiCall, DEFAULT_MODEL } from "@/lib/ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, type ResolvedModel } from "@/lib/ai";
 import { verifyToken } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { getToolsForRole } from "@/lib/ai-tools";
@@ -22,11 +22,44 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { messages } = body;
+    const { messages, model } = body;
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: "messages es requerido" }), {
         status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const resolved = resolveModel(model);
+    if (resolved.error) {
+      return new Response(JSON.stringify({ error: resolved.error }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    const candidates = getChatModelCandidates(model);
+    let selectedModel: ResolvedModel = resolved;
+    let modelInstance: any;
+    let initError: unknown;
+    for (const candidate of candidates) {
+      try {
+        modelInstance = getChatModel(candidate);
+        selectedModel = candidate;
+        break;
+      } catch (error) {
+        initError = error;
+        if (!isRetryableModelError(error)) {
+          return new Response(JSON.stringify({ error: "Error al inicializar el modelo IA" }), {
+            status: 502,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+      }
+    }
+    if (!modelInstance) {
+      return new Response(JSON.stringify({ error: String((initError as any)?.message ?? "No hay modelos IA disponibles") }), {
+        status: 502,
         headers: { "Content-Type": "application/json" },
       });
     }
@@ -116,7 +149,7 @@ REGLAS:
 6. Responde en español, cercano y util`;
 
     const result = streamText({
-      model: opencodeGoModel,
+      model: modelInstance,
       system: SYSTEM_PROMPT,
       messages: coreMessages,
       tools,
@@ -124,7 +157,7 @@ REGLAS:
       onFinish: (event) => {
         logAiCall({
           route: "ai/assistant",
-          model: DEFAULT_MODEL,
+          model: selectedModel.modelId,
           durationMs: Date.now() - start,
           usage: event.usage ? {
             inputTokens: event.usage.inputTokens,
@@ -136,7 +169,7 @@ REGLAS:
       onError: (event) => {
         logAiCall({
           route: "ai/assistant",
-          model: DEFAULT_MODEL,
+          model: selectedModel.modelId,
           durationMs: Date.now() - start,
           error: String((event as any).error ?? "AI error"),
         });

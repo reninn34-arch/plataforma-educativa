@@ -30,6 +30,7 @@ export const loginSchema = z.object({
 export const chatSchema = z.object({
   messages: z.array(z.any()).min(1, "messages es requerido"),
   subject: z.string().min(1, "subject es requerido"),
+  model: z.string().min(1).optional(),
 });
 
 export const coachSchema = z.object({
@@ -37,11 +38,13 @@ export const coachSchema = z.object({
   studentAnswer: z.string(),
   topic: z.string().optional(),
   wasTimeout: z.boolean().optional(),
+  model: z.string().min(1).optional(),
 });
 
 export const pathGenerateSchema = z.object({
   subject: z.string().min(1),
   topic: z.string().min(3, "topic debe tener al menos 3 caracteres"),
+  model: z.string().min(1).optional(),
 });
 
 export const practiceGenerateSchema = z.object({
@@ -50,6 +53,7 @@ export const practiceGenerateSchema = z.object({
   aiPromptContext: z.string().optional(),
   nodeId: z.number().optional(),
   retry: z.boolean().optional(),
+  model: z.string().min(1).optional(),
 });
 
 export const practiceCheckSchema = z.object({
@@ -58,11 +62,25 @@ export const practiceCheckSchema = z.object({
   studentAnswer: z.union([z.string(), z.number(), z.boolean()]),
   correctAnswer: z.any(),
   options: z.array(z.string()).optional(),
+  model: z.string().min(1).optional(),
 });
 
 export const studyMaterialSchema = z.object({
   subject: z.string().min(1),
   topic: z.string().optional(),
+  model: z.string().min(1).optional(),
+});
+
+export const embeddingSchema = z.object({
+  text: z.string().min(1, "text es requerido").max(8000, "text no puede exceder 8000 caracteres"),
+  model: z.string().min(1).optional(),
+});
+
+export const embeddingSimilaritySchema = z.object({
+  query: z.string().min(1, "query es requerido").max(4000, "query no puede exceder 4000 caracteres"),
+  candidates: z.array(z.string().min(1).max(4000)).min(1, "candidates es requerido").max(50, "candidates no puede exceder 50 items"),
+  topK: z.number().int().min(1).max(50).optional(),
+  model: z.string().min(1).optional(),
 });
 
 export const messageSchema = z.object({
