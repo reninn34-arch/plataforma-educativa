@@ -8,7 +8,7 @@ import { rateLimit } from "@/lib/rate-limit";
 const mcqQuestionSchema = z.object({
   type: z.literal("mcq"),
   question: z.string().min(1),
-  options: z.array(z.string()).length(4),
+  options: z.array(z.string()).min(2).max(6),
   correctIndex: z.number().int().min(0).max(3),
   points: z.number().int().min(1).max(10).default(1),
 });
@@ -21,7 +21,7 @@ const fileUploadQuestionSchema = z.object({
 
 const generateResponseSchema = z.object({
   title: z.string().min(1).max(200),
-  description: z.string().min(1),
+  description: z.string().min(10),
   questions: z.array(z.discriminatedUnion("type", [mcqQuestionSchema, fileUploadQuestionSchema]))
     .min(1)
     .max(15),
@@ -156,65 +156,76 @@ export async function POST(request: NextRequest) {
     const start = Date.now();
     let rawText = "";
     let result: any;
+    let attempts = 0;
+    const maxAttempts = 2;
 
-    try {
-      const response = await generateText({
-        model: opencodeGoModel,
-        prompt,
-        temperature: 0.6,
-        maxOutputTokens: 8000,
-      });
-      rawText = response.text || "";
-
-      logAiCall({
-        route: "teacher/ai/generate-assignment",
-        model: "kimi-k2.5",
-        durationMs: Date.now() - start,
-        usage: response.usage ? {
-          inputTokens: response.usage.inputTokens,
-          outputTokens: response.usage.outputTokens,
-          totalTokens: (response.usage.inputTokens ?? 0) + (response.usage.outputTokens ?? 0),
-        } : undefined,
-      });
-    } catch (aiError: any) {
-      logAiCall({
-        route: "teacher/ai/generate-assignment",
-        model: "kimi-k2.5",
-        durationMs: Date.now() - start,
-        error: aiError.message || "AI error",
-      });
-      return NextResponse.json(
-        { error: "Error al generar con IA. Intenta de nuevo." },
-        { status: 502 }
-      );
-    }
-
-    try {
-      result = tryParseJson(rawText);
-    } catch {
+    while (attempts < maxAttempts) {
+      attempts++;
       try {
-        result = await repairWithAi(rawText);
-      } catch {
+        const response = await generateText({
+          model: opencodeGoModel,
+          prompt,
+          temperature: 0.6,
+          maxOutputTokens: 8000,
+        });
+        rawText = response.text || "";
+
+        logAiCall({
+          route: "teacher/ai/generate-assignment",
+          model: "kimi-k2.5",
+          durationMs: Date.now() - start,
+          usage: response.usage ? {
+            inputTokens: response.usage.inputTokens,
+            outputTokens: response.usage.outputTokens,
+            totalTokens: (response.usage.inputTokens ?? 0) + (response.usage.outputTokens ?? 0),
+          } : undefined,
+        });
+
+        try {
+          result = tryParseJson(rawText);
+        } catch {
+          try {
+            result = await repairWithAi(rawText);
+          } catch {
+            if (attempts >= maxAttempts) {
+              return NextResponse.json(
+                { error: "La IA genero un formato invalido. Intenta de nuevo con otro tema." },
+                { status: 422 }
+              );
+            }
+            continue;
+          }
+        }
+
+        const parsed = generateResponseSchema.safeParse(result);
+        if (parsed.success) {
+          return NextResponse.json({
+            success: true,
+            data: parsed.data,
+          });
+        }
+
+        console.error("[AI Assignment] Schema validation failed:", parsed.error.issues);
+        if (attempts >= maxAttempts) {
+          return NextResponse.json(
+            { error: "La IA genero datos incompletos. Intenta de nuevo con otro tema." },
+            { status: 422 }
+          );
+        }
+
+      } catch (aiError: any) {
+        logAiCall({
+          route: "teacher/ai/generate-assignment",
+          model: "kimi-k2.5",
+          durationMs: Date.now() - start,
+          error: aiError.message || "AI error",
+        });
         return NextResponse.json(
-          { error: "La IA genero un formato invalido. Intenta de nuevo con otro tema." },
-          { status: 422 }
+          { error: "Error al generar con IA. Intenta de nuevo." },
+          { status: 502 }
         );
       }
     }
-
-    const parsed = generateResponseSchema.safeParse(result);
-    if (!parsed.success) {
-      console.error("[AI Assignment] Schema validation failed:", parsed.error.issues);
-      return NextResponse.json(
-        { error: "La IA genero datos incompletos. Intenta de nuevo." },
-        { status: 422 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: parsed.data,
-    });
   } catch (error) {
     console.error("Generate assignment error:", error);
     return NextResponse.json(
