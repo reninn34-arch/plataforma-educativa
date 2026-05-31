@@ -559,32 +559,34 @@ function createTeacherTools(userId: number, userFullName: string) {
     inputSchema: z.object({}),
     execute: async () => {
       return {
-        docente: {
-          description: "Soy tu asistente en Atlas Edu. Puedo ayudarte con:",
-          capabilities: [
-            { nombre: "Crear tareas", ejemplo: '"crea una tarea de fracciones para 3ro BGU"' },
-            { nombre: "Calificar en lote", ejemplo: '"califica con 7 todos los pendientes"' },
-            { nombre: "Buscar estudiantes", ejemplo: '"busca al estudiante Juan Perez"' },
-            { nombre: "Ver tareas pendientes", ejemplo: '"que tareas tienen entregas sin calificar?"' },
-            { nombre: "Enviar mensajes", ejemplo: '"envia recordatorio a los de 3ro BGU"' },
-            { nombre: "Ver estudiantes en riesgo", ejemplo: '"muestra los estudiantes que necesitan ayuda"' },
-            { nombre: "Registrar asistencia", ejemplo: '"registra presentes a los de hoy"' },
-            { nombre: "Consultar estadisticas", ejemplo: '"cual es el promedio de la clase"' },
-            { nombre: "Guiarte en la plataforma", ejemplo: '"como hago para calificar?"' },
-          ],
-        },
-        admin: {
-          description: "Soy tu asistente en Atlas Edu. Ademas de lo que puede hacer el docente, puedo:",
-          capabilities: [
-            { nombre: "Crear cursos", ejemplo: '"crea el curso Matematicas 3ro BGU"' },
-            { nombre: "Crear estudiantes", ejemplo: '"crea 10 estudiantes desde este CSV"' },
-            { nombre: "Inscribir estudiantes", ejemplo: '"inscribe a estos estudiantes al curso X"' },
-            { nombre: "Enviar credenciales", ejemplo: '"envia PINs nuevos al curso Y"' },
-            { nombre: "Generar examenes", ejemplo: '"genera examen de Quimica para 3ro BGU"' },
-            { nombre: "Ver estadisticas generales", ejemplo: '"cuantos estudiantes hay en total"' },
-          ],
-        },
-        message: "Usa cualquier comando de arriba o simplemente preguntame en español lo que necesitas.",
+        text: `¡Hola! Soy Atlas IA, tu asistente en Atlas Edu.
+
+Puedo ayudarte de muchas formas:
+
+📚 TAREAS Y CALIFICACIONES
+   "crea una tarea de ecuaciones para 3ro BGU"
+   "califica con 7 todos los pendientes de la tarea de fracciones"
+   "qué tareas tienen entregas sin calificar?"
+
+👥 GESTIÓN DE ESTUDIANTES
+   "busca al estudiante Juan Pérez"
+   "muestra los estudiantes en riesgo académico"
+   "envía un recordatorio a los de 3ro BGU"
+
+📊 INFORMES Y DATOS
+   "cuál es el promedio de la clase de matemáticas?"
+   "cuántos estudiantes tengo en total?"
+   "cómo están los estudiantes esta semana?"
+
+🔧 ACCIONES RÁPIDAS
+   "registra présents a los de hoy"
+   "marca ausentes a los que no entregaron"
+   "genera un examen de química para 3ro BGU"
+
+💬 CONVERSACIÓN
+   También puedo conversar contigo sobre cualquier tema: matemáticas, ciencia, historia, o simplemente ayudarte a pensar algo.
+
+Solo dime qué necesitas y lo hacemos juntos. 😊`
       };
     },
   });
@@ -1829,22 +1831,38 @@ FORMATO JSON:
     inputSchema: z.object({}),
     execute: async () => {
       return {
-        admin: {
-          description: "Soy tu asistente en Atlas Edu como Administrador. Puedo ayudarte con:",
-          capabilities: [
-            { nombre: "Gestionar usuarios", ejemplo: '"crea el estudiante Juan Perez con cedula 1234567890"' },
-            { nombre: "Importar estudiantes", ejemplo: '"importa estos estudiantes desde el CSV adjunto"' },
-            { nombre: "Crear cursos", ejemplo: '"crea el curso Matematicas 3ro BGU"' },
-            { nombre: "Inscribir estudiantes", ejemplo: '"inscribe a Juan al curso 3ro BGU"' },
-            { nombre: "Enviar credenciales", ejemplo: '"envia PINs nuevos al curso 3ro BGU"' },
-            { nombre: "Generar examenes", ejemplo: '"genera examen de Quimica para todos los 3ros BGU"' },
-            { nombre: "Calificar en lote", ejemplo: '"califica con 7 los pendientes de la tarea X"' },
-            { nombre: "Ver estadisticas", ejemplo: '"cuantos estudiantes hay en total"' },
-            { nombre: "Consultar asistencia", ejemplo: '"muestra la asistencia de hoy en 3ro BGU"' },
-            { nombre: "Guiarte en la plataforma", ejemplo: '"como hago para crear un curso?"' },
-          ],
-        },
-        message: "Usa cualquier comando de arriba o simplemente preguntame lo que necesitas.",
+        text: `¡Hola! Soy Atlas IA, tu asistente como Administrador en Atlas Edu.
+
+Puedo ayudarte con todo esto:
+
+👥 GESTIÓN DE USUARIOS
+   "crea el estudiante Juan Pérez con cédula 1234567890"
+   "importa estudiantes desde el CSV adjunto"
+   "busca al usuario con cédula..."
+
+🏫 GESTIÓN DE CURSOS
+   "crea el curso Matemáticas 3ro BGU"
+   "inscribe a Juan al curso 3ro BGU"
+   "muestra los cursos activos"
+
+📧 CREDENCIALES Y COMUNICACIÓN
+   "envía PINs nuevos al curso 3ro BGU"
+   "regenera las contraseñas de los estudiantes"
+   "envía un mensaje a todos los de un curso"
+
+📊 ESTADÍSTICAS Y REPORTES
+   "cuántos estudiantes hay en total?"
+   "cuántos docentes tenemos?"
+   "genera el boletín de 3ro BGU"
+
+📝 CALIFICACIONES
+   "califica con 7 todos los pendientes"
+   "muestra las tareas con entregas sin calificar"
+
+💬 CONVERSACIÓN
+   También puedo conversar sobre cualquier tema, investigar conceptos, o simplemente ayudarte a pensar algo.
+
+Solo dime qué necesitas. 😊`
       };
     },
   });
