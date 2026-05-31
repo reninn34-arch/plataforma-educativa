@@ -129,6 +129,466 @@ function createTeacherTools(userId: number, userFullName: string) {
     },
   });
 
+  const searchAssignments = tool({
+    description: "Busca tareas por nombre o tema. Retorna lista con IDs para usar en otras operaciones. Util cuando el usuario menciona 'la tarea de...' o 'el examen de...' sin especificar ID.",
+    inputSchema: z.object({
+      query: z.string().describe("Texto a buscar en titulo o tema de la tarea"),
+      cursoId: z.number().optional().describe("Filtrar por curso especifico"),
+      limit: z.number().optional().default(10).describe("Maximo de resultados (default 10)"),
+    }),
+    execute: async ({ query, cursoId, limit }) => {
+      const conds: any[] = [eq(assignments.teacherId, userId)];
+      
+      if (cursoId) {
+        conds.push(eq(assignments.cursoId, cursoId));
+      }
+      
+      if (query) {
+        conds.push(sql`lower(${assignments.title}) LIKE ${`%${query.toLowerCase()}%`}`);
+      }
+
+      const results = await db
+        .select({
+          id: assignments.id,
+          title: assignments.title,
+          cursoNombre: cursos.nombre,
+          nivel: cursos.nivel,
+          subjectName: subjects.name,
+          subjectEmoji: subjects.emoji,
+          trimester: assignments.trimester,
+          dueDate: assignments.dueDate,
+          puntos: assignments.puntos,
+        })
+        .from(assignments)
+        .leftJoin(cursos, eq(cursos.id, assignments.cursoId))
+        .leftJoin(subjects, eq(subjects.id, assignments.subjectId))
+        .where(and(...conds))
+        .orderBy(desc(assignments.createdAt))
+        .limit(limit || 10);
+
+      return { tareas: results, total: results.length };
+    },
+  });
+
+  const searchStudents = tool({
+    description: "Busca estudiantes por nombre o cedula en los cursos del docente. Util cuando el usuario menciona 'el estudiante Juan' o 'busca al alumno con cedula...'",
+    inputSchema: z.object({
+      query: z.string().describe("Nombre o cedula del estudiante a buscar"),
+      cursoId: z.number().optional().describe("Filtrar por curso especifico"),
+      limit: z.number().optional().default(20).describe("Maximo de resultados (default 20)"),
+    }),
+    execute: async ({ query, cursoId, limit }) => {
+      let studentIds: number[] = [];
+      if (cursoId) {
+        const enrolled = await db
+          .select({ estudianteId: cursoEstudiantes.estudianteId })
+          .from(cursoEstudiantes)
+          .where(eq(cursoEstudiantes.cursoId, cursoId));
+        studentIds = enrolled.map(e => e.estudianteId);
+      }
+
+      const conds: any[] = [eq(users.role, "student"), eq(users.activo, true)];
+      if (studentIds.length > 0) {
+        conds.push(inArray(users.id, studentIds));
+      }
+      if (query) {
+        if (/^\d+$/.test(query)) {
+          conds.push(eq(users.cedula, query));
+        } else {
+          conds.push(sql`lower(${users.fullName}) LIKE ${`%${query.toLowerCase()}%`}`);
+        }
+      }
+
+      const results = await db
+        .select({
+          id: users.id,
+          fullName: users.fullName,
+          cedula: users.cedula,
+          email: users.email,
+        })
+        .from(users)
+        .where(and(...conds))
+        .limit(limit || 20);
+
+      let coursesInfo: any[] = [];
+      if (results.length > 0) {
+        const userIds = results.map(r => r.id);
+        const enrollments = await db
+          .select({
+            studentId: cursoEstudiantes.estudianteId,
+            cursoNombre: cursos.nombre,
+            nivel: cursos.nivel,
+          })
+          .from(cursoEstudiantes)
+          .innerJoin(cursos, eq(cursos.id, cursoEstudiantes.cursoId))
+          .where(inArray(cursoEstudiantes.estudianteId, userIds));
+
+        coursesInfo = results.map(r => ({
+          id: r.id,
+          cursos: enrollments.filter(e => e.studentId === r.id).map(e => ({ nombre: e.cursoNombre, nivel: e.nivel })),
+        }));
+      }
+
+      return {
+        estudiantes: results,
+        total: results.length,
+        cursos_por_estudiante: coursesInfo,
+      };
+    },
+  });
+
+  const getPendingGrades = tool({
+    description: "Consulta tareas que tienen submissions sin calificar (status submitted o pending sin grade). Ideal para preguntar 'que tareas tienen pendientes de calificar' o antes de usar batchGradeSubmissions.",
+    inputSchema: z.object({
+      cursoId: z.number().optional().describe("Filtrar por curso especifico"),
+    }),
+    execute: async ({ cursoId }) => {
+      const conds: any[] = [eq(assignments.teacherId, userId)];
+      if (cursoId) conds.push(eq(assignments.cursoId, cursoId));
+
+      const teacherAssignments = await db
+        .select({
+          id: assignments.id,
+          title: assignments.title,
+          cursoId: assignments.cursoId,
+          cursoNombre: cursos.nombre,
+          nivel: cursos.nivel,
+          subjectName: subjects.name,
+          subjectEmoji: subjects.emoji,
+          trimester: assignments.trimester,
+          puntos: assignments.puntos,
+          createdAt: assignments.createdAt,
+        })
+        .from(assignments)
+        .leftJoin(cursos, eq(cursos.id, assignments.cursoId))
+        .leftJoin(subjects, eq(subjects.id, assignments.subjectId))
+        .where(and(...conds))
+        .orderBy(desc(assignments.createdAt))
+        .limit(20);
+
+      const results = [];
+      for (const assignment of teacherAssignments) {
+        const submissions = await db
+          .select({
+            id: assignmentSubmissions.id,
+            studentId: assignmentSubmissions.studentId,
+            status: assignmentSubmissions.status,
+            grade: assignmentSubmissions.grade,
+            studentName: users.fullName,
+          })
+          .from(assignmentSubmissions)
+          .innerJoin(users, eq(users.id, assignmentSubmissions.studentId))
+          .where(eq(assignmentSubmissions.assignmentId, assignment.id));
+
+        const pending = submissions.filter(s => (s.status === "submitted" || s.status === "pending") && s.grade === null);
+        const graded = submissions.filter(s => s.grade !== null);
+
+        if (pending.length > 0) {
+          results.push({
+            id: assignment.id,
+            title: assignment.title,
+            cursoNombre: assignment.cursoNombre || "Sin curso",
+            nivel: assignment.nivel || "",
+            subjectName: assignment.subjectName || "",
+            subjectEmoji: assignment.subjectEmoji || "",
+            trimester: assignment.trimester,
+            puntos: assignment.puntos,
+            total_entregados: submissions.length,
+            calificados: graded.length,
+            pendientes: pending.length,
+            estudiantes_pendientes: pending.map(p => p.studentName),
+          });
+        }
+      }
+
+      return {
+        tareas_con_pendientes: results,
+        total_tareas: results.length,
+        mensaje: results.length > 0
+          ? `Encontradas ${results.length} tareas con estudiantes sin calificar.`
+          : "No hay tareas con entregas pendientes de calificar.",
+      };
+    },
+  });
+
+  const getFeatureGuide = tool({
+    description: "Obtiene guia paso a paso de una funcionalidad de la plataforma. Retorna URL de la pagina, pasos a seguir, y consejos. Usala cuando el usuario pregunte 'como hago X' o 'como usar Y'.",
+    inputSchema: z.object({
+      feature: z.enum([
+        "attendance",
+        "assignments",
+        "grades",
+        "create_assignment",
+        "grade_submissions",
+        "import_students",
+        "create_course",
+        "send_credentials",
+        "schedule",
+        "report_cards",
+        "smtp_config",
+        "analytics",
+        "student_risk",
+      ]).describe("Caracteristica de la plataforma"),
+    }),
+    execute: async ({ feature }) => {
+      const guides: Record<string, any> = {
+        attendance: {
+          titulo: "Tomar Asistencia",
+          url: "/teacher/asistencia",
+          pasos: [
+            "Ve a Teacher > Asistencia en el menu lateral",
+            "Selecciona el curso en el dropdown superior",
+            "Usa las flechas < > para navegar fechas",
+            "Click en cada estudiante para ciclar estado: Presente → Ausente → Tardanza → Justificado",
+            "Usa 'Marcar todos presentes' si todos llegaron",
+            "Click 'Guardar' para registrar la asistencia",
+          ],
+          consejos: [
+            "Puedes cambiar la fecha para tomar asistencia de dias anteriores",
+            "El estado 'Justificado' es para ausencias aprobadas",
+            "Los cambios se guardan automaticamente al cambiar de fecha",
+          ],
+          aiHelp: "Di 'registra presentes a los de [curso] hoy' y la IA lo hace por ti",
+        },
+        assignments: {
+          titulo: "Ver y Gestionar Tareas",
+          url: "/teacher/assignments",
+          pasos: [
+            "Ve a Teacher > Tareas en el menu lateral",
+            "Veras la lista de todas tus tareas con estado",
+            "Click en una tarea para ver entregas y calificar",
+            "Usa el boton 'Nueva Tarea' para crear",
+            "Filtra por curso o busca por nombre",
+          ],
+          consejos: [
+            "Las tareas con estudiantes pendientes tienen badge naranja",
+            "Puedes editar o eliminar tareas desde la lista",
+          ],
+          aiHelp: "Di 'crea una tarea de [tema] para [curso]' y la IA la genera",
+        },
+        create_assignment: {
+          titulo: "Crear Nueva Tarea",
+          url: "/teacher/assignments",
+          pasos: [
+            "Ve a Teacher > Tareas",
+            "Click 'Nueva Tarea'",
+            "Llena: Titulo, Descripcion, Materia, Curso (opcional)",
+            "Selecciona fecha de entrega y trimestre (1, 2 o 3)",
+            "Agrega preguntas: tipo MCQ (4 opciones) o Archivo (instrucciones)",
+            "Define puntos maximos (default 10)",
+            "Guardar",
+          ],
+          consejos: [
+            "Usa 'Generar con IA' para crear preguntas automaticamente",
+            "Las preguntas MCQ tienen 4 opciones con una correcta",
+            "Las preguntas de archivo piden al estudiante subir un documento",
+          ],
+          aiHelp: "Di 'crea una tarea de [tema] para [curso] con [N] preguntas' y yo la genero",
+        },
+        grade_submissions: {
+          titulo: "Calificar Entregas",
+          url: "/teacher/assignments",
+          pasos: [
+            "Ve a Teacher > Tareas",
+            "Click en la tarea que quieres calificar",
+            "Veras lista de estudiantes con estado (Pendiente/Entregado/Calificado)",
+            "Click en el icono de calificar (estrella o lapiz) de cada estudiante",
+            "Ingresa nota (0-10) y comentario opcional",
+            "Guardar nota",
+          ],
+          consejos: [
+            "Usa 'Marcar como no entregados' para poner ausentes a quienes no entregan",
+            "Puedes calificar todos en lote diciendo 'califica con 7 los pendientes'",
+          ],
+          aiHelp: "Di 'califica con [nota] los pendientes de [tarea]' y yo lo hago",
+        },
+        import_students: {
+          titulo: "Importar Estudiantes por CSV",
+          url: "/admin/usuarios",
+          pasos: [
+            "Ve a Admin > Usuarios",
+            "Selecciona pestana 'Estudiantes'",
+            "Click 'Importar CSV'",
+            "Prepara archivo con formato: Cedula;Nombre;Email (sin headers)",
+            "Ejemplo: 1234567890;Juan Perez;juan@email.com",
+            "Selecciona el archivo y espera preview",
+            "Confirma para importar",
+          ],
+          consejos: [
+            "El archivo debe ser .csv con separador punto y coma (;)",
+            "Si la cedula ya existe, el estudiante se reactiva",
+            "No incluyas fila de headers",
+          ],
+          aiHelp: "Adjunta el archivo CSV y di 'importa estos estudiantes'",
+        },
+        create_course: {
+          titulo: "Crear Nuevo Curso",
+          url: "/admin/cursos",
+          pasos: [
+            "Ve a Admin > Cursos",
+            "Click 'Nuevo Curso'",
+            "Ingresa nombre y nivel (ej: 3ro BGU)",
+            "Asigna profesor tutor (opcional)",
+            "Agrega pares profesor-materia con el boton +",
+            "Guardar curso",
+          ],
+          consejos: [
+            "El tutor ve el curso en su dashboard principal",
+            "Puedes agregar varios profesores al mismo curso",
+            "Cada profesor puede tener materias diferentes",
+          ],
+          aiHelp: "Di 'crea el curso [nombre] para [nivel]' y yo lo creo",
+        },
+        send_credentials: {
+          titulo: "Enviar Credenciales por Email",
+          url: "/admin/cursos/[id]",
+          pasos: [
+            "Ve a Admin > Cursos",
+            "Click en el curso especifico",
+            "Click 'Enviar Credenciales'",
+            "Opcional: marca 'Regenerar PINs' si quieres nuevos",
+            "Confirma el envio",
+          ],
+          consejos: [
+            "Los estudiantes deben tener email registrado",
+            "Si el email falla, el estudiante no recibe nada",
+            "Puedes regenerar PINs para todos si olvidaron",
+          ],
+          aiHelp: "Di 'envia credenciales al curso [nombre]' desde la pagina del curso",
+        },
+        schedule: {
+          titulo: "Configurar Horario de Curso",
+          url: "/admin/cursos/[id]",
+          pasos: [
+            "Ve a Admin > Cursos > [curso] > Pestana Horario",
+            "Define bloques de tiempo (hora inicio y fin)",
+            "Para cada dia, selecciona materia o 'Receso'",
+            "Los bloques vacios significan sin clase",
+            "Guardar horario",
+          ],
+          consejos: [
+            "Usa 'Receso' para descansos",
+            "Puedes tener maximo 8 bloques por dia",
+            "El horario se muestra a estudiantes en /student/horario",
+          ],
+          aiHelp: "Usa la edicion manual desde la pagina del curso",
+        },
+        report_cards: {
+          titulo: "Generar Boletin de Notas",
+          url: "/admin/boletin/[cursoId]",
+          pasos: [
+            "Ve a Admin > Cursos",
+            "Click en 'Ver Boletin' del curso",
+            "Veras tabla con estudiantes y sus notas por materia",
+            "El promedio anual se calcula: (T1+T2+T3)/3",
+            "Usa el boton 'Imprimir' para PDF",
+          ],
+          consejos: [
+            "Azul = Aprobado (>=7), Rojo = Reprobado (<7)",
+            "Trimestres sin nota cuentan como 0",
+            "Los campos de firma son para imprimiry firmar manualmente",
+          ],
+          aiHelp: "Ve directamente a Admin > Cursos > [curso] > Boletin",
+        },
+        smtp_config: {
+          titulo: "Configurar Email (SMTP)",
+          url: "/admin/configuracion",
+          pasos: [
+            "Ve a Admin > Configuracion",
+            "Selecciona proveedor: Gmail, Outlook o Custom",
+            "Para Gmail: necesitas contrasena de aplicacion de 16 digitos",
+            "Para crear contrasena: Mi Cuenta > Seguridad > Contrasenas de aplicacion",
+            "Ingresa host, puerto, usuario y contrasena",
+            "Click 'Probar Conexion'",
+          ],
+          consejos: [
+            "Gmail puerto: 587, SSL: no",
+            "Outlook puerto: 587, SSL: no",
+            "Si falla, verifica que la contrasena de aplicacion sea correcta",
+          ],
+          aiHelp: "Solo configuracion manual desde esta pagina",
+        },
+        analytics: {
+          titulo: "Ver Estadisticas de Practica con IA",
+          url: "/teacher/analytics",
+          pasos: [
+            "Ve a Teacher > Analiticas",
+            "Filtra por curso si tienes varios",
+            "Veras: sesiones totales, precision %, XP promedio",
+            "Abajo: temas con mas errores y rendimiento por estudiante",
+          ],
+          consejos: [
+            "Las estadisticas son de practica voluntaria con IA",
+            "No incluyen tareas oficiales (son en /teacher/grades)",
+            "Los estudiantes ven su progreso en /student/practice",
+          ],
+          aiHelp: "Ve directamente a Teacher > Analiticas para ver los datos",
+        },
+        student_risk: {
+          titulo: "Ver Estudiantes en Riesgo",
+          url: "/teacher/dashboard",
+          pasos: [
+            "Ve a Teacher > Dashboard",
+            "Busca el semaforo amarillo/rojo en cada estudiante",
+            "Amarillo: 3+ fallos consecutivos o 7+ dias inactivo",
+            "Rojo: ambos indicadores activos",
+          ],
+          consejos: [
+            "El semaforo se basa en practica con IA, no en tareas",
+            "Un estudiante inactivo 7+ dias necesita atencion",
+            "Fallos consecutivos indican que necesita reforzar tema",
+          ],
+          aiHelp: "Di 'muestra los estudiantes en riesgo' y yo te los listo",
+        },
+      };
+
+      const guide = guides[feature];
+      if (!guide) {
+        return { error: "Guia no disponible para esta caracteristica" };
+      }
+
+      return {
+        ...guide,
+        aiHelp: guide.aiHelp,
+      };
+    },
+  });
+
+  const getAIFeatures = tool({
+    description: "Lista todas las funciones que la IA puede realizar para el rol del usuario. Usala cuando pregunten 'que puedes hacer' o 'como me ayudas'.",
+    inputSchema: z.object({}),
+    execute: async () => {
+      return {
+        docente: {
+          description: "Soy tu asistente en Atlas Edu. Puedo ayudarte con:",
+          capabilities: [
+            { nombre: "Crear tareas", ejemplo: '"crea una tarea de fracciones para 3ro BGU"' },
+            { nombre: "Calificar en lote", ejemplo: '"califica con 7 todos los pendientes"' },
+            { nombre: "Buscar estudiantes", ejemplo: '"busca al estudiante Juan Perez"' },
+            { nombre: "Ver tareas pendientes", ejemplo: '"que tareas tienen entregas sin calificar?"' },
+            { nombre: "Enviar mensajes", ejemplo: '"envia recordatorio a los de 3ro BGU"' },
+            { nombre: "Ver estudiantes en riesgo", ejemplo: '"muestra los estudiantes que necesitan ayuda"' },
+            { nombre: "Registrar asistencia", ejemplo: '"registra presentes a los de hoy"' },
+            { nombre: "Consultar estadisticas", ejemplo: '"cual es el promedio de la clase"' },
+            { nombre: "Guiarte en la plataforma", ejemplo: '"como hago para calificar?"' },
+          ],
+        },
+        admin: {
+          description: "Soy tu asistente en Atlas Edu. Ademas de lo que puede hacer el docente, puedo:",
+          capabilities: [
+            { nombre: "Crear cursos", ejemplo: '"crea el curso Matematicas 3ro BGU"' },
+            { nombre: "Crear estudiantes", ejemplo: '"crea 10 estudiantes desde este CSV"' },
+            { nombre: "Inscribir estudiantes", ejemplo: '"inscribe a estos estudiantes al curso X"' },
+            { nombre: "Enviar credenciales", ejemplo: '"envia PINs nuevos al curso Y"' },
+            { nombre: "Generar examenes", ejemplo: '"genera examen de Quimica para 3ro BGU"' },
+            { nombre: "Ver estadisticas generales", ejemplo: '"cuantos estudiantes hay en total"' },
+          ],
+        },
+        message: "Usa cualquier comando de arriba o simplemente preguntame en español lo que necesitas.",
+      };
+    },
+  });
+
   // ─── Acción ───
 
   const generateAndCreateAssignment = tool({
@@ -472,6 +932,133 @@ FORMATO:
     },
   });
 
+  const batchGradeSubmissions = tool({
+    description: "Califica en lote submissions de estudiantes para una tarea. Permite nota unica para todos o notas individuales. Filtra por curso si el docente tiene varios.",
+    inputSchema: z.object({
+      assignmentId: z.number().describe("ID de la tarea"),
+      cursoId: z.number().optional().describe("Filtrar por curso especifico"),
+      defaultGrade: z.number().optional().describe("Nota default si todos reciben la misma"),
+      studentGrades: z.array(z.object({
+        fullName: z.string().describe("Nombre o apellido del estudiante"),
+        grade: z.number().describe("Nota para este estudiante"),
+      })).optional().describe("Notas individuales en vez de default"),
+      feedback: z.string().optional().describe("Comentario de retroalimentacion para todos"),
+    }),
+    execute: async ({ assignmentId, cursoId, defaultGrade, studentGrades, feedback }) => {
+      const [assignment] = await db
+        .select({ id: assignments.id, title: assignments.title, puntos: assignments.puntos, teacherId: assignments.teacherId, cursoId: assignments.cursoId })
+        .from(assignments)
+        .where(eq(assignments.id, assignmentId))
+        .limit(1);
+
+      if (!assignment) {
+        return { error: "Tarea no encontrada" };
+      }
+
+      if (assignment.teacherId !== userId) {
+        return { error: "No tienes acceso a esta tarea" };
+      }
+
+      if (cursoId) {
+        const courseAccess = await db
+          .select({ id: cursoProfesores.id })
+          .from(cursoProfesores)
+          .where(and(eq(cursoProfesores.cursoId, cursoId), eq(cursoProfesores.teacherId, userId)))
+          .limit(1);
+        const isTutor = await db.select({ id: cursos.id }).from(cursos).where(and(eq(cursos.id, cursoId), eq(cursos.profesorId, userId))).limit(1);
+        if (!courseAccess.length && !isTutor.length) {
+          return { error: "No tienes acceso a este curso" };
+        }
+      }
+
+      const targetCursoId = cursoId || assignment.cursoId;
+      if (!targetCursoId) {
+        return { error: "La tarea no tiene un curso asociado. Especifica cursoId." };
+      }
+
+      const enrolledStudents = await db
+        .select({ id: users.id, fullName: users.fullName })
+        .from(cursoEstudiantes)
+        .innerJoin(users, eq(users.id, cursoEstudiantes.estudianteId))
+        .where(and(eq(cursoEstudiantes.cursoId, targetCursoId), eq(users.activo, true)));
+
+      if (enrolledStudents.length === 0) {
+        return { error: "No hay estudiantes enrolled en este curso" };
+      }
+
+      const existingSubmissions = await db
+        .select({ id: assignmentSubmissions.id, studentId: assignmentSubmissions.studentId, status: assignmentSubmissions.status })
+        .from(assignmentSubmissions)
+        .where(eq(assignmentSubmissions.assignmentId, assignmentId));
+
+      const hasStudentGrades = studentGrades && studentGrades.length > 0;
+      const gradeMap: Record<string, number> = {};
+      if (hasStudentGrades) {
+        for (const sg of studentGrades) {
+          const match = enrolledStudents.find(s =>
+            s.fullName.toLowerCase().includes(sg.fullName.toLowerCase())
+          );
+          if (match) {
+            gradeMap[match.id] = sg.grade;
+          }
+        }
+      }
+
+      const results: any[] = [];
+      let updatedCount = 0;
+      let createdCount = 0;
+
+      for (const student of enrolledStudents) {
+        const targetGrade = hasStudentGrades
+          ? gradeMap[student.id]
+          : defaultGrade;
+
+        if (!targetGrade && !hasStudentGrades) {
+          continue;
+        }
+
+        const existing = existingSubmissions.find(s => s.studentId === student.id);
+
+        if (existing) {
+          await db.update(assignmentSubmissions)
+            .set({
+              grade: targetGrade,
+              feedback: feedback || null,
+              status: "graded",
+              submittedAt: new Date(),
+            } as any)
+            .where(eq(assignmentSubmissions.id, existing.id));
+          updatedCount++;
+          results.push({ name: student.fullName, action: "actualizado", grade: targetGrade });
+        } else {
+          await db.insert(assignmentSubmissions).values({
+            assignmentId,
+            studentId: student.id,
+            grade: targetGrade,
+            feedback: feedback || null,
+            status: "graded",
+            submittedAt: new Date(),
+          } as any);
+          createdCount++;
+          results.push({ name: student.fullName, action: "creado", grade: targetGrade });
+        }
+      }
+
+      const mensaje = `Se calificarion ${updatedCount + createdCount} estudiantes para "${assignment.title}": ${updatedCount} actualizados, ${createdCount} creados.`;
+
+      return {
+        success: true,
+        tarea: assignment.title,
+        puntosMaximos: assignment.puntos,
+        totalProcesados: results.length,
+        actualizados: updatedCount,
+        creados: createdCount,
+        detalles: results,
+        mensaje,
+      };
+    },
+  });
+
   return {
     getMyCourses,
     getCourseStudents,
@@ -479,11 +1066,17 @@ FORMATO:
     getAttendanceToday,
     getRecentAssignments,
     getPracticeAnalytics,
+    searchAssignments,
+    searchStudents,
+    getPendingGrades,
     generateAndCreateAssignment,
     sendMessageToStudents,
     markStudentsAbsent,
     checkAcademicLoad,
     recordPhysicalGrades,
+    batchGradeSubmissions,
+    getFeatureGuide,
+    getAIFeatures,
   };
 }
 
@@ -987,7 +1580,271 @@ FORMATO JSON:
         totalProcesados: grades.length,
         totalExitosos: successCount,
         detalles: results,
-        mensaje: `Se registraron calificaciones para ${successCount} estudiantes en la actividad "${activityTitle}" del curso ${course.nombre}.`,
+        mensaje: `Se registradas calificaciones para ${successCount} estudiantes en la actividad "${activityTitle}" del curso ${course.nombre}.`,
+      };
+    },
+  });
+
+  const getFeatureGuide = tool({
+    description: "Obtiene guia paso a paso de una funcionalidad de la plataforma para administradores. Retorna URL de la pagina, pasos a seguir, y consejos.",
+    inputSchema: z.object({
+      feature: z.enum([
+        "import_students",
+        "create_course",
+        "manage_enrollments",
+        "send_credentials",
+        "schedule",
+        "report_cards",
+        "smtp_config",
+        "manage_periods",
+        "manage_users",
+        "student_risk",
+        "attendance",
+        "grades",
+      ]).describe("Caracteristica de la plataforma"),
+    }),
+    execute: async ({ feature }) => {
+      const guides: Record<string, any> = {
+        import_students: {
+          titulo: "Importar Estudiantes por CSV",
+          url: "/admin/usuarios",
+          pasos: [
+            "Ve a Admin > Usuarios",
+            "Selecciona pestana 'Estudiantes'",
+            "Click 'Importar CSV'",
+            "Prepara archivo con formato: Cedula;Nombre;Email (sin headers)",
+            "Ejemplo: 1234567890;Juan Perez;juan@email.com",
+            "Selecciona el archivo y espera preview",
+            "Confirma para importar",
+          ],
+          consejos: [
+            "El archivo debe ser .csv con separador punto y coma (;)",
+            "Si la cedula ya existe, el estudiante se reactiva",
+            "Para crear estudiantes manualmente: pestana Estudiantes > 'Nuevo Estudiante'",
+          ],
+          aiHelp: "Adjunta el archivo CSV y di 'importa estos estudiantes'",
+        },
+        create_course: {
+          titulo: "Crear Nuevo Curso",
+          url: "/admin/cursos",
+          pasos: [
+            "Ve a Admin > Cursos",
+            "Click 'Nuevo Curso'",
+            "Ingresa nombre y nivel (ej: 3ro BGU)",
+            "Asigna profesor tutor (opcional)",
+            "Agrega pares profesor-materia con el boton +",
+            "Guardar curso",
+          ],
+          consejos: [
+            "El tutor ve el curso en su dashboard principal",
+            "Puedes agregar varios profesores al mismo curso",
+            "Cada profesor puede tener materias diferentes",
+            "El nivel es importantisimo: 1ro, 2do, 3ro BGU",
+          ],
+          aiHelp: "Di 'crea el curso [nombre] para [nivel]' y yo lo creo",
+        },
+        manage_enrollments: {
+          titulo: "Gestionar Inscripciones de Curso",
+          url: "/admin/cursos/[id]",
+          pasos: [
+            "Ve a Admin > Cursos",
+            "Click en el curso especifico",
+            "Veras la pestana 'Estudiantes Inscritos'",
+            "Para agregar: usa el buscador y click 'Agregar'",
+            "Para quitar: click 'Quitar' al lado del estudiante",
+            "Los cambios se guardan automaticamente",
+          ],
+          consejos: [
+            "Solo estudiantes activos aparecen en el buscador",
+            "Un estudiante puede estar en varios cursos",
+            "Quitar un estudiante NO elimina sus notas",
+          ],
+          aiHelp: "Di 'inscribe al estudiante Juan al curso Matematicas' o 'quitalo del curso'",
+        },
+        send_credentials: {
+          titulo: "Enviar Credenciales por Email",
+          url: "/admin/cursos/[id]",
+          pasos: [
+            "Ve a Admin > Cursos",
+            "Click en el curso especifico",
+            "Ve a pestana 'Credenciales' o click 'Enviar Credenciales'",
+            "Opcional: marca 'Regenerar PINs' si quieres nuevos",
+            "Confirma el envio",
+          ],
+          consejos: [
+            "Los estudiantes deben tener email registrado",
+            "El email incluye cedula como usuario y PIN",
+            "Si el email falla, el estudiante no recibe nada",
+            "Puedes ver quienes ya recibieron email en el historial",
+          ],
+          aiHelp: "Primero asegurate que los estudiantes tienen email en Admin > Usuarios",
+        },
+        schedule: {
+          titulo: "Configurar Horario de Curso",
+          url: "/admin/cursos/[id]",
+          pasos: [
+            "Ve a Admin > Cursos > [curso] > pestana Horario",
+            "Define bloques de tiempo (hora inicio y fin)",
+            "Para cada dia, selecciona materia o 'Receso'",
+            "Los bloques vacios significan sin clase",
+            "Guardar horario",
+          ],
+          consejos: [
+            "Usa 'Receso' para descansos",
+            "Puedes tener maximo 8 bloques por dia",
+            "El horario se muestra a estudiantes en /student/horario",
+            "El horario se muestra a docentes en /teacher/horario",
+          ],
+          aiHelp: "Configuracion manual desde la pagina del curso",
+        },
+        report_cards: {
+          titulo: "Generar e Imprimir Boletin de Notas",
+          url: "/admin/boletin/[id]",
+          pasos: [
+            "Ve a Admin > Cursos",
+            "Click en 'Ver Boletin' del curso",
+            "Veras tabla con estudiantes y sus notas por materia",
+            "El promedio anual se calcula: (T1+T2+T3)/3",
+            "Usa el boton 'Imprimir' para generar PDF",
+          ],
+          consejos: [
+            "Azul = Aprobado (>=7), Rojo = Reprobado (<7)",
+            "Trimestres sin nota cuentan como 0",
+            "Los campos de firma son para imprimir y firmar manualmente",
+            "Solo aparecen cursos con estudiantes inscritos",
+          ],
+          aiHelp: "Ve directamente a Admin > Cursos > [curso] > Boletin",
+        },
+        smtp_config: {
+          titulo: "Configurar Servidor de Email (SMTP)",
+          url: "/admin/configuracion",
+          pasos: [
+            "Ve a Admin > Configuracion",
+            "Selecciona proveedor: Gmail, Outlook o Personalizado",
+            "Para Gmail: necesitas contrasena de aplicacion de 16 digitos",
+            "Para crear contrasena: Cuenta Google > Seguridad > Contrasenas de aplicacion",
+            "Ingresa host, puerto, usuario y contrasena",
+            "Click 'Probar Conexion' para verificar",
+          ],
+          consejos: [
+            "Gmail: host=smtp.gmail.com, puerto=587, SSL=no",
+            "Outlook: host=smtp.office365.com, puerto=587, SSL=no",
+            "Si falla, verifica que la contrasena de aplicacion sea correcta",
+            "Guarda la configuracion antes de probar",
+          ],
+          aiHelp: "Solo configuracion manual desde esta pagina",
+        },
+        manage_periods: {
+          titulo: "Gestionar Periodos Lectivos",
+          url: "/admin/periodos",
+          pasos: [
+            "Ve a Admin > Periodos",
+            "Click 'Nuevo Periodo' para crear",
+            "Ingresa nombre (ej: 'Ano Lectivo 2024-2025')",
+            "Opcionalmente define fecha inicio y fin",
+            "Para activar un periodo, click el icono de toggle",
+          ],
+          consejos: [
+            "Solo un periodo puede estar activo a la vez",
+            "Activar uno desactiva automaticamente el anterior",
+            "No puedes eliminar un periodo si tiene tareas asociadas",
+          ],
+          aiHelp: "Ve directamente a Admin > Periodos para gestionar",
+        },
+        manage_users: {
+          titulo: "Gestionar Usuarios",
+          url: "/admin/usuarios",
+          pasos: [
+            "Ve a Admin > Usuarios",
+            "3 pestanas: Estudiantes | Docentes | Padres",
+            "Para crear: click 'Nuevo' + llenar cedula, nombre, email",
+            "Para editar: click en el usuario",
+            "Para desactivar: toggle 'Activo' (no elimina datos)",
+          ],
+          consejos: [
+            "La cedula es el usuario para login (10 digitos)",
+            "El PIN se genera automaticamente y se muestra al crear",
+            "Si olvidas el PIN, puedes 'Restablecer' desde editar",
+          ],
+          aiHelp: "Di 'crea el estudiante Juan Perez con cedula 1234567890'",
+        },
+        student_risk: {
+          titulo: "Ver Estudiantes en Riesgo",
+          url: "/admin/dashboard",
+          pasos: [
+            "Ve a Admin > Dashboard",
+            "Veras la lista de estudiantes en riesgo academico",
+            "El semaforo muestra: amarillo (alerta) o rojo (critico)",
+            "Click en un estudiante para ver detalles",
+          ],
+          consejos: [
+            "Amarillo: 3+ fallos en practica o 7+ dias inactivo",
+            "Rojo: ambos indicadores activos",
+            "Esto se basa en practica con IA, no en tareas oficiales",
+          ],
+          aiHelp: "Ve directamente a Admin > Dashboard para ver el resumen",
+        },
+        attendance: {
+          titulo: "Ver Asistencia de Cursos",
+          url: "/admin/asistencia/[cursoId]",
+          pasos: [
+            "Ve a Admin > Cursos > [curso] > pestana Asistencia",
+            "Selecciona una fecha con el selector",
+            "Veras lista de estudiantes con su estado",
+            "Los estados son: presente, ausente, tardanza, justificado",
+          ],
+          consejos: [
+            "Solo puedes ver asistencia, no editarla (eso lo hace el docente)",
+            "Puedes ver asistencia de cualquier curso donde estes asignado",
+          ],
+          aiHelp: "Ve a Admin > Cursos > [curso] para ver la asistencia",
+        },
+        grades: {
+          titulo: "Ver Notas de Curso",
+          url: "/admin/grades",
+          pasos: [
+            "Ve a Admin > Cursos > [curso] > pestana Notas",
+            "Veras matriz de estudiantes x materias",
+            "Cada celda muestra T1, T2, T3 y promedio anual",
+          ],
+          consejos: [
+            "Azul = Aprobado (>=7), Rojo = Reprobado (<7)",
+            "El promedio anual es (T1+T2+T3)/3",
+          ],
+          aiHelp: "Ve a Admin > Boletin para ver el boletin completo",
+        },
+      };
+
+      const guide = guides[feature];
+      if (!guide) {
+        return { error: "Guia no disponible para esta caracteristica" };
+      }
+
+      return { ...guide };
+    },
+  });
+
+  const getAIFeatures = tool({
+    description: "Lista todas las funciones que la IA puede realizar para el rol admin. Usala cuando pregunten 'que puedes hacer' o 'como me ayudas'.",
+    inputSchema: z.object({}),
+    execute: async () => {
+      return {
+        admin: {
+          description: "Soy tu asistente en Atlas Edu como Administrador. Puedo ayudarte con:",
+          capabilities: [
+            { nombre: "Gestionar usuarios", ejemplo: '"crea el estudiante Juan Perez con cedula 1234567890"' },
+            { nombre: "Importar estudiantes", ejemplo: '"importa estos estudiantes desde el CSV adjunto"' },
+            { nombre: "Crear cursos", ejemplo: '"crea el curso Matematicas 3ro BGU"' },
+            { nombre: "Inscribir estudiantes", ejemplo: '"inscribe a Juan al curso 3ro BGU"' },
+            { nombre: "Enviar credenciales", ejemplo: '"envia PINs nuevos al curso 3ro BGU"' },
+            { nombre: "Generar examenes", ejemplo: '"genera examen de Quimica para todos los 3ros BGU"' },
+            { nombre: "Calificar en lote", ejemplo: '"califica con 7 los pendientes de la tarea X"' },
+            { nombre: "Ver estadisticas", ejemplo: '"cuantos estudiantes hay en total"' },
+            { nombre: "Consultar asistencia", ejemplo: '"muestra la asistencia de hoy en 3ro BGU"' },
+            { nombre: "Guiarte en la plataforma", ejemplo: '"como hago para crear un curso?"' },
+          ],
+        },
+        message: "Usa cualquier comando de arriba o simplemente preguntame lo que necesitas.",
       };
     },
   });
@@ -1004,6 +1861,8 @@ FORMATO JSON:
     checkAcademicLoad,
     createExamTemplate,
     recordPhysicalGrades,
+    getFeatureGuide,
+    getAIFeatures,
   };
 }
 
