@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { verifyToken } from "@/lib/auth";
-import { opencodeGoModel, logAiCall } from "@/lib/ai";
+import { opencodeGoModel, logAiCall, DEFAULT_MODEL } from "@/lib/ai";
 import { generateText } from "ai";
 import { rateLimit } from "@/lib/rate-limit";
 import { studyMaterialSchema } from "@/lib/api-helpers";
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     logAiCall({
       route: "study-material",
-      model: "kimi-k2.5",
+      model: DEFAULT_MODEL,
       durationMs: Math.round(performance.now() - startTime),
       usage: { inputTokens: result.usage?.inputTokens, outputTokens: result.usage?.outputTokens, totalTokens: (result.usage?.inputTokens ?? 0) + (result.usage?.outputTokens ?? 0) },
     });

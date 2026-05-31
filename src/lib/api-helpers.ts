@@ -81,8 +81,8 @@ export const assignmentSchema = z.object({
   questions: z.array(z.object({
     type: z.enum(["mcq", "file_upload"]),
     question: z.string().min(1),
-    options: z.array(z.string()).optional(),
-    correctIndex: z.number().int().min(0).optional(),
+    options: z.array(z.string()).optional().nullable(),
+    correctIndex: z.number().int().min(0).optional().nullable(),
     points: z.number().int().min(0).optional(),
     orderIndex: z.number().int().optional(),
   })).optional(),

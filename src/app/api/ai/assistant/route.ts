@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { opencodeGoModel, logAiCall } from "@/lib/ai";
+import { opencodeGoModel, logAiCall, DEFAULT_MODEL } from "@/lib/ai";
 import { verifyToken } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { getToolsForRole } from "@/lib/ai-tools";
@@ -124,7 +124,7 @@ REGLAS:
       onFinish: (event) => {
         logAiCall({
           route: "ai/assistant",
-          model: "kimi-k2.5",
+          model: DEFAULT_MODEL,
           durationMs: Date.now() - start,
           usage: event.usage ? {
             inputTokens: event.usage.inputTokens,
@@ -136,7 +136,7 @@ REGLAS:
       onError: (event) => {
         logAiCall({
           route: "ai/assistant",
-          model: "kimi-k2.5",
+          model: DEFAULT_MODEL,
           durationMs: Date.now() - start,
           error: String((event as any).error ?? "AI error"),
         });

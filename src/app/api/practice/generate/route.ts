@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { opencodeGoModel, logAiCall } from "@/lib/ai";
+import { opencodeGoModel, logAiCall, DEFAULT_MODEL } from "@/lib/ai";
 import { db } from "@/lib/db";
 import { nodes } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -250,7 +250,7 @@ export async function POST(request: NextRequest) {
       }).then((r) => {
         logAiCall({
           route: "practice-diagram",
-          model: "kimi-k2.5",
+          model: DEFAULT_MODEL,
           durationMs: Math.round(performance.now() - diagramStart),
           usage: { inputTokens: r.usage?.inputTokens, outputTokens: r.usage?.outputTokens, totalTokens: (r.usage?.inputTokens ?? 0) + (r.usage?.outputTokens ?? 0) },
         });
@@ -266,7 +266,7 @@ export async function POST(request: NextRequest) {
         console.error("[diagram] generateText failed:", err?.message || err);
         logAiCall({
           route: "practice-diagram",
-          model: "kimi-k2.5",
+          model: DEFAULT_MODEL,
           durationMs: Math.round(performance.now() - diagramStart),
           error: err?.message || "unknown",
         });
@@ -282,7 +282,7 @@ export async function POST(request: NextRequest) {
 
     logAiCall({
       route: "practice-generate",
-      model: "kimi-k2.5",
+      model: DEFAULT_MODEL,
       durationMs,
       usage: { inputTokens: lessonResult.usage?.inputTokens, outputTokens: lessonResult.usage?.outputTokens, totalTokens: (lessonResult.usage?.inputTokens ?? 0) + (lessonResult.usage?.outputTokens ?? 0) },
     });

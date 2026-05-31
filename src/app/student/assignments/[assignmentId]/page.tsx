@@ -55,8 +55,10 @@ export default function AssignmentSubmitPage() {
   const [error, setError] = useState("");
   const [dragOver, setDragOver] = useState(false);
 
-  const hasMcq = questions.some(q => q.type === "mcq");
-  const hasFile = questions.some(q => q.type === "file_upload") || questions.length === 0;
+  const mcqQuestions = questions.filter(q => q.type === "mcq");
+  const fileQuestions = questions.filter(q => q.type === "file_upload");
+  const hasMcq = mcqQuestions.length > 0;
+  const hasFile = fileQuestions.length > 0 || questions.length === 0;
   const isSubmitted = submission?.status === "submitted" || submission?.status === "graded";
   const isExpired = assignment?.dueDate ? new Date(assignment.dueDate).getTime() < Date.now() : false;
 
@@ -82,9 +84,7 @@ export default function AssignmentSubmitPage() {
       .catch(() => setLoading(false));
   }, [assignmentId]);
 
-  const allMcqAnswered = questions
-    .filter(q => q.type === "mcq")
-    .every(q => mcqAnswers[q.id] !== undefined);
+  const allMcqAnswered = mcqQuestions.every(q => mcqAnswers[q.id] !== undefined);
 
   const canSubmit = (hasFile ? !!file : true) && (hasMcq ? allMcqAnswered : true);
 
@@ -205,11 +205,11 @@ export default function AssignmentSubmitPage() {
           <Card className="shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <ListChecks className="h-4 w-4" /> Preguntas ({questions.filter(q => q.type === "mcq").length})
+                <ListChecks className="h-4 w-4" /> Preguntas ({mcqQuestions.length})
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
-              {questions.filter(q => q.type === "mcq").map((q) => (
+              {mcqQuestions.map((q) => (
                 <div key={q.id} className="space-y-3">
                   <p className="text-sm font-semibold text-foreground">
                     {q.question}
@@ -244,15 +244,24 @@ export default function AssignmentSubmitPage() {
           </Card>
         )}
 
-        {/* File Upload — only if not expired or already submitted */}
-        {(!isExpired || isSubmitted) && hasFile && (
+        {/* File Upload Questions — only if not expired or already submitted */}
+        {(!isExpired || isSubmitted) && (fileQuestions.length > 0 || questions.length === 0) && (
           <Card className="shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <FileUp className="h-4 w-4" /> Subir archivo
+                <FileUp className="h-4 w-4" /> Ejercicios de desarrollo ({fileQuestions.length})
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              {fileQuestions.map((q) => (
+                <div key={q.id} className="space-y-3 p-4 rounded-xl border bg-card">
+                  <p className="text-sm font-semibold text-foreground">
+                    {q.question}
+                    <span className="ml-2 text-[10px] text-muted-foreground font-normal">({q.points} pts)</span>
+                  </p>
+                </div>
+              ))}
+              
               {isSubmitted && submission?.fileUrl ? (
                 <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 border">
                   <FileText className="h-8 w-8 text-primary" />

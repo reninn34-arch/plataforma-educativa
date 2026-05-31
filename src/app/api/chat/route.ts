@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { chatSessions, chatMessages, subjects } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
-import { opencodeGoModel, logAiCall } from "@/lib/ai";
+import { opencodeGoModel, logAiCall, DEFAULT_MODEL } from "@/lib/ai";
 import { streamText, convertToModelMessages } from "ai";
 import { rateLimit } from "@/lib/rate-limit";
 import { chatSchema } from "@/lib/api-helpers";
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       try {
         logAiCall({
           route: "chat",
-          model: "kimi-k2.5",
+          model: DEFAULT_MODEL,
           durationMs: Math.round(performance.now() - startTime),
           usage: { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, totalTokens: (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0) },
         });

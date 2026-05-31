@@ -3,7 +3,7 @@ import { verifyToken } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { subjects, modules, nodes } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { opencodeGoModel, logAiCall } from "@/lib/ai";
+import { opencodeGoModel, logAiCall, DEFAULT_MODEL } from "@/lib/ai";
 import { generateText } from "ai";
 import { z } from "zod/v4";
 import { rateLimit } from "@/lib/rate-limit";
@@ -113,7 +113,7 @@ Genera un Learning Path de 6-8 nodos para este tema. Los primeros nodos deben se
 
     logAiCall({
       route: "path-generate",
-      model: "kimi-k2.5",
+      model: DEFAULT_MODEL,
       durationMs: Math.round(performance.now() - startTime),
       usage: { inputTokens: result.usage?.inputTokens, outputTokens: result.usage?.outputTokens, totalTokens: (result.usage?.inputTokens ?? 0) + (result.usage?.outputTokens ?? 0) },
     });

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { opencodeGoModel, logAiCall } from "@/lib/ai";
+import { opencodeGoModel, logAiCall, DEFAULT_MODEL } from "@/lib/ai";
 import { generateText } from "ai";
 import { z } from "zod/v4";
 import { verifyToken } from "@/lib/auth";
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
 
         logAiCall({
           route: "teacher/ai/generate-assignment",
-          model: "kimi-k2.5",
+          model: DEFAULT_MODEL,
           durationMs: Date.now() - start,
           usage: response.usage ? {
             inputTokens: response.usage.inputTokens,
@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
       } catch (aiError: any) {
         logAiCall({
           route: "teacher/ai/generate-assignment",
-          model: "kimi-k2.5",
+          model: DEFAULT_MODEL,
           durationMs: Date.now() - start,
           error: aiError.message || "AI error",
         });

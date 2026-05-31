@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { verifyToken } from "@/lib/auth";
-import { opencodeGoModel, logAiCall } from "@/lib/ai";
+import { opencodeGoModel, logAiCall, DEFAULT_MODEL } from "@/lib/ai";
 import { generateText } from "ai";
 import { coachSchema } from "@/lib/api-helpers";
 
@@ -56,7 +56,7 @@ Genera una mini-ayuda motivadora para el estudiante:`,
       }).then(async (r) => {
         logAiCall({
           route: "coach",
-          model: "kimi-k2.5",
+          model: DEFAULT_MODEL,
           durationMs: Math.round(performance.now() - startTime),
           usage: { inputTokens: r.usage?.inputTokens, outputTokens: r.usage?.outputTokens, totalTokens: (r.usage?.inputTokens ?? 0) + (r.usage?.outputTokens ?? 0) },
         });
