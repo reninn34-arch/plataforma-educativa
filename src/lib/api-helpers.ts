@@ -73,8 +73,8 @@ export const messageSchema = z.object({
 export const assignmentSchema = z.object({
   title: z.string().min(1),
   description: z.string().min(1),
-  subjectId: z.number().int().positive(),
-  cursoId: z.number().int().positive().optional(),
+  subjectId: z.number().int().positive().optional().nullable(),
+  cursoId: z.number().int().positive().optional().nullable(),
   puntos: z.number().int().min(1).optional(),
   dueDate: z.string().optional(),
   trimester: z.number().int().min(1).max(3).optional(),

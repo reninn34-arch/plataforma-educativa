@@ -106,13 +106,15 @@ export async function POST(request: NextRequest) {
 
     const { title, description, subjectId, cursoId, dueDate, trimester, questions } = parsed.data;
 
-    const [subjectExists] = await db
-      .select({ id: subjects.id })
-      .from(subjects)
-      .where(eq(subjects.id, subjectId))
-      .limit(1);
-    if (!subjectExists) {
-      return NextResponse.json({ error: "Materia no encontrada" }, { status: 400 });
+    if (subjectId) {
+      const [subjectExists] = await db
+        .select({ id: subjects.id })
+        .from(subjects)
+        .where(eq(subjects.id, subjectId))
+        .limit(1);
+      if (!subjectExists) {
+        return NextResponse.json({ error: "Materia no encontrada" }, { status: 400 });
+      }
     }
 
     if (cursoId) {
