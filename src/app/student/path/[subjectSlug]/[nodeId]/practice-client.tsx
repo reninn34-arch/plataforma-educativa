@@ -8,9 +8,11 @@ import { TimerRing } from "@/components/practice/TimerRing";
 import { ResultsScreen } from "@/components/practice/ResultsScreen";
 import { Hearts } from "@/components/practice/Hearts";
 import { LessonView } from "@/components/practice/LessonView";
+import { sounds } from "@/lib/sounds";
 import { useRouter } from "next/navigation";
-import { formatNotation } from "@/lib/utils";
+import { cn, formatNotation } from "@/lib/utils";
 import { apiFetch } from "@/lib/fetch-utils";
+import { subjectTheme } from "@/lib/subject-theme";
 
 interface Exercise {
   id: number;
@@ -67,6 +69,7 @@ interface PracticeClientProps {
 
 export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext, subjectId, nextNodeId }: PracticeClientProps) {
   const router = useRouter();
+  const theme = subjectTheme(subjectSlug);
 
   const [gameState, setGameState] = useState<GameState>("loading");
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -86,12 +89,35 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
   const [coachMessage, setCoachMessage] = useState("");
   const [coachLoading, setCoachLoading] = useState(false);
   const [retryGenerating, setRetryGenerating] = useState(false);
+  const [flashRed, setFlashRed] = useState(false);
+
+  useEffect(() => {
+    if (flashRed) {
+      const timer = setTimeout(() => setFlashRed(false), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [flashRed]);
 
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const gameOverRef = useRef(false);
   const answersLogRef = useRef<{ question: string; type: string; topic?: string; studentAnswer: string; isCorrect: boolean }[]>([]);
   const sessionSavedRef = useRef(false);
   const savePromiseRef = useRef<Promise<void> | null>(null);
+  const prevLivesRef = useRef(lives);
+
+  useEffect(() => {
+    if (lives < prevLivesRef.current) {
+      setFlashRed(true);
+      sounds.heartbreak();
+    }
+    prevLivesRef.current = lives;
+  }, [lives]);
+
+  useEffect(() => {
+    if (gameState === "playing" && timerSeconds > 0 && timerSeconds <= 5) {
+      sounds.urgentTick();
+    }
+  }, [timerSeconds, gameState]);
 
   const currentExercise = exercises[currentIndex];
 
@@ -342,12 +368,18 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
 
   return (
     <div className="flex min-h-screen flex-col bg-[#F8FAFC]">
-      <header className="sticky top-0 z-20 border-b bg-white/95 backdrop-blur shadow-sm">
+      <header className={cn("sticky top-0 z-20 border-b bg-white/95 backdrop-blur shadow-sm", theme.border)}>
         <div className="flex h-14 items-center justify-between px-4 max-w-2xl mx-auto w-full">
           <button onClick={handleBackToStudy} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {combo >= 2 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-amber-100 to-amber-200 border border-amber-300 px-3 py-1 text-xs font-extrabold text-amber-700 shadow-sm animate-bounce-in">
+                <svg viewBox="0 0 24 24" className="h-4 w-4 fill-amber-500" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-.5-13v4h-5v2h5v4l5-5z"/></svg>
+                Racha x{combo}
+              </span>
+            )}
             {gameState === "playing" && <Hearts lives={lives} maxLives={3} />}
           </div>
         </div>
@@ -357,17 +389,29 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
 
         {/* LOADING */}
         {gameState === "loading" && (
-          <div className="flex flex-col items-center justify-center py-24 space-y-6 animate-fade-in-up">
-            <div className="relative">
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 shadow-sm">
-                <Sparkles className="h-10 w-10 text-primary animate-pulse" />
+          <div className="animate-fade-in-up space-y-6 py-8">
+            {/* Skeleton header */}
+            <div className={cn("h-12 rounded-2xl bg-gradient-to-r animate-pulse", theme.header)} />
+            {/* Skeleton step cards */}
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="rounded-2xl border bg-white p-5 shadow-sm space-y-3" style={{ animationDelay: `${i * 150}ms` }}>
+                <div className="flex items-center gap-2">
+                  <div className="h-6 w-6 rounded-full bg-slate-200 animate-pulse" />
+                  <div className="h-4 w-32 rounded bg-slate-200 animate-pulse" />
+                </div>
+                <div className="h-3 w-full rounded bg-slate-100 animate-pulse" />
+                <div className="h-3 w-3/4 rounded bg-slate-100 animate-pulse" />
+                <div className="flex justify-center py-2">
+                  <div className="h-24 w-52 rounded-lg bg-slate-100 animate-pulse" />
+                </div>
               </div>
-              <Loader2 className="absolute -bottom-1 -right-1 h-6 w-6 animate-spin text-primary" />
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-bold text-slate-800">Preparando tu leccion</p>
-              <p className="text-sm text-slate-500 mt-1">
-                {retryGenerating ? "La IA esta generando nuevos ejercicios... puede tomar unos segundos." : "La IA esta diseniando tu camino..."}
+            ))}
+            <div className="text-center pt-4">
+              <p className="text-sm font-medium text-slate-500 animate-pulse">
+                {retryGenerating
+                  ? "La IA esta generando nuevos ejercicios..."
+                  : "La IA esta diseniando tu camino..."
+                }
               </p>
             </div>
           </div>
@@ -375,7 +419,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
 
         {/* LESSON (Enriched teaching phase) */}
         {gameState === "lesson" && lesson && (
-          <LessonView lesson={lesson} onStartPractice={handleStartPractice} />
+          <LessonView lesson={lesson} onStartPractice={handleStartPractice} subjectSlug={subjectSlug} />
         )}
 
         {/* COUNTDOWN */}
@@ -390,7 +434,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
               <div className="flex-1">
                 <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-primary transition-all duration-500"
+                    className={cn("h-full rounded-full transition-all duration-500", theme.progress)}
                     style={{ width: `${((currentIndex + (feedback ? 1 : 0)) / exercises.length) * 100}%` }}
                   />
                 </div>
@@ -457,6 +501,9 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
             onNextNode={nextNodeId ? handleNextNode : undefined}
           />
         )}
+
+        {/* Red flash overlay */}
+        {flashRed && <div className="fixed inset-0 z-50 animate-flash-red" />}
       </main>
     </div>
   );

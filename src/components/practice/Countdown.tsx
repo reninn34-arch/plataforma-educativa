@@ -1,22 +1,30 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { sounds } from "@/lib/sounds";
 
 export function Countdown({ onDone }: { onDone: () => void }) {
   const [count, setCount] = useState(3);
-  const [visible, setVisible] = useState(true);
+  const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
-    if (count <= 0) {
-      setVisible(false);
-      const t = setTimeout(onDone, 300);
+    if (count > 1) {
+      sounds.countdownBeep();
+      const t = setTimeout(() => setCount((c) => c - 1), 700);
       return () => clearTimeout(t);
     }
-    const t = setTimeout(() => setCount((c) => c - 1), 700);
-    return () => clearTimeout(t);
+    if (count === 1) {
+      sounds.countdownBeep();
+      const t = setTimeout(() => {
+        setHidden(true);
+        sounds.countdownGo();
+        onDone();
+      }, 700);
+      return () => clearTimeout(t);
+    }
   }, [count, onDone]);
 
-  if (!visible) return null;
+  if (hidden) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm">

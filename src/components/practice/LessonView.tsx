@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { cn, formatNotation } from "@/lib/utils";
+import { subjectTheme } from "@/lib/subject-theme";
 import {
   BookOpen, Lightbulb, AlertTriangle,
   Check, X, ArrowRight, ArrowLeft, Target, Image, Loader2, Maximize2,
@@ -45,6 +46,7 @@ interface LessonData {
 interface LessonViewProps {
   lesson: LessonData;
   onStartPractice: () => void;
+  subjectSlug?: string;
 }
 
 function MermaidDiagram({ code, large }: { code: string; large?: boolean }) {
@@ -349,7 +351,7 @@ function ExampleSlide({ lesson, onNextSlide }: { lesson: LessonData; onNextSlide
   );
 }
 
-export function LessonView({ lesson, onStartPractice }: LessonViewProps) {
+export function LessonView({ lesson, onStartPractice, subjectSlug }: LessonViewProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const touchStartX = useRef(0);
   const touchDeltaX = useRef(0);
@@ -357,6 +359,8 @@ export function LessonView({ lesson, onStartPractice }: LessonViewProps) {
   const carouselRef = useRef<HTMLDivElement>(null);
   const prevSlideRef = useRef(currentSlide);
   const [exampleResetKey, setExampleResetKey] = useState(0);
+
+  const theme = subjectTheme(subjectSlug || "");
 
   const slides = useMemo(() => {
     const s: { type: "explanation" | "diagram" | "example" | "commonMistake" | "quickCheck" | "ready" }[] = [
@@ -421,7 +425,7 @@ export function LessonView({ lesson, onStartPractice }: LessonViewProps) {
               className={cn(
                 "h-2 rounded-full transition-all duration-300",
                 i === currentSlide
-                  ? "w-6 bg-primary"
+                  ? `w-6 ${theme.progress}`
                   : "w-2 bg-slate-300 hover:bg-slate-400"
               )}
               aria-label={`Ir a diapositiva ${i + 1}`}
@@ -448,7 +452,7 @@ export function LessonView({ lesson, onStartPractice }: LessonViewProps) {
           {/* Explanation slide */}
           <div className="w-full flex-shrink-0 px-0.5 h-full overflow-y-auto">
             <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-4">
+              <div className={cn("bg-gradient-to-r px-6 py-4", theme.header)}>
                 <h2 className="text-lg font-extrabold text-white">{lesson.title}</h2>
               </div>
               <div className="p-6">
@@ -550,7 +554,7 @@ export function LessonView({ lesson, onStartPractice }: LessonViewProps) {
         )}
 
         {!isLastSlide && (
-          <Button onClick={() => goTo(currentSlide + 1)} className="gap-2 px-6">
+          <Button onClick={() => goTo(currentSlide + 1)} className={cn("gap-2 px-6 border-0", theme.primary)}>
             Siguiente <ArrowRight className="h-4 w-4" />
           </Button>
         )}

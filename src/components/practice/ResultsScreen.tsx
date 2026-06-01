@@ -1,7 +1,10 @@
 "use client";
 
-import { Trophy, Star, Zap, Flame, Target, ArrowRight, RefreshCw, BookOpen, ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Trophy, Star, Flame, Target, RefreshCw, BookOpen, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import confetti from "canvas-confetti";
+import { sounds } from "@/lib/sounds";
 
 interface ResultsScreenProps {
   correct: number;
@@ -14,6 +17,26 @@ interface ResultsScreenProps {
   onBack: () => void;
   onNextNode?: () => void;
   hasNextNode?: boolean;
+}
+
+function AnimatedScore({ value }: { value: number }) {
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    if (value === 0) return;
+    const start = performance.now();
+    const duration = 800 + value * 3;
+    const frame = (now: number) => {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.floor(eased * value));
+      if (progress < 1) requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }, [value]);
+
+  return <>{display}</>;
 }
 
 export function ResultsScreen({
@@ -30,6 +53,44 @@ export function ResultsScreen({
 }: ResultsScreenProps) {
   const percentage = total > 0 ? Math.round((correct / total) * 100) : 0;
   const stars = starsEarned;
+  const [showStars, setShowStars] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowStars(true), 200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (wasPerfect) sounds.achievement();
+  }, [wasPerfect]);
+
+  useEffect(() => {
+    if (wasPerfect || starsEarned >= 2) {
+      const duration = 3000;
+      const end = Date.now() + duration;
+
+      const frame = () => {
+        confetti({
+          particleCount: 3,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0, y: 0.6 },
+          colors: ["#FFD700", "#FF6B6B", "#4ECDC4"],
+        });
+        confetti({
+          particleCount: 3,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1, y: 0.6 },
+          colors: ["#FFD700", "#FF6B6B", "#4ECDC4"],
+        });
+
+        if (Date.now() < end) requestAnimationFrame(frame);
+      };
+
+      frame();
+    }
+  }, [wasPerfect, starsEarned]);
 
   return (
     <div className="animate-scale-in space-y-6">
@@ -42,7 +103,7 @@ export function ResultsScreen({
           "bg-gradient-to-br from-slate-400 to-slate-500"
         )}>
           {wasPerfect ? (
-            <Trophy className="h-12 w-12 text-white" />
+            <Trophy className="h-12 w-12 text-white animate-bounce-in" />
           ) : (
             <Star className="h-12 w-12 text-white" />
           )}
@@ -55,14 +116,18 @@ export function ResultsScreen({
             <Star
               key={s}
               className={cn(
-                "h-8 w-8 transition-all duration-300",
-                s <= stars ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground/20"
+                "h-8 w-8 transition-all duration-500",
+                s <= stars
+                  ? "text-yellow-400 fill-yellow-400 animate-bounce-in"
+                  : "text-muted-foreground/20",
+                showStars && `transition-delay-[${(s - 1) * 200}ms]`
               )}
+              style={showStars && s <= stars ? { animationDelay: `${(s - 1) * 200}ms` } : undefined}
             />
           ))}
         </div>
         {starsEarned > 0 && (
-          <p className="text-sm text-yellow-600 font-semibold mt-2">
+          <p className="text-sm text-yellow-600 font-semibold mt-2 animate-count-up">
             ⭐ Ganaste {starsEarned} {starsEarned === 1 ? "estrella" : "estrellas"} en este nodo
           </p>
         )}
@@ -118,8 +183,8 @@ export function ResultsScreen({
           )}
           <div className="border-t pt-2.5 flex items-center justify-between">
             <span className="text-base font-bold text-foreground">Total</span>
-            <span className="text-xl font-extrabold text-primary">
-              {xpEarned} XP
+            <span className="text-xl font-extrabold text-primary tabular-nums">
+              <AnimatedScore value={xpEarned} /> XP
             </span>
           </div>
         </div>

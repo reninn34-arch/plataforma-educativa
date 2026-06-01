@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn, formatNotation } from "@/lib/utils";
 import { Check, X, ArrowRight, Lightbulb } from "lucide-react";
+import { sounds } from "@/lib/sounds";
 
 interface Exercise {
   id: number;
@@ -37,6 +38,13 @@ export function QuestionCard({
   const [textAnswer, setTextAnswer] = useState("");
   const [boolAnswer, setBoolAnswer] = useState<boolean | null>(null);
   const [answered, setAnswered] = useState(false);
+
+  useEffect(() => {
+    if (answered && feedback) {
+      if (feedback.isCorrect) sounds.correct();
+      else sounds.incorrect();
+    }
+  }, [answered, feedback]);
 
   const handleSubmit = () => {
     if (exercise.type === "mcq" && selected !== null) {
@@ -104,9 +112,10 @@ export function QuestionCard({
                 disabled={answered}
                 onClick={() => setSelected(i)}
                 className={cn(
-                  "flex items-center gap-3 w-full rounded-xl border-2 p-4 text-left transition-all duration-200 active:scale-[0.98]",
+                  "flex items-center gap-3 w-full rounded-xl border-2 p-4 text-left transition-all duration-200 active:scale-[0.98] animate-fade-in-up",
                   stateClass
                 )}
+                style={{ animationDelay: `${i * 80}ms` }}
               >
                 <span className={cn(
                   "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold transition-colors",
@@ -152,11 +161,12 @@ export function QuestionCard({
                 disabled={answered}
                 onClick={() => setBoolAnswer(val)}
                 className={cn(
-                  "rounded-xl border-2 p-5 text-center text-lg font-bold transition-all active:scale-95",
+                  "rounded-xl border-2 p-5 text-center text-lg font-bold transition-all active:scale-95 animate-fade-in-up",
                   stateClass
                 )}
+                style={{ animationDelay: `${val ? 0 : 80}ms` }}
               >
-                {val ? "✅ Verdadero" : "❌ Falso"}
+                {val ? "Verdadero" : "Falso"}
               </button>
             );
           })}
@@ -209,7 +219,7 @@ export function QuestionCard({
 
       {/* Feedback + Continue */}
       {answered && feedback && (
-        <div className={cn("rounded-2xl border-2 p-5 space-y-4 animate-scale-in", feedbackColor)}>
+        <div className={cn("rounded-2xl border-2 p-5 space-y-4 animate-scale-in", feedbackColor, !feedback.isCorrect && "animate-shake")}>
           <div className="flex items-start gap-3">
             <div className={cn(
               "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
