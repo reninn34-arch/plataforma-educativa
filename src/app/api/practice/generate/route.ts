@@ -120,35 +120,56 @@ async function generateStructured<T>(
   schema: z.ZodType<T>,
   opts: { temperature: number; maxOutputTokens: number; abortSignal: AbortSignal },
 ): Promise<{ output: T; text: string }> {
+  // Tier 1: Output.object({ schema }) passes schema to model → best structure (Kimi, OpenAI, Google, Anthropic)
   try {
     const response = await generateText({
       model,
-      output: Output.json(),
+      output: Output.object({ schema: schema as any }),
       prompt,
       temperature: opts.temperature,
       maxOutputTokens: opts.maxOutputTokens,
       abortSignal: opts.abortSignal,
     });
-    const normalized = normalizePracticeOutput(response.output);
     return {
-      output: schema.parse(normalized),
+      output: response.output as T,
       text: response.text,
     };
   } catch (error) {
+    // Tier 2: response_format unsupported → try Output.json() with normalization (DeepSeek)
     if (isResponseFormatError(error)) {
-      const response = await generateText({
-        model,
-        prompt,
-        temperature: opts.temperature,
-        maxOutputTokens: opts.maxOutputTokens,
-        abortSignal: opts.abortSignal,
-      });
-      const json = tryParseJson(response.text);
-      const normalized = normalizePracticeOutput(json);
-      return {
-        output: schema.parse(normalized),
-        text: response.text,
-      };
+      try {
+        const response = await generateText({
+          model,
+          output: Output.json(),
+          prompt,
+          temperature: opts.temperature,
+          maxOutputTokens: opts.maxOutputTokens,
+          abortSignal: opts.abortSignal,
+        });
+        const normalized = normalizePracticeOutput(response.output);
+        return {
+          output: schema.parse(normalized),
+          text: response.text,
+        };
+      } catch (jsonError) {
+        // Tier 3: plain text + tryParseJson as last resort
+        if (isResponseFormatError(jsonError) || jsonError instanceof z.ZodError) {
+          const response = await generateText({
+            model,
+            prompt,
+            temperature: opts.temperature,
+            maxOutputTokens: opts.maxOutputTokens,
+            abortSignal: opts.abortSignal,
+          });
+          const json = tryParseJson(response.text);
+          const normalized = normalizePracticeOutput(json);
+          return {
+            output: schema.parse(normalized),
+            text: response.text,
+          };
+        }
+        throw jsonError;
+      }
     }
     throw error;
   }

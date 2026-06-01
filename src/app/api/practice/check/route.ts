@@ -48,25 +48,44 @@ Evalua si la respuesta del estudiante es semanticamente equivalente a alguna de 
       let result: { isCorrect: boolean } | null = null;
 
       try {
+        // Tier 1: Output.object({ schema }) (Kimi, OpenAI, Google, Anthropic)
         const response = await generateText({
           model,
-          output: Output.json(),
+          output: Output.object({ schema: semanticCheckResponseSchema as any }),
           system: SEMANTIC_CHECK_PROMPT,
           prompt,
           maxOutputTokens: 30,
           temperature: 0,
         });
-        result = semanticCheckResponseSchema.parse(response.output);
+        result = response.output as { isCorrect: boolean };
       } catch (error) {
+        // Tier 2: response_format unsupported → Output.json() (DeepSeek)
         if (isResponseFormatError(error)) {
-          const response = await generateText({
-            model,
-            system: SEMANTIC_CHECK_PROMPT,
-            prompt,
-            maxOutputTokens: 30,
-            temperature: 0,
-          });
-          result = semanticCheckResponseSchema.parse(tryParseJson(response.text));
+          try {
+            const response = await generateText({
+              model,
+              output: Output.json(),
+              system: SEMANTIC_CHECK_PROMPT,
+              prompt,
+              maxOutputTokens: 30,
+              temperature: 0,
+            });
+            result = semanticCheckResponseSchema.parse(response.output);
+          } catch (jsonError) {
+            // Tier 3: plain text + tryParseJson as last resort
+            if (isResponseFormatError(jsonError) || jsonError instanceof z.ZodError) {
+              const response = await generateText({
+                model,
+                system: SEMANTIC_CHECK_PROMPT,
+                prompt,
+                maxOutputTokens: 30,
+                temperature: 0,
+              });
+              result = semanticCheckResponseSchema.parse(tryParseJson(response.text));
+            } else {
+              throw jsonError;
+            }
+          }
         } else {
           throw error;
         }

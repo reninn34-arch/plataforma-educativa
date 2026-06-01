@@ -51,28 +51,47 @@ async function generateStructuredPath(
   prompt: string,
   opts: { temperature: number; maxOutputTokens: number; abortSignal: AbortSignal },
 ): Promise<z.infer<typeof pathSchema>> {
+  // Tier 1: Output.object({ schema }) (Kimi, OpenAI, Google, Anthropic)
   try {
     const response = await generateText({
       model,
-      output: Output.json(),
+      output: Output.object({ schema: pathSchema as any }),
       system,
       prompt,
       temperature: opts.temperature,
       maxOutputTokens: opts.maxOutputTokens,
       abortSignal: opts.abortSignal,
     });
-    return pathSchema.parse(normalizePathOutput(response.output));
+    return response.output as z.infer<typeof pathSchema>;
   } catch (error) {
+    // Tier 2: response_format unsupported → Output.json() with normalization (DeepSeek)
     if (isResponseFormatError(error)) {
-      const response = await generateText({
-        model,
-        system,
-        prompt,
-        temperature: opts.temperature,
-        maxOutputTokens: opts.maxOutputTokens,
-        abortSignal: opts.abortSignal,
-      });
-      return pathSchema.parse(normalizePathOutput(tryParseJson(response.text)));
+      try {
+        const response = await generateText({
+          model,
+          output: Output.json(),
+          system,
+          prompt,
+          temperature: opts.temperature,
+          maxOutputTokens: opts.maxOutputTokens,
+          abortSignal: opts.abortSignal,
+        });
+        return pathSchema.parse(normalizePathOutput(response.output));
+      } catch (jsonError) {
+        // Tier 3: plain text + tryParseJson as last resort
+        if (isResponseFormatError(jsonError) || jsonError instanceof z.ZodError) {
+          const response = await generateText({
+            model,
+            system,
+            prompt,
+            temperature: opts.temperature,
+            maxOutputTokens: opts.maxOutputTokens,
+            abortSignal: opts.abortSignal,
+          });
+          return pathSchema.parse(normalizePathOutput(tryParseJson(response.text)));
+        }
+        throw jsonError;
+      }
     }
     throw error;
   }

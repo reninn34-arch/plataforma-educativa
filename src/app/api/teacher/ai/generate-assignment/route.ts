@@ -53,37 +53,59 @@ async function generateWithFallback(
   prompt: string,
   abortSignal: AbortSignal,
 ) {
+  // Tier 1: Output.object({ schema }) (Kimi, OpenAI, Google, Anthropic)
   try {
     const response = await generateText({
       model: getChatModel(candidate),
-      output: Output.json(),
+      output: Output.object({ schema: generateResponseSchema as any }),
       prompt,
       temperature: 0.6,
       maxOutputTokens: 4000,
       abortSignal,
     });
-    const normalized = normalizeQuestions(response.output);
     return {
-      output: normalized,
-      parsed: generateResponseSchema.parse(normalized),
+      output: response.output,
+      parsed: response.output as z.infer<typeof generateResponseSchema>,
       usage: response.usage,
     };
   } catch (error) {
+    // Tier 2: response_format unsupported → Output.json() with normalization (DeepSeek)
     if (isResponseFormatError(error)) {
-      const textResponse = await generateText({
-        model: getChatModel(candidate),
-        prompt,
-        temperature: 0.6,
-        maxOutputTokens: 4000,
-        abortSignal,
-      });
-      const json = tryParseJson(textResponse.text);
-      const normalized = normalizeQuestions(json);
-      return {
-        output: normalized,
-        parsed: generateResponseSchema.parse(normalized),
-        usage: textResponse.usage,
-      };
+      try {
+        const response = await generateText({
+          model: getChatModel(candidate),
+          output: Output.json(),
+          prompt,
+          temperature: 0.6,
+          maxOutputTokens: 4000,
+          abortSignal,
+        });
+        const normalized = normalizeQuestions(response.output);
+        return {
+          output: normalized,
+          parsed: generateResponseSchema.parse(normalized),
+          usage: response.usage,
+        };
+      } catch (jsonError) {
+        // Tier 3: plain text + tryParseJson as last resort
+        if (isResponseFormatError(jsonError) || jsonError instanceof z.ZodError) {
+          const textResponse = await generateText({
+            model: getChatModel(candidate),
+            prompt,
+            temperature: 0.6,
+            maxOutputTokens: 4000,
+            abortSignal,
+          });
+          const json = tryParseJson(textResponse.text);
+          const normalized = normalizeQuestions(json);
+          return {
+            output: normalized,
+            parsed: generateResponseSchema.parse(normalized),
+            usage: textResponse.usage,
+          };
+        }
+        throw jsonError;
+      }
     }
     throw error;
   }
