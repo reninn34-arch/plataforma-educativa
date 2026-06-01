@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-import { verifyToken } from "@/lib/auth";
+import { eq, inArray } from "drizzle-orm";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 
 function generatePin(): string {
   return String(Math.floor(1000 + Math.random() * 9000));
@@ -64,7 +64,7 @@ interface BulkResult {
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
-  const admin = token ? await verifyToken(token) : null;
+  const admin = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
   if (!admin || admin.role !== "admin") {
     return NextResponse.json({ error: "Solo admin" }, { status: 403 });
   }
@@ -95,11 +95,9 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const resultados: BulkResult[] = [];
-    let creados = 0;
-    let omitidos = 0;
-    let errores = 0;
-    let reactivados = 0;
+    // Pre-load existing users in one query
+    const allCedulas = [];
+    const rowsData: { cedula: string; nombre: string; email: string | null }[] = [];
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
@@ -107,37 +105,36 @@ export async function POST(request: NextRequest) {
       const nombre = (row[nombreIdx] || "").trim();
       const email = emailIdx !== -1 ? (row[emailIdx] || "").trim() || null : null;
 
-      if (!cedula || cedula.length !== 10) {
-        resultados.push({ cedula: row[cedulaIdx] || "", nombre, pin: "", status: "error", razon: "Cedula invalida (debe tener 10 digitos)" });
-        errores++;
-        continue;
-      }
+      if (!cedula || cedula.length !== 10 || !nombre) continue;
+      allCedulas.push(cedula);
+      rowsData.push({ cedula, nombre, email });
+    }
 
-      if (!nombre) {
-        resultados.push({ cedula, nombre: "", pin: "", status: "error", razon: "Nombre vacio" });
-        errores++;
-        continue;
-      }
+    const existingUsers = allCedulas.length > 0 ? await db
+      .select({ id: users.id, cedula: users.cedula, activo: users.activo })
+      .from(users)
+      .where(inArray(users.cedula, allCedulas)) : [];
+    const existingByCedula = new Map(existingUsers.map(u => [u.cedula, u]));
+
+    // Pre-generate pins and hash them concurrently
+    const pins = rowsData.map(() => generatePin());
+    const hashedPins = await Promise.all(pins.map(p => bcrypt.hash(p, 10)));
+
+    const toInsert: any[] = [];
+    const toReactivate: { id: number; cedula: string; nombre: string; email: string | null; pin: string; hashed: string }[] = [];
+    const resultados: BulkResult[] = [];
+    let creados = 0, omitidos = 0, errores = 0, reactivados = 0;
+
+    for (let i = 0; i < rowsData.length; i++) {
+      const { cedula, nombre, email } = rowsData[i];
+      const pin = pins[i];
+      const hashed = hashedPins[i];
+      const existing = existingByCedula.get(cedula);
 
       try {
-        const [existing] = await db
-          .select({ id: users.id, activo: users.activo })
-          .from(users)
-          .where(eq(users.cedula, cedula))
-          .limit(1);
-
-        const pin = generatePin();
-        const hashed = await bcrypt.hash(pin, 10);
-
         if (existing) {
           if (!existing.activo) {
-            await db.update(users).set({
-              activo: true,
-              fullName: nombre,
-              role: "student" as any,
-              email: email || null,
-              pin: hashed,
-            }).where(eq(users.id, existing.id));
+            toReactivate.push({ id: existing.id, cedula, nombre, email, pin, hashed });
             resultados.push({ cedula, nombre, pin, status: "reactivado" });
             reactivados++;
           } else {
@@ -145,12 +142,8 @@ export async function POST(request: NextRequest) {
             omitidos++;
           }
         } else {
-          await db.insert(users).values({
-            cedula,
-            fullName: nombre,
-            role: "student" as any,
-            email: email || null,
-            pin: hashed,
+          toInsert.push({
+            cedula, fullName: nombre, role: "student" as any, email: email || null, pin: hashed,
           });
           resultados.push({ cedula, nombre, pin, status: "creado" });
           creados++;
@@ -160,6 +153,14 @@ export async function POST(request: NextRequest) {
         errores++;
       }
     }
+
+    // Batch insert and batch reactivate
+    if (toInsert.length > 0) {
+      await db.insert(users).values(toInsert);
+    }
+    await Promise.all(toReactivate.map(r =>
+      db.update(users).set({ activo: true, fullName: r.nombre, role: "student" as any, email: r.email || null, pin: r.hashed }).where(eq(users.id, r.id))
+    ));
 
     const total = creados + omitidos + errores + reactivados;
 

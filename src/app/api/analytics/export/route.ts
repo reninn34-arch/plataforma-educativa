@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentSubmissions, subjects, users, cursos } from "@/lib/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getTeacherCourseIds } from "@/lib/course-helpers";
 
 function escapeCSV(value: unknown): string {
@@ -13,7 +13,7 @@ function escapeCSV(value: unknown): string {
 export async function GET(request: NextRequest) {
   try {
     const token = request.cookies.get("atlas-edu-token")?.value;
-    const user = token ? await verifyToken(token) : null;
+    const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
     if (!user || user.role !== "teacher") {
       return Response.json({ error: "Solo docentes" }, { status: 403 });
     }

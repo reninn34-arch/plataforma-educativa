@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Loader2, TrendingUp, Target, Award, BarChart3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { apiFetch } from "@/lib/fetch-utils";
 
 interface SubjectGrade {
   subjectId: number;
@@ -52,14 +53,14 @@ export function GradebookPanel({ cursoId: initialCursoId }: { cursoId?: number |
     setLoading(true);
     let url = `/api/analytics/gradebook?trimester=${trimesterFilter}`;
     if (cursoId) url += `&cursoId=${cursoId}`;
-    fetch(url)
+    apiFetch(url)
       .then(r => r.json())
       .then(d => { setGradebook(d.gradebook || []); setLoading(false); })
       .catch(() => setLoading(false));
   };
 
   useEffect(() => {
-    fetch("/api/teacher/courses").then(r => r.json()).then(d => setCursos(d.cursos || [])).catch(() => {});
+    apiFetch("/api/teacher/courses").then(r => r.json()).then(d => setCursos(d.cursos || [])).catch(() => {});
   }, []);
 
   useEffect(() => { fetchGradebook(); }, [trimesterFilter, cursoId]);

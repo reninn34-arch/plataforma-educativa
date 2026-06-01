@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentSubmissions, subjects, users, cursos, periodosLectivos } from "@/lib/db/schema";
 import { eq, and, desc, asc, inArray } from "drizzle-orm";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getTeacherCourseIds } from "@/lib/course-helpers";
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
-  const user = token ? await verifyToken(token) : null;
+  const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
   if (!user || user.role !== "teacher") {
     return NextResponse.json({ error: "Solo docentes" }, { status: 403 });
   }
@@ -74,7 +74,8 @@ export async function GET(request: NextRequest) {
       .leftJoin(users, eq(assignmentSubmissions.studentId, users.id))
       .leftJoin(cursos, eq(assignments.cursoId, cursos.id))
       .where(and(...conditions))
-      .orderBy(desc(users.fullName), asc(subjects.name));
+      .orderBy(desc(users.fullName), asc(subjects.name))
+      .limit(500);
 
     const studentMap = new Map<number, {
       studentId: number;

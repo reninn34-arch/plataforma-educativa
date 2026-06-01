@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel } from "@/lib/ai";
 import { generateObject } from "ai";
 import { z } from "zod/v4";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 
 const mcqQuestionSchema = z.object({
@@ -29,7 +29,7 @@ const generateResponseSchema = z.object({
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
-  const user = token ? await verifyToken(token) : null;
+  const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
   if (!user || (user.role !== "teacher" && user.role !== "admin")) {
     return NextResponse.json({ error: "Solo docentes y administradores" }, { status: 403 });
   }

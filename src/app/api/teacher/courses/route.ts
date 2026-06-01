@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { cursos, cursoEstudiantes, cursoProfesores, users, subjects } from "@/lib/db/schema";
 import { eq, inArray, sql } from "drizzle-orm";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getTeacherCourseIds } from "@/lib/course-helpers";
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
-  const teacher = token ? await verifyToken(token) : null;
+  const teacher = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
   if (!teacher || teacher.role !== "teacher") {
     return NextResponse.json({ error: "Solo profesores" }, { status: 403 });
   }
@@ -39,29 +39,36 @@ export async function GET(request: NextRequest) {
       .where(inArray(cursos.id, idsArray))
       .groupBy(cursos.id, users.fullName);
 
-    const cursosWithTeachers = await Promise.all(
-      data.map(async (c) => {
-        const mySubjects = await db
-          .select({
-            teacherId: cursoProfesores.teacherId,
-            teacherName: users.fullName,
-            subjectId: cursoProfesores.subjectId,
-            subjectName: subjects.name,
-            subjectEmoji: subjects.emoji,
-          })
-          .from(cursoProfesores)
-          .innerJoin(users, eq(cursoProfesores.teacherId, users.id))
-          .innerJoin(subjects, eq(cursoProfesores.subjectId, subjects.id))
-          .where(eq(cursoProfesores.cursoId, c.id));
-
-        return {
-          ...c,
-          teacherSubjects: mySubjects,
-          isTutor: c.profesorId === teacher.id,
-          mySubjects: mySubjects.filter(ts => ts.teacherId === teacher.id),
-        };
+    const cursoIds = data.map(c => c.id);
+    const allProfs = cursoIds.length > 0 ? await db
+      .select({
+        cursoId: cursoProfesores.cursoId,
+        teacherId: cursoProfesores.teacherId,
+        teacherName: users.fullName,
+        subjectId: cursoProfesores.subjectId,
+        subjectName: subjects.name,
+        subjectEmoji: subjects.emoji,
       })
-    );
+      .from(cursoProfesores)
+      .innerJoin(users, eq(cursoProfesores.teacherId, users.id))
+      .innerJoin(subjects, eq(cursoProfesores.subjectId, subjects.id))
+      .where(inArray(cursoProfesores.cursoId, cursoIds)) : [];
+
+    const profsByCurso = new Map<number, typeof allProfs>();
+    for (const p of allProfs) {
+      if (!profsByCurso.has(p.cursoId)) profsByCurso.set(p.cursoId, []);
+      profsByCurso.get(p.cursoId)!.push(p);
+    }
+
+    const cursosWithTeachers = data.map(c => {
+      const teacherSubjects = profsByCurso.get(c.id) || [];
+      return {
+        ...c,
+        teacherSubjects,
+        isTutor: c.profesorId === teacher.id,
+        mySubjects: teacherSubjects.filter(ts => ts.teacherId === teacher.id),
+      };
+    });
 
     return NextResponse.json({ cursos: cursosWithTeachers });
   } catch (error) {

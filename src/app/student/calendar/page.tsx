@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StudentBottomNav } from "@/components/StudentBottomNav";
+import { apiFetch } from "@/lib/fetch-utils";
 
 interface Event {
   id: number;
@@ -23,7 +24,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/student/calendar")
+    apiFetch("/api/student/calendar")
       .then(r => r.json())
       .then(d => { setEvents(d.events || []); setLoading(false); })
       .catch(() => setLoading(false));

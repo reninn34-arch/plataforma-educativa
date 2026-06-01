@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StudentBottomNav } from "@/components/StudentBottomNav";
+import { apiFetch } from "@/lib/fetch-utils";
 
 interface GradeRow {
   id: number;
@@ -44,7 +45,7 @@ export default function StudentGradesPage() {
   const [tab, setTab] = useState<"tasks" | "summary">("tasks");
 
   useEffect(() => {
-    fetch("/api/student/grades")
+    apiFetch("/api/student/grades")
       .then(r => r.json())
       .then(d => {
         setGraded(d.graded || []);

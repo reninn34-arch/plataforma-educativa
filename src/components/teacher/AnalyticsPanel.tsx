@@ -5,6 +5,7 @@ import { Loader2, TrendingUp, Target, AlertTriangle, Award, Brain } from "lucide
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { apiFetch } from "@/lib/fetch-utils";
 
 interface AnalyticsData {
   overall: { totalSessions: number; totalAnswers: number; avgScore: number; avgCorrect: number } | null;
@@ -29,14 +30,14 @@ export function AnalyticsPanel({ cursoId: initialCursoId }: { cursoId?: number |
     setLoading(true);
     let url = "/api/analytics/overview";
     if (cursoId) url += `?cursoId=${cursoId}`;
-    fetch(url)
+    apiFetch(url)
       .then(r => r.json())
       .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
   };
 
   useEffect(() => {
-    fetch("/api/teacher/courses").then(r => r.json()).then(d => setCursos(d.cursos || [])).catch(() => {});
+    apiFetch("/api/teacher/courses").then(r => r.json()).then(d => setCursos(d.cursos || [])).catch(() => {});
   }, []);
 
   useEffect(() => { fetchAnalytics(); }, [cursoId]);

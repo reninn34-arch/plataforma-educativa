@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Loader2, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { apiFetch } from "@/lib/fetch-utils";
 
 interface Bloque {
   id: number;
@@ -26,7 +27,7 @@ export default function StudentHorarioPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/student/horario")
+    apiFetch("/api/student/horario")
       .then(r => r.json())
       .then(d => { setHorarios(d.horarios || []); setLoading(false); })
       .catch(() => setLoading(false));

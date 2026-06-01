@@ -6,41 +6,31 @@ import { StudentsTable } from "@/components/teacher/StudentsTable";
 import { Download, BookOpen, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-
-interface CursoOption {
-  id: number;
-  nombre: string;
-  nivel: string;
-  mySubjects: { subjectEmoji: string; subjectName: string }[];
-}
+import { useTeacherCourses, CursoOption } from "@/lib/contexts";
+import { dedupFetch } from "@/lib/api-cache";
 
 function DashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const cursoId = searchParams.get("cursoId") ? parseInt(searchParams.get("cursoId")!) : null;
-  const [cursos, setCursos] = useState<CursoOption[]>([]);
+  const { cursos } = useTeacherCourses();
   const [selectedCurso, setSelectedCurso] = useState<CursoOption | null>(null);
   const [activePeriod, setActivePeriod] = useState<{ nombre: string } | null>(null);
 
   useEffect(() => {
-    fetch("/api/teacher/courses")
-      .then(r => r.json())
-      .then(d => {
-        setCursos(d.cursos || []);
-        if (cursoId) {
-          const found = (d.cursos || []).find((c: CursoOption) => c.id === cursoId);
-          if (found) setSelectedCurso(found);
-        }
-      })
-      .catch(() => {});
+    if (cursoId) {
+      const found = cursos.find((c: { id: number }) => c.id === cursoId);
+      if (found) setSelectedCurso(found);
+    } else {
+      setSelectedCurso(null);
+    }
+  }, [cursoId, cursos]);
 
-    fetch("/api/teacher/periodos")
-      .then(r => r.json())
-      .then(d => {
-        if (d.active) setActivePeriod(d.active);
-      })
+  useEffect(() => {
+    dedupFetch<{ active: { nombre: string } | null }>("/api/teacher/periodos")
+      .then(d => { if (d.active) setActivePeriod(d.active); })
       .catch(() => {});
-  }, [cursoId]);
+  }, []);
 
   return (
     <div className="flex-1 p-4 sm:p-8 w-full max-w-6xl mx-auto space-y-6 animate-fade-in-up">

@@ -7,7 +7,7 @@ import {
   subjects,
 } from "@/lib/db/schema";
 import { eq, and, desc, inArray, isNotNull } from "drizzle-orm";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 
 function calculateStreak(dates: string[]): number {
   if (dates.length === 0) return 0;
@@ -36,7 +36,7 @@ function calculateStreak(dates: string[]): number {
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
-  const user = token ? await verifyToken(token) : null;
+  const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
   if (!user || user.role !== "student") return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   try {

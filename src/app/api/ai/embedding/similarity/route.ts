@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { embeddingSimilaritySchema } from "@/lib/api-helpers";
 import { generateEmbeddings, logAiCall } from "@/lib/ai";
 import { rateLimit } from "@/lib/rate-limit";
@@ -23,7 +23,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
-  const user = token ? await verifyToken(token) : null;
+  const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
   if (!user) {
     return Response.json({ error: "No autorizado" }, { status: 401 });
   }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { asistencia, users, cursoEstudiantes } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ cursoId: string }> }
 ) {
   const token = request.cookies.get("atlas-edu-token")?.value;
-  const user = token ? await verifyToken(token) : null;
+  const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
   if (!user || user.role !== "teacher") {
     return NextResponse.json({ error: "Solo docentes" }, { status: 403 });
   }

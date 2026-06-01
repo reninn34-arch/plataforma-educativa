@@ -50,7 +50,12 @@ export default async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/teacher/dashboard", request.url));
   }
 
-  const response = NextResponse.next();
+  const encodedPayload = btoa(JSON.stringify({
+    id: user.id, cedula: user.cedula, fullName: user.fullName, role: user.role,
+  }));
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-user-payload", encodedPayload);
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
 
   if (method === "GET" && !request.cookies.get(CSRF_COOKIE)) {
     const csrfToken = crypto.randomUUID();

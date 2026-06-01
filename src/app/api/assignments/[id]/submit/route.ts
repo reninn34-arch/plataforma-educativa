@@ -3,8 +3,8 @@ import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { db } from "@/lib/db";
 import { assignmentSubmissions, submissionAnswers, assignmentQuestions, assignments, cursoEstudiantes } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
-import { verifyToken } from "@/lib/auth";
+import { eq, and, inArray } from "drizzle-orm";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = [
@@ -18,7 +18,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const token = request.cookies.get("atlas-edu-token")?.value;
-  const user = token ? await verifyToken(token) : null;
+  const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
   if (!user || user.role !== "student") {
     return NextResponse.json({ error: "Solo estudiantes pueden entregar" }, { status: 403 });
   }
@@ -127,18 +127,21 @@ export async function POST(
       // Delete old answers
       await db.delete(submissionAnswers).where(eq(submissionAnswers.submissionId, submissionId));
 
-      for (const ans of answers) {
-        // Check if correct
-        const [q] = await db
-          .select({ correctIndex: assignmentQuestions.correctIndex })
-          .from(assignmentQuestions)
-          .where(eq(assignmentQuestions.id, ans.questionId));
+      // Pre-load all question correct indices in one query
+      const questionIds = answers.map(a => a.questionId);
+      const allQ = await db
+        .select({ id: assignmentQuestions.id, correctIndex: assignmentQuestions.correctIndex })
+        .from(assignmentQuestions)
+        .where(inArray(assignmentQuestions.id, questionIds));
+      const correctMap = new Map(allQ.map(q => [q.id, q.correctIndex]));
 
+      for (const ans of answers) {
+        const correctIndex = correctMap.get(ans.questionId);
         await db.insert(submissionAnswers).values({
           submissionId,
           questionId: ans.questionId,
           selectedIndex: ans.selectedIndex,
-          isCorrect: q ? ans.selectedIndex === q.correctIndex : false,
+          isCorrect: correctIndex !== undefined ? ans.selectedIndex === correctIndex : false,
         } as any);
       }
     }

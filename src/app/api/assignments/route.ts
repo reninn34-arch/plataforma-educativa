@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentQuestions, assignmentSubmissions, subjects, users, cursos, periodosLectivos, cursoEstudiantes } from "@/lib/db/schema";
-import { eq, and, desc, inArray } from "drizzle-orm";
-import { verifyToken } from "@/lib/auth";
+import { eq, and, desc, inArray, sql } from "drizzle-orm";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { teacherHasCourseAccess } from "@/lib/course-helpers";
 import { assignmentSchema } from "@/lib/api-helpers";
 
 export async function GET(request: NextRequest) {
   try {
     const token = request.cookies.get("atlas-edu-token")?.value;
-    const user = token ? await verifyToken(token) : null;
+    const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     if (user.role === "teacher") {
@@ -28,7 +28,6 @@ export async function GET(request: NextRequest) {
           periodoNombre: periodosLectivos.nombre,
           puntos: assignments.puntos,
           trimester: assignments.trimester,
-          submissionCount: db.$count(assignmentSubmissions, eq(assignmentSubmissions.assignmentId, assignments.id)),
         })
         .from(assignments)
         .leftJoin(subjects, eq(assignments.subjectId, subjects.id))
@@ -37,7 +36,21 @@ export async function GET(request: NextRequest) {
         .where(eq(assignments.teacherId, user.id))
         .orderBy(desc(assignments.createdAt));
 
-      return NextResponse.json({ assignments: data });
+      // Batch count submissions in one query
+      const assignmentIds = data.map(a => a.id);
+      const counts = assignmentIds.length > 0 ? await db
+        .select({
+          assignmentId: assignmentSubmissions.assignmentId,
+          count: sql<number>`count(*)`.mapWith(Number),
+        })
+        .from(assignmentSubmissions)
+        .where(inArray(assignmentSubmissions.assignmentId, assignmentIds))
+        .groupBy(assignmentSubmissions.assignmentId) : [];
+      const countMap = new Map(counts.map(c => [c.assignmentId, c.count]));
+
+      return NextResponse.json({
+        assignments: data.map(a => ({ ...a, submissionCount: countMap.get(a.id) || 0 })),
+      });
     }
 
     // Student: only show assignments from their enrolled courses
@@ -92,7 +105,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const token = request.cookies.get("atlas-edu-token")?.value;
-    const user = token ? await verifyToken(token) : null;
+    const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
     if (!user || user.role !== "teacher") {
       return NextResponse.json({ error: "Solo docentes pueden crear tareas" }, { status: 403 });
     }

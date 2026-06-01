@@ -6,6 +6,7 @@ import { Loader2, ArrowLeft, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { apiFetch } from "@/lib/fetch-utils";
 
 interface GradeData {
   cursoId?: number; studentId: number; studentName: string; studentCedula: string;
@@ -22,22 +23,16 @@ export default function BoletinPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/admin/courses")
-      .then(r => r.json())
-      .then(d => {
+    Promise.all([
+      apiFetch("/api/admin/courses").then(r => r.json()).then(d => {
         const found = (d.cursos || []).find((c: any) => c.id === cursoId);
         if (found) setCursoNombre(found.nombre);
-      })
-      .catch(() => {});
-
-    fetch(`/api/admin/grades`)
-      .then(r => r.json())
-      .then(d => {
-        const filtered = (d.grades || []).filter((g: GradeData) => g.cursoId === cursoId);
-        setGrades(filtered);
+      }).catch(() => {}),
+      apiFetch(`/api/admin/grades?cursoId=${cursoId}&limit=1000`).then(r => r.json()).then(d => {
+        setGrades(d.grades || []);
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      }).catch(() => setLoading(false)),
+    ]);
   }, [cursoId]);
 
   const students = new Map<number, { name: string; cedula: string; subjects: Map<string, { emoji: string; t1: (number | null)[]; t2: (number | null)[]; t3: (number | null)[] }> }>();

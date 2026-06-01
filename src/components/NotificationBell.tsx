@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
+import { apiFetch } from "@/lib/fetch-utils";
 
 export function NotificationBell() {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
     const fetchCount = () => {
-      fetch("/api/notifications")
+      apiFetch("/api/notifications")
         .then(r => r.json())
         .then(d => setCount(d.unreadCount || 0))
         .catch(() => {});

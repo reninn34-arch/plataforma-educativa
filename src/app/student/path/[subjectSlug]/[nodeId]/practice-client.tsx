@@ -5,10 +5,12 @@ import { ArrowLeft, Loader2, Sparkles, MessageCircle, X } from "lucide-react";
 import { Countdown } from "@/components/practice/Countdown";
 import { QuestionCard } from "@/components/practice/QuestionCard";
 import { TimerRing } from "@/components/practice/TimerRing";
-import { ResultsScreen } from "@/components/practice/ResultsScreen";
-import { ModuleComplete } from "@/components/practice/ModuleComplete";
 import { Hearts } from "@/components/practice/Hearts";
-import { LessonView } from "@/components/practice/LessonView";
+import dynamic from "next/dynamic";
+
+const ResultsScreen = dynamic(() => import("@/components/practice/ResultsScreen").then(m => ({ default: m.ResultsScreen })), { ssr: false });
+const ModuleComplete = dynamic(() => import("@/components/practice/ModuleComplete").then(m => ({ default: m.ModuleComplete })), { ssr: false });
+const LessonView = dynamic(() => import("@/components/practice/LessonView").then(m => ({ default: m.LessonView })), { ssr: false });
 import { sounds } from "@/lib/sounds";
 import { useRouter } from "next/navigation";
 import { cn, formatNotation } from "@/lib/utils";

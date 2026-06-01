@@ -103,11 +103,20 @@ function createTeacherTools(userId: number, userFullName: string) {
         .select({ id: assignments.id, title: assignments.title, dueDate: assignments.dueDate, trimester: assignments.trimester, puntos: assignments.puntos, subjectName: subjects.name, subjectEmoji: subjects.emoji, cursoNombre: cursos.nombre })
         .from(assignments).innerJoin(subjects, eq(subjects.id, assignments.subjectId)).leftJoin(cursos, eq(cursos.id, assignments.cursoId))
         .where(and(...conds)).orderBy(desc(assignments.createdAt)).limit(limit || 5);
-      const result = [];
-      for (const t of tareas) {
-        const subs = await db.select({ id: assignmentSubmissions.id, status: assignmentSubmissions.status }).from(assignmentSubmissions).where(eq(assignmentSubmissions.assignmentId, t.id));
-        result.push({ ...t, entregadas: subs.filter(s => s.status === "submitted" || s.status === "graded").length, pendientes: subs.filter(s => s.status === "pending").length });
+      const assignmentIds = tareas.map(t => t.id);
+      const allSubs = assignmentIds.length > 0
+        ? await db.select({ id: assignmentSubmissions.id, assignmentId: assignmentSubmissions.assignmentId, status: assignmentSubmissions.status }).from(assignmentSubmissions).where(inArray(assignmentSubmissions.assignmentId, assignmentIds))
+        : [];
+      const subsByAssignment = new Map<number, typeof allSubs>();
+      for (const s of allSubs) {
+        const arr = subsByAssignment.get(s.assignmentId) ?? [];
+        arr.push(s);
+        subsByAssignment.set(s.assignmentId, arr);
       }
+      const result = tareas.map(t => {
+        const subs = subsByAssignment.get(t.id) ?? [];
+        return { ...t, entregadas: subs.filter(s => s.status === "submitted" || s.status === "graded").length, pendientes: subs.filter(s => s.status === "pending").length };
+      });
       return { tareas: result };
     },
   });
@@ -266,20 +275,31 @@ function createTeacherTools(userId: number, userFullName: string) {
         .orderBy(desc(assignments.createdAt))
         .limit(20);
 
+      const assignmentIds = teacherAssignments.map(a => a.id);
+      const allSubmissions = assignmentIds.length > 0
+        ? await db
+            .select({
+              id: assignmentSubmissions.id,
+              assignmentId: assignmentSubmissions.assignmentId,
+              studentId: assignmentSubmissions.studentId,
+              status: assignmentSubmissions.status,
+              grade: assignmentSubmissions.grade,
+              studentName: users.fullName,
+            })
+            .from(assignmentSubmissions)
+            .innerJoin(users, eq(users.id, assignmentSubmissions.studentId))
+            .where(inArray(assignmentSubmissions.assignmentId, assignmentIds))
+        : [];
+      const subsByAssignment = new Map<number, typeof allSubmissions>();
+      for (const sub of allSubmissions) {
+        const arr = subsByAssignment.get(sub.assignmentId) ?? [];
+        arr.push(sub);
+        subsByAssignment.set(sub.assignmentId, arr);
+      }
+
       const results = [];
       for (const assignment of teacherAssignments) {
-        const submissions = await db
-          .select({
-            id: assignmentSubmissions.id,
-            studentId: assignmentSubmissions.studentId,
-            status: assignmentSubmissions.status,
-            grade: assignmentSubmissions.grade,
-            studentName: users.fullName,
-          })
-          .from(assignmentSubmissions)
-          .innerJoin(users, eq(users.id, assignmentSubmissions.studentId))
-          .where(eq(assignmentSubmissions.assignmentId, assignment.id));
-
+        const submissions = subsByAssignment.get(assignment.id) ?? [];
         const pending = submissions.filter(s => (s.status === "submitted" || s.status === "pending") && s.grade === null);
         const graded = submissions.filter(s => s.grade !== null);
 
@@ -1121,8 +1141,12 @@ function createAdminTools(userId: number, userFullName: string = "") {
     inputSchema: z.object({}),
     execute: async () => {
       const courses = await db.select({ id: cursos.id, nombre: cursos.nombre, nivel: cursos.nivel, activo: cursos.activo }).from(cursos).orderBy(cursos.nombre);
-      const result = [];
-      for (const c of courses) { const enrolled = await db.select({ count: sql<number>`count(*)` }).from(cursoEstudiantes).where(eq(cursoEstudiantes.cursoId, c.id)); result.push({ ...c, estudiantes: enrolled[0]?.count || 0 }); }
+      const courseIds = courses.map(c => c.id);
+      const counts = courseIds.length > 0
+        ? await db.select({ cursoId: cursoEstudiantes.cursoId, count: sql<number>`count(*)::int` }).from(cursoEstudiantes).where(inArray(cursoEstudiantes.cursoId, courseIds)).groupBy(cursoEstudiantes.cursoId)
+        : [];
+      const countMap = new Map(counts.map(c => [c.cursoId, c.count]));
+      const result = courses.map(c => ({ ...c, estudiantes: countMap.get(c.id) ?? 0 }));
       return { cursos: result, total: result.length };
     },
   });
@@ -1146,24 +1170,43 @@ function createAdminTools(userId: number, userFullName: string = "") {
     }),
     execute: async ({ students }) => {
       const results: any[] = [];
-      for (const s of students) {
-        const [existing] = await db.select({ id: users.id, activo: users.activo }).from(users).where(eq(users.cedula, s.cedula)).limit(1);
+      const cedulas = students.map(s => s.cedula);
+      const existingUsers = cedulas.length > 0
+        ? await db.select({ id: users.id, cedula: users.cedula, activo: users.activo }).from(users).where(inArray(users.cedula, cedulas))
+        : [];
+      const existingMap = new Map(existingUsers.map(u => [u.cedula, u]));
+
+      const pins = students.map(() => generatePin());
+      const hashedPins = await Promise.all(pins.map(p => bcrypt.hash(p, 10)));
+
+      const toInsert: any[] = [];
+      const toReactivate: { id: number; fullName: string; email: string | null; pin: string }[] = [];
+      const errors: any[] = [];
+
+      for (let i = 0; i < students.length; i++) {
+        const s = students[i];
+        const existing = existingMap.get(s.cedula);
+        const pin = pins[i];
+        const hashed = hashedPins[i];
+
         if (existing) {
           if (!existing.activo) {
-            const pin = generatePin();
-            const hashed = await bcrypt.hash(pin, 10);
-            await db.update(users).set({ activo: true, fullName: s.fullName, email: s.email || null, pin: hashed }).where(eq(users.id, existing.id));
+            toReactivate.push({ id: existing.id, fullName: s.fullName, email: s.email || null, pin: hashed });
             results.push({ cedula: s.cedula, fullName: s.fullName, pin, reactivado: true });
           } else {
             results.push({ cedula: s.cedula, fullName: s.fullName, error: "Ya existe" });
           }
         } else {
-          const pin = generatePin();
-          const hashed = await bcrypt.hash(pin, 10);
-          await db.insert(users).values({ cedula: s.cedula, fullName: s.fullName, role: "student", email: s.email || null, pin: hashed } as any);
+          toInsert.push({ cedula: s.cedula, fullName: s.fullName, role: "student", email: s.email || null, pin: hashed });
           results.push({ cedula: s.cedula, fullName: s.fullName, pin, creado: true });
         }
       }
+
+      if (toInsert.length > 0) await db.insert(users).values(toInsert);
+      await Promise.all(toReactivate.map(r =>
+        db.update(users).set({ activo: true, fullName: r.fullName, email: r.email, pin: r.pin }).where(eq(users.id, r.id))
+      ));
+
       const creados = results.filter((r: any) => r.creado || r.reactivado).length;
       return { resultados: results, total_creados: creados, mensaje: `Se procesaron ${students.length} estudiantes: ${creados} creados/reactivados.` };
     },
@@ -1240,12 +1283,12 @@ function createAdminTools(userId: number, userFullName: string = "") {
 
       const pinsByStudent: Record<number, string> = {};
       if (resetPins) {
-        for (const s of withEmail) {
-          const pin = generatePin();
-          const hashed = await bcrypt.hash(pin, 10);
-          await db.update(users).set({ pin: hashed }).where(eq(users.id, s.id));
-          pinsByStudent[s.id] = pin;
-        }
+        const pins = withEmail.map(() => generatePin());
+        const hashedPins = await Promise.all(pins.map(p => bcrypt.hash(p, 10)));
+        await Promise.all(withEmail.map((s, i) =>
+          db.update(users).set({ pin: hashedPins[i] }).where(eq(users.id, s.id))
+        ));
+        withEmail.forEach((s, i) => { pinsByStudent[s.id] = pins[i]; });
       }
 
       const nodemailer = await import("nodemailer");

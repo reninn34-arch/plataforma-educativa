@@ -29,6 +29,16 @@ export async function verifyToken(token: string): Promise<SessionUser | null> {
   }
 }
 
+export function getVerifiedUser(request: { headers: { get(name: string): string | null } }): SessionUser | null {
+  const encoded = request.headers.get("x-user-payload");
+  if (!encoded) return null;
+  try {
+    return JSON.parse(Buffer.from(encoded, "base64").toString("utf-8"));
+  } catch {
+    return null;
+  }
+}
+
 export async function getUser(): Promise<SessionUser | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(TOKEN_NAME)?.value;

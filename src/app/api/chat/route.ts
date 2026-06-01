@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { chatSessions, chatMessages, subjects } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, type ResolvedModel } from "@/lib/ai";
 import { streamText, convertToModelMessages } from "ai";
 import { rateLimit } from "@/lib/rate-limit";
@@ -46,7 +46,7 @@ async function getOrCreateSession(userId: number, subjectSlug: string) {
 export async function POST(request: NextRequest) {
   try {
     const token = request.cookies.get("atlas-edu-token")?.value;
-    const user = token ? await verifyToken(token) : null;
+    const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
     if (!user) {
       return new Response(JSON.stringify({ error: "No autorizado" }), {
         status: 401,

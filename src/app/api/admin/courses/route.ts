@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { cursos, cursoEstudiantes, users, subjects, cursoProfesores } from "@/lib/db/schema";
-import { eq, desc, sql } from "drizzle-orm";
-import { verifyToken } from "@/lib/auth";
+import { eq, inArray, desc, sql } from "drizzle-orm";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
-  const user = token ? await verifyToken(token) : null;
+  const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
   if (!user || user.role !== "admin") return NextResponse.json({ error: "Solo admin" }, { status: 403 });
 
   try {
@@ -27,27 +27,31 @@ export async function GET(request: NextRequest) {
       .groupBy(cursos.id, users.fullName)
       .orderBy(desc(cursos.createdAt));
 
-    const cursosWithTeachers = await Promise.all(
-      data.map(async (c) => {
-        const profs = await db
-          .select({
-            teacherId: cursoProfesores.teacherId,
-            teacherName: users.fullName,
-            subjectId: cursoProfesores.subjectId,
-            subjectName: subjects.name,
-            subjectEmoji: subjects.emoji,
-          })
-          .from(cursoProfesores)
-          .innerJoin(users, eq(cursoProfesores.teacherId, users.id))
-          .innerJoin(subjects, eq(cursoProfesores.subjectId, subjects.id))
-          .where(eq(cursoProfesores.cursoId, c.id));
-
-        return {
-          ...c,
-          teacherSubjects: profs,
-        };
+    const cursoIds = data.map(c => c.id);
+    const allProfs = cursoIds.length > 0 ? await db
+      .select({
+        cursoId: cursoProfesores.cursoId,
+        teacherId: cursoProfesores.teacherId,
+        teacherName: users.fullName,
+        subjectId: cursoProfesores.subjectId,
+        subjectName: subjects.name,
+        subjectEmoji: subjects.emoji,
       })
-    );
+      .from(cursoProfesores)
+      .innerJoin(users, eq(cursoProfesores.teacherId, users.id))
+      .innerJoin(subjects, eq(cursoProfesores.subjectId, subjects.id))
+      .where(inArray(cursoProfesores.cursoId, cursoIds)) : [];
+
+    const profsByCurso = new Map<number, typeof allProfs>();
+    for (const p of allProfs) {
+      if (!profsByCurso.has(p.cursoId)) profsByCurso.set(p.cursoId, []);
+      profsByCurso.get(p.cursoId)!.push(p);
+    }
+
+    const cursosWithTeachers = data.map(c => ({
+      ...c,
+      teacherSubjects: profsByCurso.get(c.id) || [],
+    }));
 
     return NextResponse.json({ cursos: cursosWithTeachers });
   } catch (error) {
@@ -58,7 +62,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
-  const user = token ? await verifyToken(token) : null;
+  const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
   if (!user || user.role !== "admin") return NextResponse.json({ error: "Solo admin" }, { status: 403 });
 
   try {

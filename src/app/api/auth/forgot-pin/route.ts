@@ -4,9 +4,14 @@ import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { createToken } from "@/lib/auth";
 import { getSmtpConfig } from "@/lib/smtp-config";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const rl = rateLimit({ key: `forgot-pin:${ip}`, maxRequests: 3, windowMs: 60_000 });
+    if (rl) return rl;
+
     const { cedula } = await request.json();
     if (!cedula || cedula.length !== 10) {
       return NextResponse.json({ error: "Cedula invalida" }, { status: 400 });

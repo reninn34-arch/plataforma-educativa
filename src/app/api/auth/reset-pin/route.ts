@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "PIN debe ser de 4 digitos" }, { status: 400 });
     }
 
-    const payload = await verifyToken(token);
+    const payload = getVerifiedUser(request) ?? (await verifyToken(token));
     if (!payload) {
       return NextResponse.json({ error: "El enlace expiro o es invalido. Solicita uno nuevo." }, { status: 400 });
     }

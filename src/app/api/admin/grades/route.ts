@@ -1,16 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentSubmissions, subjects, users, cursos } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-import { verifyToken } from "@/lib/auth";
+import { eq, and } from "drizzle-orm";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
-  const user = token ? await verifyToken(token) : null;
+  const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
   if (!user || user.role !== "admin") return NextResponse.json({ error: "Solo admin" }, { status: 403 });
 
+  const { searchParams } = new URL(request.url);
+  const cursoId = searchParams.get("cursoId");
+  const limit = Math.min(Number(searchParams.get("limit")) || 500, 1000);
+
   try {
-    const data = await db
+    const conditions = [];
+    if (cursoId) {
+      const cursoNum = Number(cursoId);
+      if (!isNaN(cursoNum)) conditions.push(eq(assignments.cursoId, cursoNum));
+    }
+
+    const query = db
       .select({
         cursoId: cursos.id,
         cursoNombre: cursos.nombre,
@@ -30,6 +40,10 @@ export async function GET(request: NextRequest) {
       .leftJoin(subjects, eq(assignments.subjectId, subjects.id))
       .leftJoin(users, eq(assignmentSubmissions.studentId, users.id))
       .leftJoin(cursos, eq(assignments.cursoId, cursos.id));
+
+    const data = await (conditions.length > 0
+      ? query.where(and(...conditions)).limit(limit)
+      : query.limit(limit));
 
     return NextResponse.json({ grades: data });
   } catch (error) {

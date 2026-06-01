@@ -9,6 +9,7 @@ import {
   boolean,
   jsonb,
   unique,
+  index,
 } from "drizzle-orm/pg-core";
 
 export const roleEnum = pgEnum("role", ["student", "teacher", "admin", "parent"]);
@@ -23,7 +24,10 @@ export const users = pgTable("users", {
   activo: boolean("activo").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLogin: timestamp("last_login"),
-});
+}, (table) => ({
+  roleIdx: index("idx_users_role").on(table.role),
+  activoIdx: index("idx_users_activo").on(table.activo),
+}));
 
 export const subjects = pgTable("subjects", {
   id: serial("id").primaryKey(),
@@ -45,7 +49,11 @@ export const progress = pgTable("progress", {
   lastActivity: timestamp("last_activity").defaultNow().notNull(),
   consecutiveFailures: integer("consecutive_failures").notNull().default(0),
   daysInactive: integer("days_inactive").notNull().default(0),
-});
+}, (table) => ({
+  userIdIdx: index("idx_progress_user_id").on(table.userId),
+  subjectIdIdx: index("idx_progress_subject_id").on(table.subjectId),
+  userSubjectIdx: index("idx_progress_user_subject").on(table.userId, table.subjectId),
+}));
 
 export const modules = pgTable("modules", {
   id: serial("id").primaryKey(),
@@ -57,7 +65,9 @@ export const modules = pgTable("modules", {
   requiredPoints: integer("required_points").notNull().default(0),
   topic: varchar("topic", { length: 200 }),
   generated: boolean("generated").notNull().default(false),
-});
+}, (table) => ({
+  subjectIdIdx: index("idx_modules_subject_id").on(table.subjectId),
+}));
 
 export const nodeTypeEnum = pgEnum("node_type", ["concept", "quiz", "challenge"]);
 
@@ -103,7 +113,10 @@ export const userProgress = pgTable("user_progress", {
   starsEarned: integer("stars_earned").notNull().default(0),
   attempts: integer("attempts").notNull().default(0),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  userIdIdx: index("idx_user_progress_user_id").on(table.userId),
+  userNodeStatusIdx: index("idx_user_progress_user_node_status").on(table.userId, table.nodeId, table.status),
+}));
 
 export const chatSessions = pgTable("chat_sessions", {
   id: serial("id").primaryKey(),
@@ -114,7 +127,10 @@ export const chatSessions = pgTable("chat_sessions", {
     .notNull()
     .references(() => subjects.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  userIdIdx: index("idx_chat_sessions_user_id").on(table.userId),
+  subjectIdIdx: index("idx_chat_sessions_subject_id").on(table.subjectId),
+}));
 
 export const chatMessages = pgTable("chat_messages", {
   id: serial("id").primaryKey(),
@@ -124,7 +140,9 @@ export const chatMessages = pgTable("chat_messages", {
   role: varchar("role", { length: 20 }).notNull(),
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  sessionIdIdx: index("idx_chat_messages_session_id").on(table.sessionId),
+}));
 
 // --- Teacher Assignments ---
 
@@ -146,7 +164,13 @@ export const assignments = pgTable("assignments", {
   puntos: integer("puntos").notNull().default(10),
   periodoLectivoId: integer("periodo_lectivo_id").references(() => periodosLectivos.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  teacherIdIdx: index("idx_assignments_teacher_id").on(table.teacherId),
+  subjectIdIdx: index("idx_assignments_subject_id").on(table.subjectId),
+  cursoIdIdx: index("idx_assignments_curso_id").on(table.cursoId),
+  periodoLectivoIdIdx: index("idx_assignments_periodo_lectivo_id").on(table.periodoLectivoId),
+  teacherSubjectCursoIdx: index("idx_assignments_teacher_subject_curso").on(table.teacherId, table.subjectId, table.cursoId),
+}));
 
 export const assignmentSubmissions = pgTable("assignment_submissions", {
   id: serial("id").primaryKey(),
@@ -162,7 +186,11 @@ export const assignmentSubmissions = pgTable("assignment_submissions", {
   feedback: text("feedback"),
   status: assignmentStatusEnum("status").notNull().default("pending"),
   submittedAt: timestamp("submitted_at").defaultNow(),
-});
+}, (table) => ({
+  assignmentIdIdx: index("idx_assignment_submissions_assignment_id").on(table.assignmentId),
+  studentIdIdx: index("idx_assignment_submissions_student_id").on(table.studentId),
+  statusIdx: index("idx_assignment_submissions_status").on(table.status),
+}));
 
 // --- Practice Analytics ---
 
@@ -179,7 +207,10 @@ export const practiceSessions = pgTable("practice_sessions", {
   score: integer("score").notNull().default(0),
   maxCombo: integer("max_combo").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  userIdIdx: index("idx_practice_sessions_user_id").on(table.userId),
+  subjectIdIdx: index("idx_practice_sessions_subject_id").on(table.subjectId),
+}));
 
 export const practiceAnswers = pgTable("practice_answers", {
   id: serial("id").primaryKey(),
@@ -198,7 +229,12 @@ export const practiceAnswers = pgTable("practice_answers", {
   studentAnswer: text("student_answer"),
   isCorrect: boolean("is_correct").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  sessionIdIdx: index("idx_practice_answers_session_id").on(table.sessionId),
+  userIdIdx: index("idx_practice_answers_user_id").on(table.userId),
+  subjectIdIdx: index("idx_practice_answers_subject_id").on(table.subjectId),
+  isCorrectIdx: index("idx_practice_answers_is_correct").on(table.isCorrect),
+}));
 
 // --- Assignment Questions (Exam / Mixed mode) ---
 
@@ -215,7 +251,9 @@ export const assignmentQuestions = pgTable("assignment_questions", {
   correctIndex: integer("correct_index"), // 0-3 for MCQ
   points: integer("points").notNull().default(1),
   orderIndex: integer("order_index").notNull().default(0),
-});
+}, (table) => ({
+  assignmentIdIdx: index("idx_assignment_questions_assignment_id").on(table.assignmentId),
+}));
 
 // --- Student answers to assignment questions ---
 
@@ -229,7 +267,9 @@ export const submissionAnswers = pgTable("submission_answers", {
     .references(() => assignmentQuestions.id),
   selectedIndex: integer("selected_index"), // for MCQ
   isCorrect: boolean("is_correct"),
-});
+}, (table) => ({
+  submissionIdIdx: index("idx_submission_answers_submission_id").on(table.submissionId),
+}));
 
 // --- Direct Messages (Teacher-Student chat) ---
 
@@ -244,7 +284,10 @@ export const directMessages = pgTable("direct_messages", {
   content: text("content").notNull(),
   read: boolean("read").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  senderIdIdx: index("idx_direct_messages_sender_id").on(table.senderId),
+  receiverIdIdx: index("idx_direct_messages_receiver_id").on(table.receiverId),
+}));
 
 // --- Admin: Configuration key-value store ---
 
@@ -264,7 +307,9 @@ export const cursos = pgTable("cursos", {
   profesorId: integer("profesor_id").references(() => users.id),
   activo: boolean("activo").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  profesorIdIdx: index("idx_cursos_profesor_id").on(table.profesorId),
+}));
 
 export const cursoEstudiantes = pgTable("curso_estudiantes", {
   id: serial("id").primaryKey(),
@@ -300,7 +345,9 @@ export const periodosLectivos = pgTable("periodos_lectivos", {
   fechaInicio: timestamp("fecha_inicio"),
   fechaFin: timestamp("fecha_fin"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  activoIdx: index("idx_periodos_lectivos_activo").on(table.activo),
+}));
 
 export const asistencia = pgTable("asistencia", {
   id: serial("id").primaryKey(),
@@ -338,4 +385,7 @@ export const horarios = pgTable("horarios", {
   horaFin: varchar("hora_fin", { length: 5 }).notNull(),
   subjectId: integer("subject_id").references(() => subjects.id, { onDelete: "set null" }),
   tipo: varchar("tipo", { length: 15 }).notNull().default("clase"),
-});
+}, (table) => ({
+  cursoIdIdx: index("idx_horarios_curso_id").on(table.cursoId),
+  subjectIdIdx: index("idx_horarios_subject_id").on(table.subjectId),
+}));

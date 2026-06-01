@@ -6,6 +6,7 @@ import { ArrowRight, Loader2, Users as UsersIcon, BookOpen } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/fetch-utils";
 
 interface CursoInfo {
   id: number;
@@ -26,23 +27,19 @@ export default function TeacherCursosPage() {
   const [schedule, setSchedule] = useState<Record<number, any[]>>({});
 
   useEffect(() => {
-    fetch("/api/teacher/courses")
-      .then(r => r.json())
-      .then(d => {
-        setCursos(d.cursos || []);
-        return fetch("/api/teacher/horario");
-      })
-      .then(r => r.json())
-      .then(d => {
-        const byCurso: Record<number, any[]> = {};
-        for (const h of d.horarios || []) {
-          if (!byCurso[h.cursoId]) byCurso[h.cursoId] = [];
-          byCurso[h.cursoId].push(h);
-        }
-        setSchedule(byCurso);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    Promise.all([
+      apiFetch("/api/teacher/courses").then(r => r.json()),
+      apiFetch("/api/teacher/horario").then(r => r.json()),
+    ]).then(([coursesData, horarioData]) => {
+      setCursos(coursesData.cursos || []);
+      const byCurso: Record<number, any[]> = {};
+      for (const h of horarioData.horarios || []) {
+        if (!byCurso[h.cursoId]) byCurso[h.cursoId] = [];
+        byCurso[h.cursoId].push(h);
+      }
+      setSchedule(byCurso);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
 
   if (loading) {

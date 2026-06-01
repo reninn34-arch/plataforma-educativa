@@ -3,12 +3,12 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { verifyToken, createToken } from "@/lib/auth";
+import { verifyToken, getVerifiedUser, createToken } from "@/lib/auth";
 import { profileSchema } from "@/lib/api-helpers";
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
-  const user = token ? await verifyToken(token) : null;
+  const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   try {
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
-  const user = token ? await verifyToken(token) : null;
+  const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   try {

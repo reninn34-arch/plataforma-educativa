@@ -8,6 +8,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DueTimer } from "@/components/DueTimer";
+import { apiFetch } from "@/lib/fetch-utils";
 
 type Tab = "pending" | "expired" | "submitted";
 
@@ -16,7 +17,7 @@ export default function StudentAssignmentsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("pending");
 
   useEffect(() => {
-    fetch("/api/assignments?role=student")
+    apiFetch("/api/assignments?role=student")
       .then(r => r.json())
       .then(d => { if (d.assignments) setAssignments(d.assignments); })
       .catch(() => {});

@@ -5,7 +5,7 @@ import { existsSync } from "fs";
 import { db } from "@/lib/db";
 import { assignments, cursoProfesores } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 const UPLOADS_DIR = join(process.cwd(), "uploads", "assignments");
 
 export async function GET(
@@ -13,7 +13,7 @@ export async function GET(
   { params }: { params: Promise<{ filename: string }> }
 ) {
   const token = request.cookies.get("atlas-edu-token")?.value;
-  const user = token ? await verifyToken(token) : null;
+  const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
 
   if (!user) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });

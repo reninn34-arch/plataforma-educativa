@@ -36,10 +36,6 @@ export function getEnv() {
   if (!cached) {
     const result = envSchema.safeParse(process.env);
     if (!result.success) {
-      console.error("⚠ Variables de entorno faltantes o invalidas:");
-      for (const issue of result.error.issues) {
-        console.error(`  - ${issue.path.join(".")}: ${issue.message}`);
-      }
       throw new Error("Configuracion de entorno invalida. Revisa .env.local");
     }
     cached = result.data;

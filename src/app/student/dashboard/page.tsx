@@ -17,6 +17,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SUBJECTS } from "@/lib/utils";
 import { DueTimer } from "@/components/DueTimer";
+import { useUserProfile } from "@/lib/contexts";
+import { dedupFetch, clearCache } from "@/lib/api-cache";
 
 function ProgressBar({ percentage }: { percentage: number }) {
   return (
@@ -30,37 +32,18 @@ function ProgressBar({ percentage }: { percentage: number }) {
 }
 
 export default function StudentDashboard() {
-  const [userName, setUserName] = useState("");
+  const { profile } = useUserProfile();
   const [progress, setProgress] = useState<Record<string, { percentage: number; completedNodes: number; totalNodes: number; totalStars: number }>>({});
   const [streakDays, setStreakDays] = useState(0);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<any>(null);
 
   useEffect(() => {
-    fetch("/api/user/profile")
-      .then(r => r.json())
-      .then(d => {
-        if (d.fullName) setUserName(d.fullName);
-      })
-      .catch(() => setUserName("Estudiante"));
-
-    fetch("/api/student/progress")
-      .then(r => r.json())
-      .then(d => setProgress(d))
-      .catch(() => {});
-
-    fetch("/api/assignments?role=student")
-      .then(r => r.json())
-      .then(d => { if (d.assignments) setAssignments(d.assignments); })
-      .catch(() => {});
-
-    fetch("/api/student/metrics")
-      .then(r => r.json())
-      .then(d => {
-        setMetrics(d);
-        if (d.totalSessions > 0) setStreakDays(d.streakDays ?? 0);
-      })
-      .catch(() => {});
+    Promise.all([
+      dedupFetch<Record<string, { percentage: number; completedNodes: number; totalNodes: number; totalStars: number }>>("/api/student/progress").then(setProgress).catch(() => {}),
+      dedupFetch<{ assignments: any[] }>("/api/assignments?role=student").then(d => { if (d.assignments) setAssignments(d.assignments); }).catch(() => {}),
+      dedupFetch<any>("/api/student/metrics").then(d => { setMetrics(d); if (d.totalSessions > 0) setStreakDays(d.streakDays ?? 0); }).catch(() => {}),
+    ]);
   }, []);
 
   const pendingAssignments = assignments.filter((a: any) => {
@@ -84,7 +67,7 @@ export default function StudentDashboard() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Vision General</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Bienvenido de vuelta, {userName}. Aqui tienes un resumen de tu actividad academica.
+            Bienvenido de vuelta, {profile?.fullName || "Estudiante"}. Aqui tienes un resumen de tu actividad academica.
           </p>
         </div>
       </div>

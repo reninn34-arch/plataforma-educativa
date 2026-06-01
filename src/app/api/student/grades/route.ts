@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentSubmissions, subjects } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
-  const user = token ? await verifyToken(token) : null;
+  const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
   if (!user || user.role !== "student") return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   try {
@@ -28,7 +28,8 @@ export async function GET(request: NextRequest) {
     .leftJoin(assignments, eq(assignmentSubmissions.assignmentId, assignments.id))
     .leftJoin(subjects, eq(assignments.subjectId, subjects.id))
     .where(eq(assignmentSubmissions.studentId, user.id))
-    .orderBy(desc(assignmentSubmissions.submittedAt));
+    .orderBy(desc(assignmentSubmissions.submittedAt))
+    .limit(200);
 
   const graded = data.filter(r => r.grade !== null);
   const pending = data.filter(r => r.status === "submitted" && r.grade === null);

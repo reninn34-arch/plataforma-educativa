@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getChatModel, getChatModelCandidates, isRetryableModelError, resolveModel } from "@/lib/ai";
 import { generateObject } from "ai";
 import { practiceCheckSchema } from "@/lib/api-helpers";
@@ -65,7 +65,7 @@ Evalua si la respuesta del estudiante es semanticamente equivalente a alguna de 
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
-  const user = token ? await verifyToken(token) : null;
+  const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
   if (!user || user.role !== "student") return NextResponse.json({ error: "Solo estudiantes" }, { status: 403 });
 
   try {

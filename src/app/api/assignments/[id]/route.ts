@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentQuestions, assignmentSubmissions, submissionAnswers, subjects, users, cursoEstudiantes, cursos } from "@/lib/db/schema";
 import { eq, and, asc, inArray } from "drizzle-orm";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getTeacherCourseIds } from "@/lib/course-helpers";
 
 export async function GET(
@@ -11,7 +11,7 @@ export async function GET(
 ) {
   try {
     const token = request.cookies.get("atlas-edu-token")?.value;
-    const user = token ? await verifyToken(token) : null;
+    const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     const { id } = await params;
@@ -109,7 +109,8 @@ export async function GET(
           .where(and(
             eq(cursoEstudiantes.cursoId, assignment.cursoId),
             eq(users.role, "student")
-          ));
+          ))
+          .limit(200);
       } else {
         const uniqueCourses = await getTeacherCourseIds(user.id);
 
@@ -121,7 +122,8 @@ export async function GET(
             .where(and(
               inArray(cursoEstudiantes.cursoId, uniqueCourses),
               eq(users.role, "student")
-            ));
+            ))
+            .limit(200);
         } else {
           allStudents = [];
         }
@@ -199,7 +201,7 @@ export async function PUT(
 ) {
   try {
     const token = request.cookies.get("atlas-edu-token")?.value;
-    const user = token ? await verifyToken(token) : null;
+    const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
     if (!user || user.role !== "teacher") {
       return NextResponse.json({ error: "Solo docentes pueden editar" }, { status: 403 });
     }
@@ -282,7 +284,7 @@ export async function DELETE(
 ) {
   try {
     const token = request.cookies.get("atlas-edu-token")?.value;
-    const user = token ? await verifyToken(token) : null;
+    const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
     if (!user || user.role !== "teacher") {
       return NextResponse.json({ error: "Solo docentes pueden eliminar" }, { status: 403 });
     }

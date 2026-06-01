@@ -3,12 +3,12 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { cursoEstudiantes, users, cursos } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getSmtpConfig } from "@/lib/smtp-config";
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
-  const user = token ? await verifyToken(token) : null;
+  const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
   if (!user || user.role !== "admin") return NextResponse.json({ error: "Solo admin" }, { status: 403 });
 
   try {
@@ -37,11 +37,21 @@ export async function POST(request: NextRequest) {
     const pinsByStudent: Record<number, string> = {};
 
     if (resetPins) {
-      for (const s of studentsWithEmail) {
-        const pin = String(Math.floor(1000 + Math.random() * 9000));
-        const hashed = await bcrypt.hash(pin, 10);
-        await db.update(users).set({ pin: hashed }).where(eq(users.id, s.id!));
-        pinsByStudent[s.id!] = pin;
+      const updates = studentsWithEmail.map(s => ({
+        id: s.id!,
+        pin: String(Math.floor(1000 + Math.random() * 9000)),
+      }));
+
+      // Hash all pins concurrently
+      const hashedPins = await Promise.all(updates.map(u => bcrypt.hash(u.pin, 10)));
+
+      // Update all users concurrently
+      await Promise.all(updates.map((u, i) =>
+        db.update(users).set({ pin: hashedPins[i] }).where(eq(users.id, u.id))
+      ));
+
+      for (const u of updates) {
+        pinsByStudent[u.id] = u.pin;
       }
     }
 

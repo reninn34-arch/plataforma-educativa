@@ -1,28 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Shield, Eye, EyeOff, CheckCircle, Loader2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/fetch-utils";
+import { useUserProfile } from "@/lib/contexts";
 
 export default function TeacherProfilePage() {
   const router = useRouter();
-  const [profile, setProfile] = useState<{ cedula: string; fullName: string; role: string } | null>(null);
+  const { profile } = useUserProfile();
   const [currentPin, setCurrentPin] = useState("");
   const [newPin, setNewPin] = useState("");
   const [showPin, setShowPin] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    apiFetch("/api/user/profile")
-      .then(r => r.json())
-      .then(d => setProfile(d))
-      .catch(() => {});
-  }, []);
 
   const handleChangePin = async (e: React.FormEvent) => {
     e.preventDefault();

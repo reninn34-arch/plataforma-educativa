@@ -5,6 +5,7 @@ import { Loader2, Clock, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/fetch-utils";
 
 interface Bloque {
   id: number;
@@ -111,20 +112,10 @@ export default function TeacherHorarioPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/teacher/courses")
-      .then(r => r.json())
-      .then(d => {
-        setCursos(d.cursos || []);
-      })
-      .catch(() => {});
-
-    fetch("/api/teacher/horario")
-      .then(r => r.json())
-      .then(d => {
-        setHorarios(d.horarios || []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    Promise.all([
+      apiFetch("/api/teacher/courses").then(r => r.json()).then(d => { setCursos(d.cursos || []); }).catch(() => {}),
+      apiFetch("/api/teacher/horario").then(r => r.json()).then(d => { setHorarios(d.horarios || []); setLoading(false); }).catch(() => setLoading(false)),
+    ]);
   }, []);
 
   const filteredHorarios = activeTab === "all"

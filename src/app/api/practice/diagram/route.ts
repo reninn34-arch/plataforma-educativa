@@ -6,7 +6,7 @@ import { studentExercises } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { generateObject, generateText } from "ai";
 import { z } from "zod/v4";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 
 const diagramSchema = z.object({
@@ -36,7 +36,7 @@ const diagramJsonPrompt = (area: string, topic: string) => diagramPrompt(area, t
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
-  const user = token ? await verifyToken(token) : null;
+  const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
   if (!user || user.role !== "student") return NextResponse.json({ error: "Solo estudiantes" }, { status: 403 });
 
   try {

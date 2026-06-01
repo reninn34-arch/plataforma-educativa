@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel } from "@/lib/ai";
 import { generateText } from "ai";
 import { coachSchema } from "@/lib/api-helpers";
@@ -23,7 +23,7 @@ REGLAS ESTRICTAS:
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
-  const user = token ? await verifyToken(token) : null;
+  const user = getVerifiedUser(request) ?? (token ? await verifyToken(token) : null);
   if (!user) {
     return Response.json({ error: "No autorizado" }, { status: 401 });
   }

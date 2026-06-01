@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { ArrowLeft, Printer, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { apiFetch } from "@/lib/fetch-utils";
 
 export default function CredencialesPage() {
   const params = useParams();
@@ -16,7 +17,7 @@ export default function CredencialesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/admin/courses/${cursoId}/credentials`)
+    apiFetch(`/api/admin/courses/${cursoId}/credentials`)
       .then(r => r.json())
       .then(d => {
         setCurso(d.curso || "");

@@ -4,22 +4,16 @@ import { useEffect, useState } from "react";
 import { Loader2, BookOpen } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useUserProfile } from "@/lib/contexts";
+import { dedupFetch } from "@/lib/api-cache";
 
 export default function ParentDashboard() {
+  const { profile } = useUserProfile();
   const [children, setChildren] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [parentName, setParentName] = useState("");
 
   useEffect(() => {
-    fetch("/api/user/profile")
-      .then(r => r.json())
-      .then(d => {
-        if (d.fullName) setParentName(d.fullName);
-      })
-      .catch(() => {});
-
-    fetch("/api/parent/children")
-      .then(r => r.json())
+    dedupFetch<{ children: any[] }>("/api/parent/children")
       .then(d => {
         setChildren(d.children || []);
         setLoading(false);
@@ -36,7 +30,7 @@ export default function ParentDashboard() {
       <div className="border-b pb-6">
         <h1 className="text-2xl font-bold text-foreground">Panel de Representante</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          {parentName && <span>Bienvenido, {parentName}. </span>}
+          {profile?.fullName && <span>Bienvenido, {profile.fullName}. </span>}
           Monitorea el progreso de tus representados
         </p>
       </div>

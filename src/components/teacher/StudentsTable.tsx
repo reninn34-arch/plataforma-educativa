@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/fetch-utils";
 import {
   Search, ArrowDownUp, ChevronUp, ChevronDown,
   Users, AlertTriangle, CheckCircle2, BarChart3, Loader2, TrendingDown,
@@ -74,8 +75,8 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
     if (search) params.set("search", search);
 
     Promise.all([
-      fetch(`/api/teacher/students?${params}`).then(r => r.json()),
-      fetch(`/api/teacher/academic-stats${cursoId ? `?cursoId=${cursoId}` : ""}`).then(r => r.json()),
+      apiFetch(`/api/teacher/students?${params}`).then(r => r.json()),
+      apiFetch(`/api/teacher/academic-stats${cursoId ? `?cursoId=${cursoId}` : ""}`).then(r => r.json()),
     ]).then(([sd, st]) => {
       setStudents(sd.students || []);
       setStats(st.totalEstudiantes !== undefined ? st : { totalEstudiantes: 0, pendientes: 0, bajoRendimiento: 0, promedioGeneral: 0, totalCursos: 0 });
