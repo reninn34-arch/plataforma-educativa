@@ -88,39 +88,40 @@ export async function GET(request: NextRequest) {
       mySubjects: (profsByCurso.get(c.id) || []).filter((ts: any) => ts.teacherId === teacher.id),
     }));
 
-    const allPeriods = await db.select().from(periodosLectivos).orderBy(desc(periodosLectivos.createdAt));
-    const [activePeriod] = await db.select().from(periodosLectivos).where(eq(periodosLectivos.activo, true)).limit(1);
+    const [allPeriods, [activePeriod], teacherSubjects, enrolled] = await Promise.all([
+      db.select().from(periodosLectivos).orderBy(desc(periodosLectivos.createdAt)),
+      db.select().from(periodosLectivos).where(eq(periodosLectivos.activo, true)).limit(1),
+      db.select({ subjectId: cursoProfesores.subjectId })
+        .from(cursoProfesores)
+        .where(and(eq(cursoProfesores.teacherId, teacher.id), inArray(cursoProfesores.cursoId, allIdsSet))),
+      db.select({ estudianteId: cursoEstudiantes.estudianteId })
+        .from(cursoEstudiantes)
+        .where(inArray(cursoEstudiantes.cursoId, allIdsSet))
+    ]);
 
-    const teacherSubjects = await db
-      .select({ subjectId: cursoProfesores.subjectId })
-      .from(cursoProfesores)
-      .where(and(eq(cursoProfesores.teacherId, teacher.id), inArray(cursoProfesores.cursoId, allIdsSet)));
     const subjectIds = [...new Set(teacherSubjects.map(s => s.subjectId))];
-
-    const enrolled = await db
-      .select({ estudianteId: cursoEstudiantes.estudianteId })
-      .from(cursoEstudiantes)
-      .where(inArray(cursoEstudiantes.cursoId, allIdsSet));
     const uniqueIds = [...new Set(enrolled.map(r => r.estudianteId))];
     const totalEstudiantes = uniqueIds.length;
 
     let pendientes = 0, bajoRendimiento = 0, promedioGeneral = 0;
 
     if (totalEstudiantes > 0 && subjectIds.length > 0) {
-      const [activePeriodData] = activePeriod
-        ? await db.select({ id: periodosLectivos.id }).from(periodosLectivos).where(eq(periodosLectivos.activo, true)).limit(1)
-        : [null];
+      const activePeriodData = activePeriod ? activePeriod : null;
 
-      const grades = await db
-        .select({ studentId: assignmentSubmissions.studentId, grade: assignmentSubmissions.grade, puntos: assignments.puntos })
-        .from(assignmentSubmissions)
-        .innerJoin(assignments, eq(assignmentSubmissions.assignmentId, assignments.id))
-        .where(and(
-          eq(assignments.teacherId, teacher.id),
-          inArray(assignmentSubmissions.studentId, uniqueIds),
-          inArray(assignments.subjectId, subjectIds),
-          ...(activePeriodData ? [eq(assignments.periodoLectivoId, activePeriodData.id)] : []),
-        ));
+      const [grades, allAssignments] = await Promise.all([
+        db.select({ studentId: assignmentSubmissions.studentId, grade: assignmentSubmissions.grade, puntos: assignments.puntos })
+          .from(assignmentSubmissions)
+          .innerJoin(assignments, eq(assignmentSubmissions.assignmentId, assignments.id))
+          .where(and(
+            eq(assignments.teacherId, teacher.id),
+            inArray(assignmentSubmissions.studentId, uniqueIds),
+            inArray(assignments.subjectId, subjectIds),
+            ...(activePeriodData ? [eq(assignments.periodoLectivoId, activePeriodData.id)] : []),
+          )),
+        db.select({ id: assignments.id })
+          .from(assignments)
+          .where(and(eq(assignments.teacherId, teacher.id), inArray(assignments.subjectId, subjectIds), inArray(assignments.cursoId, allIdsSet)))
+      ]);
 
       const studentData = new Map<number, { grades: number[]; puntosArr: number[]; pending: number }>();
       for (const s of uniqueIds) studentData.set(s, { grades: [], puntosArr: [], pending: 0 });
@@ -133,10 +134,6 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      const allAssignments = await db
-        .select({ id: assignments.id })
-        .from(assignments)
-        .where(and(eq(assignments.teacherId, teacher.id), inArray(assignments.subjectId, subjectIds), inArray(assignments.cursoId, allIdsSet)));
       const assignmentIds = allAssignments.map(a => a.id);
 
       if (assignmentIds.length > 0) {

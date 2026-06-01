@@ -66,15 +66,36 @@ export async function GET(request: NextRequest) {
 
   const sessionIds = allSessions.map(s => s.id);
 
-  const answersWithSession = await db
-    .select({ sessionId: practiceAnswers.sessionId })
-    .from(practiceAnswers)
-    .where(
-      and(
-        eq(practiceAnswers.userId, user.id),
-        inArray(practiceAnswers.sessionId, sessionIds)
+  const [answersWithSession, answers, gradedSubmissions] = await Promise.all([
+    db.select({ sessionId: practiceAnswers.sessionId })
+      .from(practiceAnswers)
+      .where(
+        and(
+          eq(practiceAnswers.userId, user.id),
+          inArray(practiceAnswers.sessionId, sessionIds)
+        )
+      ),
+    db.select({
+        subjectName: subjects.name,
+        subjectEmoji: subjects.emoji,
+        isCorrect: practiceAnswers.isCorrect,
+        question: practiceAnswers.question,
+        type: practiceAnswers.type,
+      })
+      .from(practiceAnswers)
+      .leftJoin(subjects, eq(practiceAnswers.subjectId, subjects.id))
+      .where(eq(practiceAnswers.userId, user.id))
+      .orderBy(desc(practiceAnswers.createdAt))
+      .limit(50),
+    db.select({ grade: assignmentSubmissions.grade })
+      .from(assignmentSubmissions)
+      .where(
+        and(
+          eq(assignmentSubmissions.studentId, user.id),
+          isNotNull(assignmentSubmissions.grade)
+        )
       )
-    );
+  ]);
 
   const validSessionIds = new Set(answersWithSession.map(a => a.sessionId));
   const validSessions = allSessions.filter(s => validSessionIds.has(s.id));
@@ -91,19 +112,6 @@ export async function GET(request: NextRequest) {
   const streakDays = calculateStreak(sessionDates);
 
   // Per subject practice stats
-  const answers = await db
-    .select({
-      subjectName: subjects.name,
-      subjectEmoji: subjects.emoji,
-      isCorrect: practiceAnswers.isCorrect,
-      question: practiceAnswers.question,
-      type: practiceAnswers.type,
-    })
-    .from(practiceAnswers)
-    .leftJoin(subjects, eq(practiceAnswers.subjectId, subjects.id))
-    .where(eq(practiceAnswers.userId, user.id))
-    .orderBy(desc(practiceAnswers.createdAt))
-    .limit(50);
 
   const subjectMap = new Map<string, { emoji: string; correct: number; total: number; wrongQuestions: string[] }>();
   answers.forEach(a => {
@@ -125,15 +133,6 @@ export async function GET(request: NextRequest) {
   }));
 
   // Grade average from real assignments
-  const gradedSubmissions = await db
-    .select({ grade: assignmentSubmissions.grade })
-    .from(assignmentSubmissions)
-    .where(
-      and(
-        eq(assignmentSubmissions.studentId, user.id),
-        isNotNull(assignmentSubmissions.grade)
-      )
-    );
 
   const grades = gradedSubmissions
     .map(s => s.grade)

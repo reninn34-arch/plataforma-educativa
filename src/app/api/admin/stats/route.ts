@@ -10,16 +10,17 @@ export async function GET(request: NextRequest) {
   if (!user || user.role !== "admin") return NextResponse.json({ error: "Solo admin" }, { status: 403 });
 
   try {
-    const [studentCount] = await db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(users).where(eq(users.role, "student"));
-    const [teacherCount] = await db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(users).where(eq(users.role, "teacher"));
-    const [courseCount] = await db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(cursos).where(eq(cursos.activo, true));
+    const [rolesCount, [courseCount]] = await Promise.all([
+      db.select({ role: users.role, count: sql<number>`count(*)`.mapWith(Number) }).from(users).groupBy(users.role),
+      db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(cursos).where(eq(cursos.activo, true))
+    ]);
 
-    const [parentCount] = await db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(users).where(eq(users.role, "parent"));
+    const roleMap = new Map(rolesCount.map(r => [r.role, r.count]));
 
     return NextResponse.json({
-      totalEstudiantes: studentCount?.count || 0,
-      totalProfesores: teacherCount?.count || 0,
-      totalPadres: parentCount?.count || 0,
+      totalEstudiantes: roleMap.get("student") || 0,
+      totalProfesores: roleMap.get("teacher") || 0,
+      totalPadres: roleMap.get("parent") || 0,
       totalCursos: courseCount?.count || 0,
     });
   } catch (error) {

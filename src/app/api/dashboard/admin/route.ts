@@ -30,40 +30,45 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const [profileRow] = await db
-      .select({ id: users.id, fullName: users.fullName, cedula: users.cedula, role: users.role, email: users.email })
-      .from(users)
-      .where(eq(users.id, user.id))
-      .limit(1);
+    const [
+      [profileRow],
+      rolesCount,
+      [courseCount],
+      allTeachers,
+      allSubjects,
+      data
+    ] = await Promise.all([
+      db.select({ id: users.id, fullName: users.fullName, cedula: users.cedula, role: users.role, email: users.email })
+        .from(users).where(eq(users.id, user.id)).limit(1),
+      db.select({ role: users.role, count: sql<number>`count(*)`.mapWith(Number) }).from(users).groupBy(users.role),
+      db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(cursos).where(eq(cursos.activo, true)),
+      db.select({ id: users.id, fullName: users.fullName, cedula: users.cedula, email: users.email })
+        .from(users).where(eq(users.role, "teacher")).orderBy(users.fullName),
+      db.select().from(subjects).orderBy(subjects.name),
+      db.select({
+          id: cursos.id,
+          nombre: cursos.nombre,
+          nivel: cursos.nivel,
+          profesorId: cursos.profesorId,
+          profesorNombre: users.fullName,
+          activo: cursos.activo,
+          createdAt: cursos.createdAt,
+          studentCount: sql<number>`count(DISTINCT ${cursoEstudiantes.estudianteId})`.mapWith(Number),
+        })
+        .from(cursos)
+        .leftJoin(users, eq(cursos.profesorId, users.id))
+        .leftJoin(cursoEstudiantes, eq(cursoEstudiantes.cursoId, cursos.id))
+        .groupBy(cursos.id, users.fullName)
+        .orderBy(desc(cursos.createdAt))
+    ]);
 
-    const [studentCount] = await db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(users).where(eq(users.role, "student"));
-    const [teacherCount] = await db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(users).where(eq(users.role, "teacher"));
-    const [courseCount] = await db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(cursos).where(eq(cursos.activo, true));
-    const [parentCount] = await db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(users).where(eq(users.role, "parent"));
-
+    const roleMap = new Map(rolesCount.map(r => [r.role, r.count]));
     const stats = {
-      totalEstudiantes: studentCount?.count || 0,
-      totalProfesores: teacherCount?.count || 0,
-      totalPadres: parentCount?.count || 0,
+      totalEstudiantes: roleMap.get("student") || 0,
+      totalProfesores: roleMap.get("teacher") || 0,
+      totalPadres: roleMap.get("parent") || 0,
       totalCursos: courseCount?.count || 0,
     };
-
-    const data = await db
-      .select({
-        id: cursos.id,
-        nombre: cursos.nombre,
-        nivel: cursos.nivel,
-        profesorId: cursos.profesorId,
-        profesorNombre: users.fullName,
-        activo: cursos.activo,
-        createdAt: cursos.createdAt,
-        studentCount: sql<number>`count(DISTINCT ${cursoEstudiantes.estudianteId})`.mapWith(Number),
-      })
-      .from(cursos)
-      .leftJoin(users, eq(cursos.profesorId, users.id))
-      .leftJoin(cursoEstudiantes, eq(cursoEstudiantes.cursoId, cursos.id))
-      .groupBy(cursos.id, users.fullName)
-      .orderBy(desc(cursos.createdAt));
 
     const cursoIds = data.map(c => c.id);
     const allProfs = cursoIds.length > 0 ? await db
@@ -87,14 +92,6 @@ export async function GET(request: NextRequest) {
     }
 
     const courses = data.map(c => ({ ...c, teacherSubjects: profsByCurso.get(c.id) || [] }));
-
-    const allTeachers = await db
-      .select({ id: users.id, fullName: users.fullName, cedula: users.cedula, email: users.email })
-      .from(users)
-      .where(eq(users.role, "teacher"))
-      .orderBy(users.fullName);
-
-    const allSubjects = await db.select().from(subjects).orderBy(subjects.name);
 
     return NextResponse.json({ profile: profileRow, stats, courses, teachers: allTeachers, subjects: allSubjects });
   } catch (error) {
