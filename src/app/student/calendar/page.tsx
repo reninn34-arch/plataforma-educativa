@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Calendar as CalendarIcon, CheckCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,19 +18,24 @@ interface Event {
   status?: string | null;
 }
 
+interface CalendarData {
+  events: Event[];
+}
+
 export default function CalendarPage() {
   const router = useRouter();
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    apiFetch("/api/student/calendar")
-      .then(r => r.json())
-      .then(d => { setEvents(d.events || []); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
+  const { data, isLoading } = useQuery<CalendarData, Error>({
+    queryKey: ["student-calendar"],
+    queryFn: async () => {
+      const res = await apiFetch("/api/student/calendar");
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json();
+    },
+    staleTime: 3 * 60 * 1000,
+  });
 
-  // Group by month
+  const events = data?.events || [];
   const grouped = events.reduce((acc, ev) => {
     if (!ev.dueDate) return acc;
     const d = new Date(ev.dueDate);
@@ -56,7 +61,7 @@ export default function CalendarPage() {
       </header>
 
       <main className="flex-1 px-4 py-6 max-w-2xl mx-auto w-full space-y-6 animate-fade-in-up">
-        {loading ? (
+        {isLoading ? (
           <p className="text-center text-muted-foreground py-12">Cargando...</p>
         ) : events.length === 0 ? (
           <Card className="shadow-sm">

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { UserProvider } from "@/lib/contexts";
+import { QueryProvider } from "@/lib/query-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -33,7 +33,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen bg-[#F4F6FA] text-[#1A2332] antialiased">
         <TooltipProvider>
-          <UserProvider>{children}</UserProvider>
+          <QueryProvider>
+            {children}
+          </QueryProvider>
         </TooltipProvider>
       </body>
     </html>

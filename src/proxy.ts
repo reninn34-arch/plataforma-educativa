@@ -1,11 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken, type SessionUser } from "@/lib/auth";
 
 const publicPaths = ["/login", "/api/auth/login", "/api/auth/logout", "/api/auth/forgot-pin", "/api/auth/reset-pin", "/recuperar-pin"];
 const csrfBypassPaths = ["/api/ai/"];
 const CSRF_COOKIE = "csrf-token";
 const CSRF_HEADER = "x-csrf-token";
 const STATE_CHANGING = ["POST", "PUT", "DELETE", "PATCH"];
+
+interface CachedUser {
+  user: SessionUser;
+  expiresAt: number;
+}
+
+const tokenCache = new Map<string, CachedUser>();
+
+function getCachedUser(token: string): SessionUser | null {
+  const cached = tokenCache.get(token);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.user;
+  }
+  if (cached) tokenCache.delete(token);
+  return null;
+}
+
+function setCachedUser(token: string, user: SessionUser) {
+  tokenCache.set(token, { user, expiresAt: Date.now() + 30_000 });
+}
 
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -19,8 +39,11 @@ export default async function middleware(request: NextRequest) {
     const authHeader = request.headers.get("authorization");
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.slice(7);
-      const user = await verifyToken(token);
-      if (user) return NextResponse.next();
+      const user = getCachedUser(token) ?? await verifyToken(token);
+      if (user) {
+        if (!tokenCache.has(token)) setCachedUser(token, user);
+        return NextResponse.next();
+      }
     }
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
@@ -32,7 +55,12 @@ export default async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const user = await verifyToken(token);
+  let user = getCachedUser(token);
+  if (!user) {
+    user = await verifyToken(token);
+    if (user) setCachedUser(token, user);
+  }
+
   if (!user) {
     return NextResponse.redirect(new URL("/login", request.url));
   }

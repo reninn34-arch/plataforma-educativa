@@ -1,28 +1,39 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { Users, GraduationCap, BookOpen, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { apiFetch } from "@/lib/fetch-utils";
 
+interface AdminDashboardData {
+  profile: { id: number; fullName: string; cedula: string; role: string; email?: string } | null;
+  stats: { totalEstudiantes: number; totalProfesores: number; totalPadres: number; totalCursos: number };
+  courses: any[];
+  teachers: any[];
+  subjects: any[];
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
-  const [stats, setStats] = useState({ totalEstudiantes: 0, totalProfesores: 0, totalPadres: 0, totalCursos: 0 });
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    apiFetch("/api/admin/stats")
-      .then(r => r.json())
-      .then(d => { setStats(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
+  const { data, isLoading } = useQuery<AdminDashboardData, Error>({
+    queryKey: ["admin-dashboard"],
+    queryFn: async () => {
+      const res = await apiFetch("/api/dashboard/admin");
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  if (loading) return (
+  if (isLoading) return (
     <div className="flex items-center justify-center py-24">
       <p className="text-muted-foreground">Cargando...</p>
     </div>
   );
+
+  const stats = data?.stats || { totalEstudiantes: 0, totalProfesores: 0, totalPadres: 0, totalCursos: 0 };
 
   return (
     <div className="p-6 sm:p-8 w-full max-w-5xl mx-auto space-y-8 animate-fade-in-up">

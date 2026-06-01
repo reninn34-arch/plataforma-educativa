@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { ArrowLeft, Loader2, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -23,19 +23,20 @@ const DIAS_LABEL: Record<string, string> = {
 };
 
 export default function StudentHorarioPage() {
-  const [horarios, setHorarios] = useState<Bloque[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading } = useQuery<{ horarios: Bloque[] }, Error>({
+    queryKey: ["student-horario"],
+    queryFn: async () => {
+      const res = await apiFetch("/api/student/horario");
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    apiFetch("/api/student/horario")
-      .then(r => r.json())
-      .then(d => { setHorarios(d.horarios || []); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
-
+  const horarios = data?.horarios || [];
   const bloquesPorDia = (dia: string) => horarios.filter(h => h.dia === dia);
 
-  if (loading) return (
+  if (isLoading) return (
     <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin" /></div>
   );
 

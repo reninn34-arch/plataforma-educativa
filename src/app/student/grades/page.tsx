@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Award, TrendingUp, BarChart3, CheckCircle, Clock, AlertCircle, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,33 +33,36 @@ interface SubjectSummary {
   totalGraded: number;
 }
 
+interface GradesData {
+  graded: GradeRow[];
+  pending: GradeRow[];
+  notSubmittedCount: number;
+  summary: SubjectSummary[];
+  generalAvg: number | null;
+}
+
 const TRIMESTER_NAMES: Record<number, string> = { 1: "T1", 2: "T2", 3: "T3" };
 
 export default function StudentGradesPage() {
   const router = useRouter();
-  const [graded, setGraded] = useState<GradeRow[]>([]);
-  const [pending, setPending] = useState<GradeRow[]>([]);
-  const [notSubmittedCount, setNotSubmittedCount] = useState(0);
-  const [summary, setSummary] = useState<SubjectSummary[]>([]);
-  const [generalAvg, setGeneralAvg] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"tasks" | "summary">("tasks");
 
-  useEffect(() => {
-    apiFetch("/api/student/grades")
-      .then(r => r.json())
-      .then(d => {
-        setGraded(d.graded || []);
-        setPending(d.pending || []);
-        setNotSubmittedCount(d.notSubmittedCount || 0);
-        setSummary(d.summary || []);
-        setGeneralAvg(d.generalAvg);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
+  const { data, isLoading } = useQuery<GradesData, Error>({
+    queryKey: ["student-grades"],
+    queryFn: async () => {
+      const res = await apiFetch("/api/student/grades");
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json();
+    },
+    staleTime: 3 * 60 * 1000,
+  });
 
-  if (loading) return (
+  const graded = data?.graded || [];
+  const pending = data?.pending || [];
+  const summary = data?.summary || [];
+  const generalAvg = data?.generalAvg ?? null;
+
+  if (isLoading) return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <p className="text-muted-foreground">Cargando...</p>
     </div>
@@ -83,7 +87,6 @@ export default function StudentGradesPage() {
       </header>
 
       <main className="flex-1 px-4 py-6 max-w-3xl mx-auto w-full space-y-4 animate-fade-in-up">
-        {/* General Average Banner */}
         {generalAvg !== null && (
           <Card className="shadow-sm bg-gradient-to-br from-primary to-[#2B5F8E] text-primary-foreground">
             <CardContent className="p-5 text-center">
@@ -102,30 +105,23 @@ export default function StudentGradesPage() {
           </Card>
         )}
 
-        {/* Tabs: tasks vs summary */}
         <div className="flex gap-1 bg-muted p-1 rounded-xl">
           <button
             onClick={() => setTab("tasks")}
-            className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-all ${
-              tab === "tasks" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
-            }`}
+            className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-all ${tab === "tasks" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}
           >
             Por Tarea ({graded.length + pending.length})
           </button>
           <button
             onClick={() => setTab("summary")}
-            className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-all ${
-              tab === "summary" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
-            }`}
+            className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-all ${tab === "summary" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}
           >
             Por Trimestre
           </button>
         </div>
 
-        {/* TASKS TAB */}
         {tab === "tasks" && (
           <div className="space-y-3">
-            {/* Graded */}
             {graded.length === 0 && pending.length === 0 ? (
               <Card className="shadow-sm">
                 <CardContent className="py-12 text-center">
@@ -144,9 +140,7 @@ export default function StudentGradesPage() {
                           <div className="flex items-center gap-2">
                             <span>{row.subjectEmoji}</span>
                             <span className="text-xs text-muted-foreground">{row.subjectName}</span>
-                            <Badge variant="secondary" className="text-[9px]">
-                              {TRIMESTER_NAMES[row.trimester]}
-                            </Badge>
+                            <Badge variant="secondary" className="text-[9px]">{TRIMESTER_NAMES[row.trimester]}</Badge>
                           </div>
                           <h4 className="text-sm font-bold text-foreground">{row.assignmentTitle}</h4>
                           {row.submittedAt && (
@@ -164,9 +158,7 @@ export default function StudentGradesPage() {
                         </div>
                         <div className="text-center shrink-0">
                           <div className={`flex h-14 w-14 items-center justify-center rounded-2xl text-xl font-extrabold ${
-                            (row.grade ?? 0) >= 7
-                              ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
-                              : "bg-red-50 text-red-600 border border-red-200"
+                            (row.grade ?? 0) >= 7 ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-red-50 text-red-600 border border-red-200"
                           }`}>
                             {row.grade?.toFixed(1) || "—"}
                           </div>
@@ -176,8 +168,6 @@ export default function StudentGradesPage() {
                     </CardContent>
                   </Card>
                 ))}
-
-                {/* Pending (submitted, not graded yet) */}
                 {pending.map((row, i) => (
                   <Card key={`p-${i}`} className="shadow-sm opacity-60">
                     <CardContent className="p-4">
@@ -186,9 +176,7 @@ export default function StudentGradesPage() {
                           <div className="flex items-center gap-2">
                             <span>{row.subjectEmoji}</span>
                             <span className="text-xs text-muted-foreground">{row.subjectName}</span>
-                            <Badge variant="secondary" className="text-[9px]">
-                              {TRIMESTER_NAMES[row.trimester]}
-                            </Badge>
+                            <Badge variant="secondary" className="text-[9px]">{TRIMESTER_NAMES[row.trimester]}</Badge>
                           </div>
                           <h4 className="text-sm font-bold text-foreground">{row.assignmentTitle}</h4>
                           <p className="text-[11px] text-muted-foreground flex items-center gap-1">
@@ -208,16 +196,13 @@ export default function StudentGradesPage() {
           </div>
         )}
 
-        {/* SUMMARY TAB */}
         {tab === "summary" && (
           <div className="space-y-4">
-            {/* Formula */}
             <div className="rounded-xl bg-blue-50 border border-blue-200 p-4 text-sm">
               <p className="font-bold text-primary">Formula anual</p>
               <p className="text-muted-foreground text-xs mt-1">(Promedio T1 + Promedio T2 + Promedio T3) / 3 = Nota final</p>
               <p className="text-muted-foreground text-xs">Nota minima para aprobar: <strong>7/10</strong></p>
             </div>
-
             {summary.length === 0 ? (
               <Card className="shadow-sm">
                 <CardContent className="py-12 text-center">
@@ -229,29 +214,21 @@ export default function StudentGradesPage() {
               summary.map((s, i) => (
                 <Card key={i} className="shadow-sm">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      {s.subjectEmoji} {s.subjectName}
-                    </CardTitle>
+                    <CardTitle className="text-base flex items-center gap-2">{s.subjectEmoji} {s.subjectName}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="grid grid-cols-4 gap-3 text-center">
                       <div className="bg-muted rounded-lg p-3">
                         <p className="text-[10px] text-muted-foreground">T1</p>
-                        <p className="text-lg font-extrabold text-foreground tabular-nums">
-                          {s.t1Avg?.toFixed(1) || "—"}
-                        </p>
+                        <p className="text-lg font-extrabold text-foreground tabular-nums">{s.t1Avg?.toFixed(1) || "—"}</p>
                       </div>
                       <div className="bg-muted rounded-lg p-3">
                         <p className="text-[10px] text-muted-foreground">T2</p>
-                        <p className="text-lg font-extrabold text-foreground tabular-nums">
-                          {s.t2Avg?.toFixed(1) || "—"}
-                        </p>
+                        <p className="text-lg font-extrabold text-foreground tabular-nums">{s.t2Avg?.toFixed(1) || "—"}</p>
                       </div>
                       <div className="bg-muted rounded-lg p-3">
                         <p className="text-[10px] text-muted-foreground">T3</p>
-                        <p className="text-lg font-extrabold text-foreground tabular-nums">
-                          {s.t3Avg?.toFixed(1) || "—"}
-                        </p>
+                        <p className="text-lg font-extrabold text-foreground tabular-nums">{s.t3Avg?.toFixed(1) || "—"}</p>
                       </div>
                       <div className="bg-accent rounded-lg p-3">
                         <p className="text-[10px] text-accent-foreground">Anual</p>

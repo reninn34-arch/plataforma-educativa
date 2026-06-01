@@ -3,7 +3,7 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { BookOpen, Users, Clock, ClipboardList, Pencil, BarChart3, ClipboardCheck, User } from "lucide-react";
 import { AiAssistant } from "@/components/ai/AiAssistant";
-import { TeacherCoursesProvider } from "@/lib/contexts";
+import { type ReactNode } from "react";
 
 const teacherLinks = [
   { href: "/teacher/cursos", label: "Mis Cursos", icon: BookOpen },
@@ -16,13 +16,11 @@ const teacherLinks = [
   { href: "/teacher/profile", label: "Mi Perfil", icon: User },
 ];
 
-export default function TeacherLayout({ children }: { children: React.ReactNode }) {
+export default function TeacherLayout({ children }: { children: ReactNode }) {
   return (
-    <TeacherCoursesProvider>
-      <AppLayout role="teacher" links={teacherLinks} title="Administracion Docente">
-        {children}
-        <AiAssistant />
-      </AppLayout>
-    </TeacherCoursesProvider>
+    <AppLayout role="teacher" links={teacherLinks} title="Administracion Docente">
+      {children}
+      <AiAssistant />
+    </AppLayout>
   );
 }

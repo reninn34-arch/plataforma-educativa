@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import {
-  ChevronRight, ArrowLeft, ClipboardList, CheckCircle2, AlertCircle, Clock,
-} from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ChevronRight, ArrowLeft, ClipboardList, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DueTimer } from "@/components/DueTimer";
@@ -12,29 +11,32 @@ import { apiFetch } from "@/lib/fetch-utils";
 
 type Tab = "pending" | "expired" | "submitted";
 
+interface AssignmentsData { assignments: any[]; }
+
 export default function StudentAssignmentsPage() {
-  const [assignments, setAssignments] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<Tab>("pending");
 
-  useEffect(() => {
-    apiFetch("/api/assignments?role=student")
-      .then(r => r.json())
-      .then(d => { if (d.assignments) setAssignments(d.assignments); })
-      .catch(() => {});
-  }, []);
+  const { data } = useQuery<AssignmentsData, Error>({
+    queryKey: ["student-assignments"],
+    queryFn: async () => {
+      const res = await apiFetch("/api/assignments?role=student");
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json();
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
+  const assignments = data?.assignments || [];
   const now = Date.now();
 
   const pending = assignments.filter((a: any) =>
     a.status !== "graded" && a.status !== "submitted" &&
     (!a.dueDate || new Date(a.dueDate).getTime() > now)
   );
-
   const expired = assignments.filter((a: any) =>
     a.status !== "graded" && a.status !== "submitted" &&
     a.dueDate && new Date(a.dueDate).getTime() <= now
   );
-
   const submitted = assignments.filter((a: any) =>
     a.status === "submitted" || a.status === "graded"
   );
@@ -62,16 +64,13 @@ export default function StudentAssignmentsPage() {
       </header>
 
       <main className="flex-1 px-4 py-6 max-w-4xl mx-auto w-full space-y-6 animate-fade-in-up">
-        {/* Tabs */}
         <div className="flex gap-2 p-1 bg-muted/50 rounded-xl">
           {tabs.map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`flex-1 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
-                activeTab === tab.key
-                  ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                activeTab === tab.key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {tab.icon}
@@ -85,7 +84,6 @@ export default function StudentAssignmentsPage() {
           ))}
         </div>
 
-        {/* List */}
         {currentList.length > 0 ? (
           <Card className="shadow-sm">
             <CardContent className="p-0">
@@ -102,34 +100,22 @@ export default function StudentAssignmentsPage() {
                         activeTab === "submitted" ? "bg-emerald-100 text-emerald-600" :
                         "bg-amber-100 text-amber-600"
                       }`}>
-                        {activeTab === "expired" ? "❌" :
-                         activeTab === "submitted" ? "✅" :
-                         a.subjectEmoji}
+                        {activeTab === "expired" ? "❌" : activeTab === "submitted" ? "✅" : a.subjectEmoji}
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-medium truncate">{a.title}</p>
                         <p className="text-xs text-muted-foreground">
-                          {a.subjectName}
-                          {a.cursoNombre && ` · ${a.cursoNombre}`}
-                          {a.teacherName && ` · ${a.teacherName}`}
+                          {a.subjectName}{a.cursoNombre && ` · ${a.cursoNombre}`}{a.teacherName && ` · ${a.teacherName}`}
                         </p>
-                        {a.dueDate && (
-                          <div className="mt-1">
-                            <DueTimer dueDate={a.dueDate} compact />
-                          </div>
-                        )}
+                        {a.dueDate && <div className="mt-1"><DueTimer dueDate={a.dueDate} compact /></div>}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {(a.status === "graded" || a.grade != null) && (
-                        <Badge variant={a.grade >= 7 ? "default" : "destructive"} className="text-[10px]">
-                          {a.grade}/10
-                        </Badge>
+                        <Badge variant={a.grade >= 7 ? "default" : "destructive"} className="text-[10px]">{a.grade}/10</Badge>
                       )}
                       {a.status === "submitted" && a.grade == null && (
-                        <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
-                          Sin calificar
-                        </Badge>
+                        <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">Sin calificar</Badge>
                       )}
                       <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
                     </div>
@@ -144,11 +130,6 @@ export default function StudentAssignmentsPage() {
               <ClipboardList className="h-10 w-10 text-muted-foreground/30 mx-auto" />
               <p className="text-sm text-muted-foreground">
                 No hay tareas {activeTab === "pending" ? "pendientes" : activeTab === "expired" ? "vencidas" : "entregadas"}.
-              </p>
-              <p className="text-xs text-muted-foreground/70">
-                {activeTab === "pending" ? "Tus tareas activas apareceran aqui." :
-                 activeTab === "expired" ? "Las tareas vencidas se muestran aqui." :
-                 "Las tareas que entregues apareceran aqui."}
               </p>
             </CardContent>
           </Card>

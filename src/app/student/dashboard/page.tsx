@@ -1,24 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import {
   ChevronRight,
   BookOpen,
   Flame,
   Clock,
   CheckCircle2,
-  AlertCircle,
   ClipboardList,
   Gamepad2,
   ArrowRight,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { SUBJECTS } from "@/lib/utils";
 import { DueTimer } from "@/components/DueTimer";
-import { useUserProfile } from "@/lib/contexts";
-import { dedupFetch, clearCache } from "@/lib/api-cache";
+import { apiFetch } from "@/lib/fetch-utils";
 
 function ProgressBar({ percentage }: { percentage: number }) {
   return (
@@ -31,21 +28,41 @@ function ProgressBar({ percentage }: { percentage: number }) {
   );
 }
 
+interface DashboardData {
+  profile: { id: number; fullName: string; cedula: string; role: string; email?: string } | null;
+  progress: Record<string, { percentage: number; completedNodes: number; totalNodes: number; totalStars: number }>;
+  metrics: {
+    totalSessions: number; totalQuestions: number; totalCorrect: number; totalScore: number;
+    bestScore: number; avgScore: number; accuracy: number; streakDays: number;
+    gradeAverage: number | null; gradedCount: number; recentSessions: any[];
+  };
+  assignments: any[];
+}
+
 export default function StudentDashboard() {
-  const { profile } = useUserProfile();
-  const [progress, setProgress] = useState<Record<string, { percentage: number; completedNodes: number; totalNodes: number; totalStars: number }>>({});
-  const [streakDays, setStreakDays] = useState(0);
-  const [assignments, setAssignments] = useState<any[]>([]);
-  const [metrics, setMetrics] = useState<any>(null);
+  const { data, isLoading } = useQuery<DashboardData, Error>({
+    queryKey: ["student-dashboard"],
+    queryFn: async () => {
+      const res = await apiFetch("/api/dashboard/student");
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    Promise.all([
-      dedupFetch<Record<string, { percentage: number; completedNodes: number; totalNodes: number; totalStars: number }>>("/api/student/progress").then(setProgress).catch(() => {}),
-      dedupFetch<{ assignments: any[] }>("/api/assignments?role=student").then(d => { if (d.assignments) setAssignments(d.assignments); }).catch(() => {}),
-      dedupFetch<any>("/api/student/metrics").then(d => { setMetrics(d); if (d.totalSessions > 0) setStreakDays(d.streakDays ?? 0); }).catch(() => {}),
-    ]);
-  }, []);
+  if (isLoading) return (
+    <div className="flex-1 flex items-center justify-center">
+      <p className="text-muted-foreground">Cargando...</p>
+    </div>
+  );
 
+  if (!data) return (
+    <div className="flex-1 flex items-center justify-center">
+      <p className="text-muted-foreground">Error al cargar dashboard</p>
+    </div>
+  );
+
+  const { profile, progress, metrics, assignments } = data;
   const pendingAssignments = assignments.filter((a: any) => {
     if (a.status === "graded" || a.status === "submitted") return false;
     if (a.dueDate && new Date(a.dueDate).getTime() < Date.now()) return false;
@@ -58,6 +75,7 @@ export default function StudentDashboard() {
   const submittedAssignments = assignments.filter((a: any) => a.status === "submitted" || a.status === "graded");
   const totalSessions = metrics?.totalSessions || 0;
   const accuracy = metrics?.accuracy || 0;
+  const streakDays = metrics?.streakDays || 0;
 
   return (
     <div className="flex-1 p-4 sm:p-8 w-full max-w-5xl mx-auto space-y-10 animate-fade-in-up">
@@ -72,9 +90,7 @@ export default function StudentDashboard() {
         </div>
       </div>
 
-      {/* ============================================
-          SECTION 1: TUS EVALUACIONES (OFICIAL)
-          ============================================ */}
+      {/* SECTION 1: TUS EVALUACIONES */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <ClipboardList className="h-5 w-5 text-foreground" />
@@ -171,9 +187,7 @@ export default function StudentDashboard() {
       {/* Divider */}
       <div className="border-t border-dashed" />
 
-      {/* ============================================
-          SECTION 2: PRACTICA CON IA (VOLUNTARIO)
-          ============================================ */}
+      {/* SECTION 2: PRACTICA CON IA */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <Gamepad2 className="h-5 w-5 text-primary" />

@@ -1,29 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Loader2, BookOpen } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useUserProfile } from "@/lib/contexts";
-import { dedupFetch } from "@/lib/api-cache";
+import { apiFetch } from "@/lib/fetch-utils";
+
+interface ParentDashboardData {
+  profile: { id: number; fullName: string; cedula: string; role: string; email?: string } | null;
+  children: any[];
+}
 
 export default function ParentDashboard() {
-  const { profile } = useUserProfile();
-  const [children, setChildren] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading } = useQuery<ParentDashboardData, Error>({
+    queryKey: ["parent-dashboard"],
+    queryFn: async () => {
+      const res = await apiFetch("/api/dashboard/parent");
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    dedupFetch<{ children: any[] }>("/api/parent/children")
-      .then(d => {
-        setChildren(d.children || []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
-
-  if (loading) return (
+  if (isLoading) return (
     <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
   );
+
+  const profile = data?.profile;
+  const children = data?.children || [];
 
   return (
     <div className="flex-1 p-4 sm:p-8 max-w-6xl mx-auto space-y-6 animate-fade-in-up">
@@ -45,7 +49,7 @@ export default function ParentDashboard() {
         </Card>
       ) : (
         <div className="grid sm:grid-cols-2 gap-4">
-          {children.map((child) => (
+          {children.map((child: any) => (
             <Card key={child.studentId} className="shadow-sm">
               <CardContent className="p-5 space-y-3">
                 <div className="flex items-center gap-3">

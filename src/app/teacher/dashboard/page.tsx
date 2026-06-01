@@ -2,35 +2,38 @@
 
 import { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { StudentsTable } from "@/components/teacher/StudentsTable";
 import { Download, BookOpen, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
-import { useTeacherCourses, CursoOption } from "@/lib/contexts";
-import { dedupFetch } from "@/lib/api-cache";
+import { apiFetch } from "@/lib/fetch-utils";
+
+interface TeacherDashboardData {
+  profile: { id: number; fullName: string; cedula: string; role: string; email?: string } | null;
+  courses: any[];
+  periods: any[];
+  activePeriod: any | null;
+  stats: { totalEstudiantes: number; pendientes: number; bajoRendimiento: number; promedioGeneral: number; totalCursos: number };
+}
 
 function DashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const cursoId = searchParams.get("cursoId") ? parseInt(searchParams.get("cursoId")!) : null;
-  const { cursos } = useTeacherCourses();
-  const [selectedCurso, setSelectedCurso] = useState<CursoOption | null>(null);
-  const [activePeriod, setActivePeriod] = useState<{ nombre: string } | null>(null);
 
-  useEffect(() => {
-    if (cursoId) {
-      const found = cursos.find((c: { id: number }) => c.id === cursoId);
-      if (found) setSelectedCurso(found);
-    } else {
-      setSelectedCurso(null);
-    }
-  }, [cursoId, cursos]);
+  const { data } = useQuery<TeacherDashboardData, Error>({
+    queryKey: ["teacher-dashboard"],
+    queryFn: async () => {
+      const res = await apiFetch("/api/dashboard/teacher");
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    dedupFetch<{ active: { nombre: string } | null }>("/api/teacher/periodos")
-      .then(d => { if (d.active) setActivePeriod(d.active); })
-      .catch(() => {});
-  }, []);
+  const cursos = data?.courses || [];
+  const activePeriod = data?.activePeriod || null;
+  const selectedCurso = cursoId ? cursos.find((c: any) => c.id === cursoId) : null;
 
   return (
     <div className="flex-1 p-4 sm:p-8 w-full max-w-6xl mx-auto space-y-6 animate-fade-in-up">
@@ -46,9 +49,9 @@ function DashboardContent() {
                   {selectedCurso.nombre}
                 </h1>
                 <span className="text-sm text-muted-foreground">{selectedCurso.nivel}</span>
-                {selectedCurso.mySubjects.length > 0 && (
+                {selectedCurso.mySubjects?.length > 0 && (
                   <div className="flex gap-1">
-                    {selectedCurso.mySubjects.map((s, i) => (
+                    {selectedCurso.mySubjects.map((s: any, i: number) => (
                       <span key={i} className="text-xs bg-muted px-2 py-0.5 rounded-full">
                         {s.subjectEmoji} {s.subjectName}
                       </span>
@@ -78,16 +81,13 @@ function DashboardContent() {
             <select
               value={cursoId || ""}
               onChange={e => {
-                if (e.target.value) {
-                  router.push(`/teacher/dashboard?cursoId=${e.target.value}`);
-                } else {
-                  router.push("/teacher/dashboard");
-                }
+                if (e.target.value) router.push(`/teacher/dashboard?cursoId=${e.target.value}`);
+                else router.push("/teacher/dashboard");
               }}
               className="h-9 rounded-lg border border-input bg-card px-3 text-sm"
             >
               <option value="">Todos los cursos</option>
-              {cursos.map(c => (
+              {cursos.map((c: any) => (
                 <option key={c.id} value={c.id}>{c.nombre} ({c.nivel})</option>
               ))}
             </select>
@@ -103,7 +103,7 @@ function DashboardContent() {
         <div className="flex flex-wrap gap-2">
           <BookOpen className="h-4 w-4 text-muted-foreground mt-0.5" />
           <span className="text-sm text-muted-foreground">Selecciona un curso para filtrar:</span>
-          {cursos.map(c => (
+          {cursos.map((c: any) => (
             <button
               key={c.id}
               onClick={() => router.push(`/teacher/dashboard?cursoId=${c.id}`)}
