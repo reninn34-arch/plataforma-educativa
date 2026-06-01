@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
-import { getChatModel, getChatModelCandidates, isRetryableModelError, resolveModel, repairJson, tryParseJson } from "@/lib/ai";
-import { generateText, Output } from "ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, resolveModel } from "@/lib/ai";
+import { generateObject } from "ai";
 import { practiceCheckSchema } from "@/lib/api-helpers";
 import { z } from "zod/v4";
 
 const semanticCheckResponseSchema = z.object({
   isCorrect: z.boolean(),
 });
-
-function isResponseFormatError(error: unknown): boolean {
-  const msg = String((error as any)?.message ?? "").toLowerCase();
-  return msg.includes("response_format") || msg.includes("unavailable");
-}
 
 const SEMANTIC_CHECK_PROMPT = `Eres un evaluador de respuestas para ejercicios de completar espacios (fill in the blank) en bachillerato acelerado para adultos (PCEI). Tu unica tarea es determinar si la respuesta del estudiante es SEMANTICAMENTE EQUIVALENTE a alguna de las respuestas aceptadas.
 
@@ -45,61 +40,22 @@ Respuestas aceptadas: ${JSON.stringify(acceptedAnswers)}
 
 Evalua si la respuesta del estudiante es semanticamente equivalente a alguna de las aceptadas.`;
 
-      let result: { isCorrect: boolean } | null = null;
-
-      try {
-        // Tier 1: Output.object({ schema }) (Kimi, OpenAI, Google, Anthropic)
-        const response = await generateText({
+      // Race with timeout
+      const result = await Promise.race([
+        generateObject({
           model,
-          output: Output.object({ schema: semanticCheckResponseSchema as any }),
+          schema: semanticCheckResponseSchema,
           system: SEMANTIC_CHECK_PROMPT,
           prompt,
           maxOutputTokens: 30,
           temperature: 0,
-        });
-        result = response.output as { isCorrect: boolean };
-      } catch (error) {
-        // Tier 2: response_format unsupported → Output.json() (DeepSeek)
-        if (isResponseFormatError(error)) {
-          try {
-            const response = await generateText({
-              model,
-              output: Output.json(),
-              system: SEMANTIC_CHECK_PROMPT,
-              prompt,
-              maxOutputTokens: 30,
-              temperature: 0,
-            });
-            result = semanticCheckResponseSchema.parse(response.output);
-          } catch (jsonError) {
-            // Tier 3: plain text + tryParseJson as last resort
-            if (isResponseFormatError(jsonError) || jsonError instanceof z.ZodError) {
-              const response = await generateText({
-                model,
-                system: SEMANTIC_CHECK_PROMPT,
-                prompt,
-                maxOutputTokens: 30,
-                temperature: 0,
-              });
-              result = semanticCheckResponseSchema.parse(tryParseJson(response.text));
-            } else {
-              throw jsonError;
-            }
-          }
-        } else {
-          throw error;
-        }
-      }
-
-      if (!result) continue;
-
-      // Race with timeout
-      const timed = await Promise.race([
-        Promise.resolve(result),
+        }),
         new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
       ]);
 
-      if (timed) return timed.isCorrect;
+      if (!result) continue;
+
+      return result.object.isCorrect;
     } catch (error) {
       if (!isRetryableModelError(error)) return null;
     }

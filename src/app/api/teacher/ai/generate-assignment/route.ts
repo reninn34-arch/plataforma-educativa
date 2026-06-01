@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, repairJson, tryParseJson } from "@/lib/ai";
-import { generateText, Output } from "ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel } from "@/lib/ai";
+import { generateObject } from "ai";
 import { z } from "zod/v4";
 import { verifyToken } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
@@ -26,90 +26,6 @@ const generateResponseSchema = z.object({
     .min(1)
     .max(15),
 });
-
-function isResponseFormatError(error: unknown): boolean {
-  const msg = String((error as any)?.message ?? "").toLowerCase();
-  return msg.includes("response_format") || msg.includes("unavailable");
-}
-
-function normalizeQuestions(data: any): any {
-  if (!data || !Array.isArray(data.questions)) return data;
-  const normalized = data.questions.map((q: any) => {
-    if (!q || typeof q.type !== "string") return q;
-    const t = q.type.toLowerCase().trim();
-    if (t === "mcq" || t === "multiple_choice" || t === "multiple choice" || t === "opcion multiple" || t === "opcion_multiple") {
-      return { ...q, type: "mcq" };
-    }
-    if (t === "file_upload" || t === "file" || t === "upload" || t === "archivo" || t === "subir_archivo") {
-      return { ...q, type: "file_upload" };
-    }
-    return { ...q, type: "mcq" };
-  });
-  return { ...data, questions: normalized };
-}
-
-async function generateWithFallback(
-  candidate: ReturnType<typeof getChatModelCandidates>[number],
-  prompt: string,
-  abortSignal: AbortSignal,
-) {
-  // Tier 1: Output.object({ schema }) (Kimi, OpenAI, Google, Anthropic)
-  try {
-    const response = await generateText({
-      model: getChatModel(candidate),
-      output: Output.object({ schema: generateResponseSchema as any }),
-      prompt,
-      temperature: 0.6,
-      maxOutputTokens: 4000,
-      abortSignal,
-    });
-    return {
-      output: response.output,
-      parsed: response.output as z.infer<typeof generateResponseSchema>,
-      usage: response.usage,
-    };
-  } catch (error) {
-    // Tier 2: response_format unsupported → Output.json() with normalization (DeepSeek)
-    if (isResponseFormatError(error)) {
-      try {
-        const response = await generateText({
-          model: getChatModel(candidate),
-          output: Output.json(),
-          prompt,
-          temperature: 0.6,
-          maxOutputTokens: 4000,
-          abortSignal,
-        });
-        const normalized = normalizeQuestions(response.output);
-        return {
-          output: normalized,
-          parsed: generateResponseSchema.parse(normalized),
-          usage: response.usage,
-        };
-      } catch (jsonError) {
-        // Tier 3: plain text + tryParseJson as last resort
-        if (isResponseFormatError(jsonError) || jsonError instanceof z.ZodError) {
-          const textResponse = await generateText({
-            model: getChatModel(candidate),
-            prompt,
-            temperature: 0.6,
-            maxOutputTokens: 4000,
-            abortSignal,
-          });
-          const json = tryParseJson(textResponse.text);
-          const normalized = normalizeQuestions(json);
-          return {
-            output: normalized,
-            parsed: generateResponseSchema.parse(normalized),
-            usage: textResponse.usage,
-          };
-        }
-        throw jsonError;
-      }
-    }
-    throw error;
-  }
-}
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
@@ -145,27 +61,19 @@ export async function POST(request: NextRequest) {
     const count = Math.min(Math.max(1, questionCount), 15);
 
     const prompt = `Eres un docente experto en educacion secundaria acelerada para adultos (PCEI Ecuador).
-Genera una tarea en formato JSON con esta estructura exacta:
-{
-  "title": "Titulo claro (max 80 caracteres)",
-  "description": "2 parrafos con instrucciones y contexto practico",
-  "questions": [
-    { "type": "mcq", "question": "...", "options": ["A","B","C","D"], "correctIndex": 0, "points": 2 }
-  ]
-}
-
-VALORES OBLIGATORIOS:
-- questions[].type: SOLO "mcq" o "file_upload" (en minusculas, sin variantes)
-- questions[].options: array de exactamente 4 strings
-- questions[].correctIndex: numero 0-3 (0=A, 1=B, 2=C, 3=D)
-- questions[].points: 1-3 facil, 4-5 dificil
+Genera una tarea sobre el siguiente tema.
 
 Materia: ${subject}
 Tema: ${topic}
 Cantidad de preguntas: ${count}
 Trimestre: ${body.trimester || 1}
 
-Usa lenguaje adulto, practico, laboral con contexto ecuatoriano. Prefiere preguntas tipo "mcq".`;
+REGLAS:
+- Solo preguntas MCQ (multiple choice). Usa file_upload solo si el tema es imposible sin ello.
+- Cada MCQ: 4 opciones (options), correctIndex 0-3, points 1-3 facil / 4-5 dificil.
+- Lenguaje adulto, practico, laboral. Contexto ecuatoriano.
+- Titulo claro (max 80 caracteres).
+- Descripcion: 2 parrafos con instrucciones y contexto practico.`;
 
     const REQUEST_TIMEOUT_MS = 30_000;
     let lastError: unknown;
@@ -176,23 +84,30 @@ Usa lenguaje adulto, practico, laboral con contexto ecuatoriano. Prefiere pregun
 
       try {
         const start = Date.now();
-        const result = await generateWithFallback(candidate, prompt, abortController.signal);
+        const response = await generateObject({
+          model: getChatModel(candidate),
+          schema: generateResponseSchema,
+          prompt,
+          temperature: 0.6,
+          maxOutputTokens: 4000,
+          abortSignal: abortController.signal,
+        });
         clearTimeout(timeoutId);
 
         logAiCall({
           route: "teacher/ai/generate-assignment",
           model: candidate.modelId,
           durationMs: Date.now() - start,
-          usage: result.usage ? {
-            inputTokens: result.usage.inputTokens,
-            outputTokens: result.usage.outputTokens,
-            totalTokens: (result.usage.inputTokens ?? 0) + (result.usage.outputTokens ?? 0),
+          usage: response.usage ? {
+            inputTokens: response.usage.inputTokens,
+            outputTokens: response.usage.outputTokens,
+            totalTokens: (response.usage.inputTokens ?? 0) + (response.usage.outputTokens ?? 0),
           } : undefined,
         });
 
         return NextResponse.json({
           success: true,
-          data: result.parsed,
+          data: response.object,
           modelUsed: candidate.modelId,
         });
       } catch (aiError: any) {

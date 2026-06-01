@@ -3,8 +3,8 @@ import { verifyToken } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { subjects, modules, nodes } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, repairJson, tryParseJson } from "@/lib/ai";
-import { generateText, Output } from "ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel } from "@/lib/ai";
+import { generateObject } from "ai";
 import { z } from "zod/v4";
 import { rateLimit } from "@/lib/rate-limit";
 import { pathGenerateSchema } from "@/lib/api-helpers";
@@ -26,76 +26,6 @@ const SUBJECT_META: Record<string, string> = {
   ingles: "Ingles - Bachillerato Acelerado para Adultos (PCEI)",
   quimica: "Quimica - Bachillerato Acelerado para Adultos (PCEI)",
 };
-
-function isResponseFormatError(error: unknown): boolean {
-  const msg = String((error as any)?.message ?? "").toLowerCase();
-  return msg.includes("response_format") || msg.includes("unavailable");
-}
-
-function normalizePathOutput(data: any): any {
-  if (!data || !Array.isArray(data.nodes)) return data;
-  const normalized = data.nodes.map((n: any) => {
-    if (!n || typeof n.type !== "string") return n;
-    const t = n.type.toLowerCase().trim();
-    if (t === "concept" || t === "teoria" || t === "teorico" || t === "lesson" || t === "leccion" || t === "ensenanza" || t === "enseñanza") return { ...n, type: "concept" };
-    if (t === "quiz" || t === "practica" || t === "practico" || t === "practice" || t === "ejercicio") return { ...n, type: "quiz" };
-    if (t === "challenge" || t === "desafio" || t === "desafío" || t === "reto" || t === "evaluacion" || t === "examen" || t === "final") return { ...n, type: "challenge" };
-    return { ...n, type: "concept" };
-  });
-  return { ...data, nodes: normalized };
-}
-
-async function generateStructuredPath(
-  model: ReturnType<typeof getChatModel>,
-  system: string,
-  prompt: string,
-  opts: { temperature: number; maxOutputTokens: number; abortSignal: AbortSignal },
-): Promise<z.infer<typeof pathSchema>> {
-  // Tier 1: Output.object({ schema }) (Kimi, OpenAI, Google, Anthropic)
-  try {
-    const response = await generateText({
-      model,
-      output: Output.object({ schema: pathSchema as any }),
-      system,
-      prompt,
-      temperature: opts.temperature,
-      maxOutputTokens: opts.maxOutputTokens,
-      abortSignal: opts.abortSignal,
-    });
-    return response.output as z.infer<typeof pathSchema>;
-  } catch (error) {
-    // Tier 2: response_format unsupported → Output.json() with normalization (DeepSeek)
-    if (isResponseFormatError(error)) {
-      try {
-        const response = await generateText({
-          model,
-          output: Output.json(),
-          system,
-          prompt,
-          temperature: opts.temperature,
-          maxOutputTokens: opts.maxOutputTokens,
-          abortSignal: opts.abortSignal,
-        });
-        return pathSchema.parse(normalizePathOutput(response.output));
-      } catch (jsonError) {
-        // Tier 3: plain text + tryParseJson as last resort
-        if (isResponseFormatError(jsonError) || jsonError instanceof z.ZodError) {
-          const response = await generateText({
-            model,
-            system,
-            prompt,
-            temperature: opts.temperature,
-            maxOutputTokens: opts.maxOutputTokens,
-            abortSignal: opts.abortSignal,
-          });
-          return pathSchema.parse(normalizePathOutput(tryParseJson(response.text)));
-        }
-        throw jsonError;
-      }
-    }
-    throw error;
-  }
-}
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
@@ -132,10 +62,7 @@ export async function POST(request: NextRequest) {
     const areaContext = SUBJECT_META[subjectSlug] || subject.name;
 
     const systemPrompt = `Eres un disenador curricular experto en andragogia para adultos en bachillerato acelerado (PCEI).
-Genera un "Learning Path" (camino de aprendizaje) sobre un tema especifico en formato JSON.
-
-VALORES EXACTOS OBLIGATORIOS PARA NODOS:
-- "type": SOLO "concept", "quiz" o "challenge" (minusculas, sin variantes)
+Genera un "Learning Path" (camino de aprendizaje) sobre un tema especifico.
 
 REGLAS:
 - Genera entre 6 y 8 nodos de aprendizaje en total.
@@ -157,16 +84,20 @@ REGLAS:
       const timeoutId = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MS);
 
       try {
-        outputParsed = await generateStructuredPath(
-          getChatModel(candidate),
-          systemPrompt,
-          `AREA: ${areaContext}
+        const response = await generateObject({
+          model: getChatModel(candidate),
+          schema: pathSchema,
+          system: systemPrompt,
+          prompt: `AREA: ${areaContext}
 TEMA SOLICITADO POR EL ESTUDIANTE: "${topic}"
 
 Genera un Learning Path de 6-8 nodos para este tema. Los primeros nodos deben ser de tipo "concept" (ensenanza) y los ultimos de tipo "quiz" o "challenge" (practica).`,
-          { temperature: 0.8, maxOutputTokens: 4000, abortSignal: abortController.signal },
-        );
+          temperature: 0.8,
+          maxOutputTokens: 4000,
+          abortSignal: abortController.signal,
+        });
         clearTimeout(timeoutId);
+        outputParsed = response.object;
         usedModel = candidate;
         break;
       } catch (error) {
