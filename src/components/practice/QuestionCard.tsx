@@ -82,7 +82,7 @@ export function QuestionCard({
       </div>
 
       {/* Question */}
-      <div className="rounded-2xl border bg-card p-6 shadow-sm">
+      <div className="rounded-2xl border bg-card p-4 sm:p-6 shadow-sm">
         <h3
           className="text-lg font-bold text-foreground leading-relaxed"
           dangerouslySetInnerHTML={{ __html: formatNotation(exercise.question) }}
@@ -112,7 +112,7 @@ export function QuestionCard({
                 disabled={answered}
                 onClick={() => setSelected(i)}
                 className={cn(
-                  "flex items-center gap-3 w-full rounded-xl border-2 p-4 text-left transition-all duration-200 active:scale-[0.98] animate-fade-in-up",
+                  "flex items-center gap-3 w-full rounded-xl border-2 p-3 sm:p-4 text-left transition-all duration-200 active:scale-[0.98] animate-fade-in-up",
                   stateClass
                 )}
                 style={{ animationDelay: `${i * 80}ms` }}
@@ -161,7 +161,7 @@ export function QuestionCard({
                 disabled={answered}
                 onClick={() => setBoolAnswer(val)}
                 className={cn(
-                  "rounded-xl border-2 p-5 text-center text-lg font-bold transition-all active:scale-95 animate-fade-in-up",
+                  "rounded-xl border-2 p-3 sm:p-5 text-center text-lg font-bold transition-all active:scale-95 animate-fade-in-up",
                   stateClass
                 )}
                 style={{ animationDelay: `${val ? 0 : 80}ms` }}
@@ -211,7 +211,7 @@ export function QuestionCard({
             (exercise.type === "true_false" && boolAnswer === null) ||
             (exercise.type === "fill_blank" && !textAnswer.trim())
           }
-          className="w-full rounded-xl bg-primary py-4 text-base font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-sm"
+          className="w-full rounded-xl bg-primary py-3.5 sm:py-4 text-base font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-sm"
         >
           Comprobar respuesta
         </button>
@@ -219,7 +219,7 @@ export function QuestionCard({
 
       {/* Feedback + Continue */}
       {answered && feedback && (
-        <div className={cn("rounded-2xl border-2 p-5 space-y-4 animate-scale-in", feedbackColor, !feedback.isCorrect && "animate-shake")}>
+        <div className={cn("rounded-2xl border-2 p-4 sm:p-5 space-y-4 animate-scale-in", feedbackColor, !feedback.isCorrect && "animate-shake")}>
           <div className="flex items-start gap-3">
             <div className={cn(
               "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
@@ -232,7 +232,7 @@ export function QuestionCard({
 
           <button
             onClick={onContinue}
-            className="flex items-center justify-center gap-2 w-full rounded-xl bg-primary py-3.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-all active:scale-[0.98] shadow-sm"
+            className="flex items-center justify-center gap-2 w-full rounded-xl bg-primary py-3 sm:py-3.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-all active:scale-[0.98] shadow-sm"
           >
             Continuar <ArrowRight className="h-4 w-4" />
           </button>

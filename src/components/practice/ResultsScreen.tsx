@@ -97,7 +97,7 @@ export function ResultsScreen({
       {/* Trophy */}
       <div className="flex flex-col items-center py-4">
         <div className={cn(
-          "flex h-24 w-24 items-center justify-center rounded-full mb-4 shadow-lg",
+          "flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full mb-4 shadow-lg",
           wasPerfect ? "bg-gradient-to-br from-yellow-400 to-amber-500" :
           stars >= 2 ? "bg-gradient-to-br from-blue-400 to-blue-600" :
           "bg-gradient-to-br from-slate-400 to-slate-500"
@@ -108,7 +108,7 @@ export function ResultsScreen({
             <Star className="h-12 w-12 text-white" />
           )}
         </div>
-        <h2 className="text-2xl font-extrabold text-foreground">
+        <h2 className="text-xl sm:text-2xl font-extrabold text-foreground">
           {wasPerfect ? "PERFECTO!" : stars >= 2 ? "Buen trabajo!" : "Sigue intentando"}
         </h2>
         <div className="flex items-center gap-2 mt-2">
@@ -116,7 +116,7 @@ export function ResultsScreen({
             <Star
               key={s}
               className={cn(
-                "h-8 w-8 transition-all duration-500",
+                "h-6 w-6 sm:h-8 sm:w-8 transition-all duration-500",
                 s <= stars
                   ? "text-yellow-400 fill-yellow-400 animate-bounce-in"
                   : "text-muted-foreground/20",

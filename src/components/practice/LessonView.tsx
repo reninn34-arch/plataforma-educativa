@@ -91,10 +91,9 @@ function MermaidDiagram({ code, large, onRetry }: { code: string; large?: boolea
   if (!svg) return <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-blue-500" /></div>;
   return (
     <div
-      className={cn(
-        "flex justify-center overflow-x-auto",
-        large && "[&_svg]:w-full [&_svg]:h-auto [&_svg]:max-w-none"
-      )}
+        className={cn(
+          large ? "flex justify-center overflow-x-auto [&_svg]:w-full [&_svg]:h-auto [&_svg]:max-w-none" : "flex justify-center overflow-x-auto [&_svg]:max-w-full [&_svg]:h-auto"
+        )}
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   );
@@ -349,7 +348,7 @@ function ExampleSlide({ lesson, onNextSlide }: { lesson: LessonData; onNextSlide
             </div>
             {step.svg && (
               <div
-                className="ml-9 rounded-xl bg-white border border-emerald-100 p-3 flex justify-center overflow-x-auto"
+                className="ml-0 sm:ml-9 rounded-xl bg-white border border-emerald-100 p-3 flex justify-center overflow-x-auto [&_svg]:max-w-full [&_svg]:h-auto"
                 dangerouslySetInnerHTML={{ __html: step.svg }}
               />
             )}
@@ -447,7 +446,7 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
   };
 
   return (
-    <div className="animate-fade-in-up space-y-4 pb-24">
+    <div className="animate-fade-in-up space-y-4 pb-20">
       {/* Progress bar + counter */}
       <div className="flex items-center justify-between px-1">
         <div className="flex gap-1.5">
@@ -473,22 +472,22 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
       {/* Carousel */}
       <div
         ref={carouselRef}
-        className="relative overflow-hidden rounded-2xl select-none h-[65vh] min-h-[300px]"
+        className="relative overflow-hidden rounded-2xl select-none h-[65dvh] min-h-[400px] sm:h-[60dvh] sm:min-h-[450px] w-full max-w-full"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
         <div
-          className="flex h-full transition-transform duration-300 ease-out"
+          className="flex h-full w-full transition-transform duration-300 ease-out"
           style={{ transform: `translateX(-${currentSlide * 100}%)` }}
         >
           {/* Explanation slide */}
-          <div className="w-full flex-shrink-0 px-0.5 h-full overflow-y-auto">
+          <div className="min-w-0 w-full basis-full shrink-0 px-0.5 h-full overflow-y-auto overflow-x-hidden">
             <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
               <div className={cn("bg-gradient-to-r px-6 py-4", theme.header)}>
                 <h2 className="text-lg font-extrabold text-white">{lesson.title}</h2>
               </div>
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <p
                   className="text-base text-slate-700 leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: formatNotation(lesson.explanation) }}
@@ -499,13 +498,13 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
 
           {/* Diagram slide */}
           {lesson.diagram && (
-            <div className="w-full flex-shrink-0 px-0.5 h-full overflow-y-auto">
+            <div className="min-w-0 w-full basis-full shrink-0 px-0.5 h-full overflow-y-auto overflow-x-hidden">
               <DiagramView diagram={lesson.diagram} onRetry={onRegenerateDiagram} />
             </div>
           )}
 
           {/* Example slide */}
-          <div className="w-full flex-shrink-0 px-0.5 h-full overflow-y-auto">
+          <div className="min-w-0 w-full basis-full shrink-0 px-0.5 h-full overflow-y-auto overflow-x-hidden">
             <ExampleSlide
               key={exampleResetKey}
               lesson={lesson}
@@ -514,7 +513,7 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
           </div>
 
           {/* Common Mistake slide */}
-          <div className="w-full flex-shrink-0 px-0.5 h-full overflow-y-auto">
+          <div className="min-w-0 w-full basis-full shrink-0 px-0.5 h-full overflow-y-auto overflow-x-hidden">
             <div className="rounded-2xl border-2 border-red-200 bg-gradient-to-br from-red-50 to-white p-5 shadow-sm space-y-3">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-red-500" />
@@ -536,7 +535,7 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
           </div>
 
           {/* Quick Check slide */}
-          <div className="w-full flex-shrink-0 px-0.5 h-full overflow-y-auto">
+          <div className="min-w-0 w-full basis-full shrink-0 px-0.5 h-full overflow-y-auto overflow-x-hidden">
             <QuickCheck
               data={lesson.quickCheck}
               onComplete={() => goTo(currentSlide + 1)}
@@ -544,7 +543,7 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
           </div>
 
           {/* Ready slide */}
-          <div className="w-full flex-shrink-0 px-0.5 h-full overflow-y-auto">
+          <div className="min-w-0 w-full basis-full shrink-0 px-0.5 h-full overflow-y-auto overflow-x-hidden">
             <div className="rounded-2xl border bg-gradient-to-br from-primary/5 to-white p-8 shadow-sm flex flex-col items-center justify-center text-center min-h-[300px] space-y-6">
               <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
                 <Play className="h-8 w-8 text-primary" />

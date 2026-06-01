@@ -186,3 +186,17 @@ body {
 .animate-count-up {
   animation: countUp 0.3s ease-out;
 }
+
+/* Make scrollbars visible on mobile */
+@media (hover: none) and (pointer: coarse) {
+  .scrollbar-visible::-webkit-scrollbar {
+    width: 4px;
+  }
+  .scrollbar-visible::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-visible::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+  }
+}

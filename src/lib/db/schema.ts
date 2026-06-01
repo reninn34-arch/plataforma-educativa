@@ -70,9 +70,23 @@ export const nodes = pgTable("nodes", {
   order: integer("order").notNull().default(1),
   type: nodeTypeEnum("type").notNull().default("quiz"),
   aiPromptContext: text("ai_prompt_context"),
-  cachedExercises: jsonb("cached_exercises"),
 }, (table) => ({
   uniqueModuleOrder: unique("nodes_module_order_unique").on(table.moduleId, table.order),
+}));
+
+export const studentExercises = pgTable("student_exercises", {
+  id: serial("id").primaryKey(),
+  studentId: integer("student_id")
+    .notNull()
+    .references(() => users.id),
+  nodeId: integer("node_id")
+    .notNull()
+    .references(() => nodes.id),
+  version: integer("version").notNull(),
+  data: jsonb("data").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueStudentNode: unique("student_exercises_student_node_unique").on(table.studentId, table.nodeId),
 }));
 
 export const nodeStatusEnum = pgEnum("node_status", ["locked", "unlocked", "completed", "mastered"]);

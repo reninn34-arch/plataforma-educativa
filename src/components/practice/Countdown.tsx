@@ -30,7 +30,7 @@ export function Countdown({ onDone }: { onDone: () => void }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm">
       <div
         key={count}
-        className="text-[120px] font-extrabold text-primary select-none animate-scale-in"
+        className="text-[80px] sm:text-[120px] font-extrabold text-primary select-none animate-scale-in"
         style={{ animationDuration: "500ms", animationIterationCount: "1" }}
       >
         {count}

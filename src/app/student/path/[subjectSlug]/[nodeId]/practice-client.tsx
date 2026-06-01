@@ -400,7 +400,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F8FAFC]">
+    <div className="flex min-h-screen flex-col bg-[#F8FAFC] min-w-0 overflow-x-hidden">
       <header className={cn("sticky top-0 z-20 border-b bg-white/95 backdrop-blur shadow-sm", theme.border)}>
         <div className="flex h-14 items-center justify-between px-4 max-w-2xl mx-auto w-full">
           <button onClick={handleBackToStudy} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors">
@@ -418,7 +418,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
         </div>
       </header>
 
-      <main className="flex-1 px-4 py-6 max-w-2xl mx-auto w-full relative">
+      <main className="flex-1 px-4 py-6 max-w-2xl mx-auto w-full min-w-0 relative">
 
         {/* LOADING */}
         {gameState === "loading" && (
@@ -497,7 +497,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
 
             {/* Coach Tooltip */}
             {showCoach && (
-              <div className="absolute -bottom-16 left-0 right-0 animate-fade-in-up z-50">
+              <div className="mt-4 animate-fade-in-up z-50">
                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 shadow-lg flex gap-3 relative">
                   <button onClick={() => setShowCoach(false)} className="absolute top-2 right-2 text-slate-400 hover:text-slate-600">
                     <X size={16} />

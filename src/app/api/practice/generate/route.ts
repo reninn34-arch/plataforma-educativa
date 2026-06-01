@@ -2,15 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, tryParseJson } from "@/lib/ai";
 import { isValidMermaid } from "@/lib/mermaid-validate";
 import { db } from "@/lib/db";
-import { nodes } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { studentExercises } from "@/lib/db/schema";
+import { eq, and } from "drizzle-orm";
 import { generateObject, generateText } from "ai";
 import { z } from "zod/v4";
 import { verifyToken } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { practiceGenerateSchema } from "@/lib/api-helpers";
 
-export const CACHED_EXERCISES_VERSION = 4;
+export const CACHED_EXERCISES_VERSION = 5;
 
 const diagramSchema = z.object({
   mermaid: z.string(),
@@ -115,15 +115,14 @@ export async function POST(request: NextRequest) {
     const candidates = getChatModelCandidates(model);
 
     if (nodeId && !retry) {
-      const nodeRecord = await db
-        .select({ cachedExercises: nodes.cachedExercises })
-        .from(nodes)
-        .where(eq(nodes.id, nodeId))
+      const studentRecord = await db
+        .select({ data: studentExercises.data })
+        .from(studentExercises)
+        .where(and(eq(studentExercises.studentId, user.id), eq(studentExercises.nodeId, nodeId)))
         .limit(1);
 
-      if (nodeRecord.length > 0 && nodeRecord[0].cachedExercises) {
-        const raw = nodeRecord[0].cachedExercises as any;
-        const envelope = cachedExercisesSchema.safeParse(raw);
+      if (studentRecord.length > 0) {
+        const envelope = cachedExercisesSchema.safeParse(studentRecord[0].data);
         if (envelope.success && envelope.data.version === CACHED_EXERCISES_VERSION) {
           return Response.json({ ...envelope.data.data, cached: true });
         }
@@ -314,15 +313,28 @@ REGLAS:
     }
 
     if (nodeId) {
+      const exercisesData = {
+        version: CACHED_EXERCISES_VERSION,
+        data: lessonResult,
+      } as any;
+
       await db
-        .update(nodes)
-        .set({
-          cachedExercises: {
-            version: CACHED_EXERCISES_VERSION,
-            data: lessonResult,
-          } as any,
+        .insert(studentExercises)
+        .values({
+          studentId: user.id,
+          nodeId,
+          version: CACHED_EXERCISES_VERSION,
+          data: exercisesData,
+          updatedAt: new Date(),
         })
-        .where(eq(nodes.id, nodeId));
+        .onConflictDoUpdate({
+          target: [studentExercises.studentId, studentExercises.nodeId],
+          set: {
+            version: CACHED_EXERCISES_VERSION,
+            data: exercisesData,
+            updatedAt: new Date(),
+          },
+        });
     }
 
     return Response.json({ ...lessonResult, modelUsed: usedModel.modelId });

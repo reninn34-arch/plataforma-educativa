@@ -92,7 +92,7 @@ export function ModuleComplete({
               style={{ animationDelay: `${i * 200}ms` }}
             >
               <div className={cn(
-                "flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg transition-all",
+                "flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl shadow-lg transition-all",
                 i <= starsEarned
                   ? "bg-gradient-to-br from-yellow-400 to-yellow-500 scale-100"
                   : "bg-slate-700/50 scale-75 opacity-40"
@@ -107,7 +107,7 @@ export function ModuleComplete({
         </div>
 
         {/* Title */}
-        <h1 className="text-3xl font-extrabold text-white mb-2 drop-shadow-lg">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-2 drop-shadow-lg">
           ¡Modulo completado!
         </h1>
         <p className="text-lg font-medium text-yellow-300 mb-8 drop-shadow">
@@ -116,18 +116,18 @@ export function ModuleComplete({
 
         {/* Stats cards */}
         <div className="grid grid-cols-3 gap-3 mb-8">
-          <div className="rounded-xl bg-white/10 backdrop-blur border border-white/20 p-3">
-            <p className="text-2xl font-extrabold text-white">{correct}/{total}</p>
+          <div className="rounded-xl bg-white/10 backdrop-blur border border-white/20 p-2 sm:p-3">
+            <p className="text-xl sm:text-2xl font-extrabold text-white">{correct}/{total}</p>
             <p className="text-[10px] text-slate-400 uppercase tracking-wider">Aciertos</p>
           </div>
-          <div className="rounded-xl bg-white/10 backdrop-blur border border-white/20 p-3">
-            <p className="text-2xl font-extrabold text-yellow-300">+{xpEarned}</p>
+          <div className="rounded-xl bg-white/10 backdrop-blur border border-white/20 p-2 sm:p-3">
+            <p className="text-xl sm:text-2xl font-extrabold text-yellow-300">+{xpEarned}</p>
             <p className="text-[10px] text-slate-400 uppercase tracking-wider">XP</p>
           </div>
-          <div className="rounded-xl bg-white/10 backdrop-blur border border-white/20 p-3">
+          <div className="rounded-xl bg-white/10 backdrop-blur border border-white/20 p-2 sm:p-3">
             <div className="flex items-center justify-center gap-1">
               <Zap className="h-5 w-5 text-amber-400" />
-              <span className="text-2xl font-extrabold text-amber-400">{maxCombo}</span>
+              <span className="text-xl sm:text-2xl font-extrabold text-amber-400">{maxCombo}</span>
             </div>
             <p className="text-[10px] text-slate-400 uppercase tracking-wider">Racha</p>
           </div>
