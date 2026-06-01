@@ -1,4 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * @swagger
+ * /api/analytics/overview:
+ *   get:
+ *     summary: Estadísticas de práctica con IA
+ *     description: Devuelve métricas agregadas de sesiones de práctica con IA (por materia, estudiante y temas con errores).
+ *     tags: [Analíticas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: cursoId
+ *         schema: { type: integer }
+ *         description: Filtrar por curso
+ *     responses:
+ *       200:
+ *         description: Estadísticas de práctica
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 overall:
+ *                   type: object
+ *                   properties:
+ *                     totalSessions: { type: integer }
+ *                     totalAnswers: { type: integer }
+ *                     avgScore: { type: number }
+ *                     avgCorrect: { type: number }
+ *                 bySubject:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       subjectId: { type: integer }
+ *                       subjectName: { type: string }
+ *                       subjectEmoji: { type: string }
+ *                       totalAnswers: { type: integer }
+ *                       correctCount: { type: integer }
+ *                       percentage: { type: number }
+ *                 byStudent:
+ *                   type: array
+ *                 errorTopics:
+ *                   type: array
+ */
 import { db } from "@/lib/db";
 import { practiceSessions, practiceAnswers, users, subjects, cursoEstudiantes } from "@/lib/db/schema";
 import { eq, sql, desc, inArray, and } from "drizzle-orm";

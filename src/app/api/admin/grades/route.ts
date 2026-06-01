@@ -1,4 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * @swagger
+ * /api/admin/grades:
+ *   get:
+ *     summary: Ver calificaciones
+ *     description: Devuelve todas las calificaciones con información de estudiante, materia y curso.
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: cursoId
+ *         schema: { type: integer }
+ *         description: Filtrar por curso
+ *     responses:
+ *       200:
+ *         description: Lista de calificaciones con datos del estudiante y assignment
+ *       403:
+ *         description: Solo administradores
+ */
 import { db } from "@/lib/db";
 import { assignments, assignmentSubmissions, subjects, users, cursos } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";

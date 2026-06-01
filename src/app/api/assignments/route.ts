@@ -1,4 +1,61 @@
 import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * @swagger
+ * /api/assignments:
+ *   get:
+ *     summary: Listar tareas
+ *     description: Devuelve tareas del profesor o del estudiante según el rol.
+ *     tags: [Tareas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: cursoId
+ *         schema: { type: integer }
+ *         description: Filtrar por curso
+ *     responses:
+ *       200:
+ *         description: Lista de tareas
+ *   post:
+ *     summary: Crear tarea
+ *     description: Crea una nueva tarea con preguntas de opción múltiple o archivo.
+ *     tags: [Tareas]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, description, subjectId, questions]
+ *             properties:
+ *               title: { type: string }
+ *               description: { type: string }
+ *               subjectId: { type: integer }
+ *               cursoId: { type: integer }
+ *               puntos: { type: integer, default: 10 }
+ *               dueDate: { type: string, format: date-time }
+ *               trimester: { type: integer }
+ *               questions:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     type: { type: string, enum: [mcq, file_upload] }
+ *                     question: { type: string }
+ *                     options: { type: array, items: { type: string } }
+ *                     correctIndex: { type: integer }
+ *                     points: { type: integer }
+ *     responses:
+ *       201:
+ *         description: Tarea creada
+ *       400:
+ *         description: Datos inválidos
+ *       403:
+ *         description: No autorizado
+ */
 import { db } from "@/lib/db";
 import { assignments, assignmentQuestions, assignmentSubmissions, subjects, users, cursos, periodosLectivos, cursoEstudiantes } from "@/lib/db/schema";
 import { eq, and, desc, inArray, sql } from "drizzle-orm";

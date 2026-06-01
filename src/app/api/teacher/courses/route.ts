@@ -1,4 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * @swagger
+ * /api/teacher/courses:
+ *   get:
+ *     summary: Cursos del profesor
+ *     description: Devuelve cursos asignados al profesor con sus materias asociadas.
+ *     tags: [Profesor]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de cursos del profesor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 cursos:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id: { type: integer }
+ *                       nombre: { type: string }
+ *                       nivel: { type: string }
+ *                       mySubjects:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *       403:
+ *         description: Solo profesores
+ */
 import { db } from "@/lib/db";
 import { cursos, cursoEstudiantes, cursoProfesores, users, subjects } from "@/lib/db/schema";
 import { eq, inArray, sql } from "drizzle-orm";

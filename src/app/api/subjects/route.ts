@@ -1,4 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * @swagger
+ * /api/subjects:
+ *   get:
+ *     summary: Listar materias
+ *     description: Devuelve todas las materias disponibles en el sistema.
+ *     tags: [General]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de materias
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 subjects:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id: { type: integer }
+ *                       name: { type: string }
+ *                       emoji: { type: string }
+ *                       slug: { type: string }
+ */
 import { db } from "@/lib/db";
 import { subjects } from "@/lib/db/schema";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";

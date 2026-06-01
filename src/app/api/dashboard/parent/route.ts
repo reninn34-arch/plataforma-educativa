@@ -1,4 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * @swagger
+ * /api/dashboard/parent:
+ *   get:
+ *     summary: Dashboard del padre/representante
+ *     description: Devuelve información de hijos matriculados, progreso académico y notificaciones.
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Datos del dashboard del padre
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: No es padre/representante
+ */
 import { db } from "@/lib/db";
 import { users, parentStudents, cursoEstudiantes, cursos, progress, subjects, assignmentSubmissions, assignments, cursoProfesores } from "@/lib/db/schema";
 import { eq, and, inArray } from "drizzle-orm";

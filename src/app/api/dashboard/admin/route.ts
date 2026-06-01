@@ -1,4 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * @swagger
+ * /api/dashboard/admin:
+ *   get:
+ *     summary: Dashboard del administrador
+ *     description: Devuelve resumen de cursos, estudiantes, profesores y actividad reciente.
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Datos del dashboard del administrador
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: No es administrador
+ */
 import { db } from "@/lib/db";
 import { users, cursos, cursoEstudiantes, cursoProfesores, subjects } from "@/lib/db/schema";
 import { eq, desc, sql, inArray } from "drizzle-orm";

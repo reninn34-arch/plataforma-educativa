@@ -1,4 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * @swagger
+ * /api/dashboard/teacher:
+ *   get:
+ *     summary: Dashboard del profesor
+ *     description: Devuelve perfil, cursos asignados, estadísticas de sesiones y tareas pendientes.
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Datos del dashboard del profesor
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: No es profesor
+ */
 import { db } from "@/lib/db";
 import { users, cursos, cursoEstudiantes, cursoProfesores, subjects, periodosLectivos, assignmentSubmissions, assignments } from "@/lib/db/schema";
 import { eq, and, inArray, desc, sql } from "drizzle-orm";

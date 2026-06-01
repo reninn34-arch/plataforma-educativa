@@ -1,4 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * @swagger
+ * /api/auth/forgot-pin:
+ *   post:
+ *     summary: Solicitar recuperación de PIN
+ *     description: Envía un correo con enlace para restablecer el PIN de acceso.
+ *     tags: [Autenticación]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [cedula]
+ *             properties:
+ *               cedula:
+ *                 type: string
+ *                 description: Cédula de identidad (10 dígitos)
+ *                 example: "0102030405"
+ *     responses:
+ *       200:
+ *         description: Si la cédula existe, se envía correo con enlace de recuperación
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message: { type: string }
+ *       400:
+ *         description: Cuenta desactivada o sin correo registrado
+ *       429:
+ *         description: Rate limit (máx 3 solicitudes por minuto)
+ */
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";

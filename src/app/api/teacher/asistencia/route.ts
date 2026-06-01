@@ -1,4 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * @swagger
+ * /api/teacher/asistencia:
+ *   post:
+ *     summary: Registrar asistencia
+ *     description: Registra o actualiza la asistencia de estudiantes en un curso para una fecha específica.
+ *     tags: [Profesor]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [cursoId, fecha, registros]
+ *             properties:
+ *               cursoId: { type: integer, description: "ID del curso" }
+ *               fecha: { type: string, format: date, description: "Fecha de asistencia (YYYY-MM-DD)" }
+ *               registros:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     studentId: { type: integer }
+ *                     estado:
+ *                       type: string
+ *                       enum: [presente, ausente, tardanza, justificado]
+ *     responses:
+ *       200:
+ *         description: Asistencia guardada
+ *       400:
+ *         description: Datos inválidos
+ *       403:
+ *         description: Solo profesores
+ */
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { asistencia } from "@/lib/db/schema";

@@ -1,5 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+
+/**
+ * @swagger
+ * /api/admin/users:
+ *   get:
+ *     summary: Listar usuarios
+ *     description: Devuelve lista de usuarios con opción de filtrar por rol.
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [student, teacher, admin, parent]
+ *         description: Filtrar por rol
+ *     responses:
+ *       200:
+ *         description: Lista de usuarios
+ *       403:
+ *         description: Solo administradores
+ *   post:
+ *     summary: Crear usuario
+ *     description: Crea un nuevo usuario (estudiante, profesor, admin o padre).
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [cedula, fullName, role, pin]
+ *             properties:
+ *               cedula: { type: string }
+ *               fullName: { type: string }
+ *               email: { type: string }
+ *               role: { type: string, enum: [student, teacher, admin, parent] }
+ *               pin: { type: string }
+ *               cursoId: { type: integer, description: "Solo para estudiantes" }
+ *     responses:
+ *       201:
+ *         description: Usuario creado
+ *       400:
+ *         description: Datos inválidos
+ *       409:
+ *         description: Cédula ya registrada
+ */
 import { db } from "@/lib/db";
 import { users, cursoProfesores, subjects } from "@/lib/db/schema";
 import { eq, desc, and, inArray } from "drizzle-orm";

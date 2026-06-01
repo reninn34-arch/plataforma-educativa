@@ -1,4 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Iniciar sesión
+ *     description: Autentica un usuario con cédula y PIN. Devuelve JWT en cookie httpOnly.
+ *     tags: [Autenticación]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [cedula, pin]
+ *             properties:
+ *               cedula:
+ *                 type: string
+ *                 description: Número de cédula (10 dígitos)
+ *                 example: "0102030405"
+ *               pin:
+ *                 type: string
+ *                 description: PIN de 4 dígitos
+ *                 example: "1234"
+ *     responses:
+ *       200:
+ *         description: Login exitoso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id: { type: integer }
+ *                     cedula: { type: string }
+ *                     fullName: { type: string }
+ *                     role: { type: string, enum: [student, teacher, admin, parent] }
+ *       401:
+ *         description: Credenciales incorrectas
+ *         schema:
+ *           type: object
+ *           properties:
+ *             error: { type: string, example: "Credenciales incorrectas" }
+ *       429:
+ *         description: Rate limit exceeded
+ */
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";

@@ -1,4 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * @swagger
+ * /api/admin/periodos:
+ *   get:
+ *     summary: Listar períodos lectivos
+ *     description: Devuelve todos los períodos lectivos del sistema.
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de períodos
+ *       403:
+ *         description: Solo administradores
+ *   post:
+ *     summary: Crear período lectivo
+ *     description: Crea un nuevo período lectivo (año escolar, quimestres).
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [nombre, fechaInicio, fechaFin]
+ *             properties:
+ *               nombre: { type: string, example: "Año Lectivo 2025-2026" }
+ *               fechaInicio: { type: string, format: date }
+ *               fechaFin: { type: string, format: date }
+ *               activo: { type: boolean }
+ *     responses:
+ *       201:
+ *         description: Período creado
+ *       403:
+ *         description: Solo administradores
+ */
 import { db } from "@/lib/db";
 import { periodosLectivos } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";

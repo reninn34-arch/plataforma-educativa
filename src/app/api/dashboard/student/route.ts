@@ -1,4 +1,60 @@
 import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * @swagger
+ * /api/dashboard/student:
+ *   get:
+ *     summary: Dashboard del estudiante
+ *     description: Devuelve perfil, progreso por materia, métricas de práctica y tareas recientes.
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Datos del dashboard del estudiante
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 profile:
+ *                   type: object
+ *                   properties:
+ *                     id: { type: integer }
+ *                     fullName: { type: string }
+ *                     cedula: { type: string }
+ *                     role: { type: string }
+ *                     email: { type: string }
+ *                 progress:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: object
+ *                     properties:
+ *                       percentage: { type: integer }
+ *                       completedNodes: { type: integer }
+ *                       totalNodes: { type: integer }
+ *                       totalStars: { type: integer }
+ *                 metrics:
+ *                   type: object
+ *                   properties:
+ *                     totalSessions: { type: integer }
+ *                     totalQuestions: { type: integer }
+ *                     totalCorrect: { type: integer }
+ *                     totalScore: { type: integer }
+ *                     bestScore: { type: integer }
+ *                     avgScore: { type: integer }
+ *                     accuracy: { type: integer }
+ *                     streakDays: { type: integer }
+ *                     gradeAverage: { type: number }
+ *                     gradedCount: { type: integer }
+ *                     recentSessions: { type: array }
+ *                 assignments:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       401:
+ *         description: No autorizado (no es estudiante)
+ */
 import { db } from "@/lib/db";
 import { users, subjects, nodes, userProgress, modules, progress, practiceSessions, practiceAnswers, assignmentSubmissions, assignments, cursoEstudiantes, cursos } from "@/lib/db/schema";
 import { eq, and, desc, inArray, isNotNull, sql } from "drizzle-orm";

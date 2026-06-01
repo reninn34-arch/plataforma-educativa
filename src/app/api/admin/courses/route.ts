@@ -1,4 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * @swagger
+ * /api/admin/courses:
+ *   get:
+ *     summary: Listar cursos
+ *     description: Devuelve todos los cursos con conteo de estudiantes y profesores por materia.
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de cursos
+ *       403:
+ *         description: Solo administradores
+ *   post:
+ *     summary: Crear curso
+ *     description: Crea un nuevo curso asignándole tutor y nivel.
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [nombre, nivel]
+ *             properties:
+ *               nombre: { type: string, description: "Nombre del curso", example: "1ero BGU A" }
+ *               nivel: { type: string, description: "Nivel educativo", example: "1ero BGU" }
+ *               profesorId: { type: integer, description: "ID del profesor tutor" }
+ *     responses:
+ *       201:
+ *         description: Curso creado
+ *       403:
+ *         description: Solo administradores
+ */
 import { db } from "@/lib/db";
 import { cursos, cursoEstudiantes, users, subjects, cursoProfesores } from "@/lib/db/schema";
 import { eq, inArray, desc, sql } from "drizzle-orm";

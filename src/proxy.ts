@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, type SessionUser } from "@/lib/auth";
 
-const publicPaths = ["/login", "/api/auth/login", "/api/auth/logout", "/api/auth/forgot-pin", "/api/auth/reset-pin", "/recuperar-pin"];
+const publicPaths = ["/login", "/api/auth/login", "/api/auth/logout", "/api/auth/forgot-pin", "/api/auth/reset-pin", "/recuperar-pin", "/docs", "/api/docs"];
 const csrfBypassPaths = ["/api/ai/"];
 const CSRF_COOKIE = "csrf-token";
 const CSRF_HEADER = "x-csrf-token";
