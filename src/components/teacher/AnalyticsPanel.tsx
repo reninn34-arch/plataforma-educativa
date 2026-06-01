@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Loader2, TrendingUp, Target, AlertTriangle, Award, Brain } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -20,29 +21,33 @@ interface CursoOption {
   nivel: string;
 }
 
+interface CoursesData { cursos: CursoOption[]; }
+interface OverviewData extends AnalyticsData {}
+
 export function AnalyticsPanel({ cursoId: initialCursoId }: { cursoId?: number | null }) {
-  const [data, setData] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [cursoId, setCursoId] = useState<number | null>(initialCursoId ?? null);
-  const [cursos, setCursos] = useState<CursoOption[]>([]);
 
-  const fetchAnalytics = () => {
-    setLoading(true);
-    let url = "/api/analytics/overview";
-    if (cursoId) url += `?cursoId=${cursoId}`;
-    apiFetch(url)
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  };
+  const { data: coursesData } = useQuery<CoursesData, Error>({
+    queryKey: ["teacher-courses"],
+    queryFn: async () => { const res = await apiFetch("/api/teacher/courses"); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    apiFetch("/api/teacher/courses").then(r => r.json()).then(d => setCursos(d.cursos || [])).catch(() => {});
-  }, []);
+  const { data, isLoading, refetch } = useQuery<OverviewData, Error>({
+    queryKey: ["analytics-overview", cursoId],
+    queryFn: async () => {
+      let url = "/api/analytics/overview";
+      if (cursoId) url += `?cursoId=${cursoId}`;
+      const res = await apiFetch(url);
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json();
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  useEffect(() => { fetchAnalytics(); }, [cursoId]);
+  const cursos = coursesData?.cursos || [];
 
-  if (loading) return (
+  if (isLoading) return (
     <div className="flex items-center justify-center py-20">
       <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
     </div>
@@ -67,7 +72,7 @@ export function AnalyticsPanel({ cursoId: initialCursoId }: { cursoId?: number |
               ))}
             </select>
           )}
-          <button onClick={fetchAnalytics} className="text-xs text-primary hover:underline">Actualizar</button>
+          <button onClick={() => refetch()} className="text-xs text-primary hover:underline">Actualizar</button>
         </div>
       </div>
 

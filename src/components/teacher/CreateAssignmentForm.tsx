@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Plus, Loader2, CheckCircle, Calendar, BookOpen, FileText, Download,
   ArrowLeft, Trash2, ListChecks, Upload, FileUp,
@@ -77,8 +78,7 @@ function newFileQ(): Question {
 }
 
 export function CreateAssignmentForm() {
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [title, setTitle] = useState("");
@@ -93,14 +93,9 @@ export function CreateAssignmentForm() {
   const [errorMsg, setErrorMsg] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
-  const [subjectsList, setSubjectsList] = useState<SubjectData[]>([]);
-  const [cursosList, setCursosList] = useState<CursoData[]>([]);
-  const [activePeriod, setActivePeriod] = useState<string | null>(null);
-
   const [selectedAssignment, setSelectedAssignment] = useState<number | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [notSubmitted, setNotSubmitted] = useState<{ studentId: number; studentName: string; studentCedula: string; expired: boolean }[]>([]);
-  const [loadingSubs, setLoadingSubs] = useState(false);
   const [gradingSub, setGradingSub] = useState<{ id?: number; studentId?: number; grade: number; feedback: string } | null>(null);
   const [absentLoading, setAbsentLoading] = useState<number | null>(null);
 
@@ -110,6 +105,53 @@ export function CreateAssignmentForm() {
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiError, setAiError] = useState("");
 
+  interface SubjectsResponse { subjects: SubjectData[]; }
+  interface CoursesResponse { cursos: CursoData[]; }
+  interface PeriodosResponse { active: { nombre: string } | null; }
+  interface AssignmentsResponse { assignments: Assignment[]; }
+  interface SubmissionData { submissions: Submission[]; notSubmitted: { studentId: number; studentName: string; studentCedula: string; expired: boolean }[]; }
+
+  const { data: assignmentsData, isLoading: assignmentsLoading } = useQuery<AssignmentsResponse, Error>({
+    queryKey: ["assignments-list"],
+    queryFn: async () => { const res = await apiFetch("/api/assignments"); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const { data: subjectsData } = useQuery<SubjectsResponse, Error>({
+    queryKey: ["subjects"],
+    queryFn: async () => { const res = await apiFetch("/api/subjects"); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: coursesData } = useQuery<CoursesResponse, Error>({
+    queryKey: ["teacher-courses"],
+    queryFn: async () => { const res = await apiFetch("/api/teacher/courses"); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: periodosData } = useQuery<PeriodosResponse, Error>({
+    queryKey: ["teacher-periodos"],
+    queryFn: async () => { const res = await apiFetch("/api/teacher/periodos"); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: submissionsData, isLoading: loadingSubs, refetch: refetchSubmissions } = useQuery<SubmissionData, Error>({
+    queryKey: ["assignment-submissions", selectedAssignment],
+    queryFn: async () => {
+      if (!selectedAssignment) throw new Error("No assignment selected");
+      const res = await apiFetch(`/api/assignments/${selectedAssignment}`);
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json();
+    },
+    staleTime: 0,
+    enabled: !!selectedAssignment,
+  });
+
+  const subjectsList = subjectsData?.subjects || [];
+  const cursosList = coursesData?.cursos || [];
+  const activePeriod = periodosData?.active?.nombre || null;
+  const assignments = assignmentsData?.assignments || [];
+
   const filteredSubjects = cursoId
     ? subjectsList.filter(s =>
         cursosList.find(c => c.id === cursoId)?.mySubjects?.some(ms => ms.subjectId === s.id)
@@ -117,11 +159,22 @@ export function CreateAssignmentForm() {
     : subjectsList;
 
   useEffect(() => {
+    if (subjectsList.length > 0 && subjectId === null) setSubjectId(subjectsList[0].id);
+  }, [subjectsList]);
+
+  useEffect(() => {
     if (cursoId && filteredSubjects.length > 0) {
       const currentIsValid = filteredSubjects.some(s => s.id === subjectId);
       if (!currentIsValid) setSubjectId(filteredSubjects[0].id);
     }
-  }, [cursoId]);
+  }, [cursoId, filteredSubjects, subjectId]);
+
+  useEffect(() => {
+    if (submissionsData) {
+      setSubmissions(submissionsData.submissions || []);
+      setNotSubmitted(submissionsData.notSubmitted || []);
+    }
+  }, [submissionsData]);
 
   const handleMarkAbsent = async (studentId: number) => {
     setAbsentLoading(studentId);
@@ -132,7 +185,7 @@ export function CreateAssignmentForm() {
         body: JSON.stringify({ studentId }),
       });
       if (res.ok) {
-        viewSubmissions(selectedAssignment!);
+        queryClient.invalidateQueries({ queryKey: ["assignment-submissions", selectedAssignment] });
       } else {
         const d = await res.json();
         setErrorMsg(d.error || "Error al marcar");
@@ -213,53 +266,14 @@ export function CreateAssignmentForm() {
         setErrorMsg(d.error || "Error al calificar");
       }
       setGradingSub(null);
-      viewSubmissions(selectedAssignment!);
+      queryClient.invalidateQueries({ queryKey: ["assignment-submissions", selectedAssignment] });
     } catch {
       setErrorMsg("Error de conexion al calificar");
     }
   };
 
-  const fetchAssignments = async () => {
-    setLoading(true);
-    try {
-      const res = await apiFetch("/api/assignments");
-      const data = await res.json();
-      if (data.assignments) setAssignments(data.assignments);
-    } catch {
-      setErrorMsg("Error al cargar tareas");
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchAssignments();
-    apiFetch("/api/subjects").then(r => r.json()).then(d => {
-      if (d.subjects && d.subjects.length > 0) {
-        setSubjectsList(d.subjects);
-        setSubjectId(d.subjects[0].id);
-      }
-    }).catch(() => {});
-    apiFetch("/api/teacher/courses").then(r => r.json()).then(d => {
-      setCursosList(d.cursos || []);
-    }).catch(() => {});
-
-    apiFetch("/api/teacher/periodos").then(r => r.json()).then(d => {
-      if (d.active) setActivePeriod(d.active.nombre);
-    }).catch(() => {});
-  }, []);
-
-  const viewSubmissions = async (aid: number) => {
+  const viewSubmissions = (aid: number) => {
     setSelectedAssignment(aid);
-    setLoadingSubs(true);
-    try {
-      const res = await apiFetch(`/api/assignments/${aid}`);
-      const data = await res.json();
-      if (data.submissions) setSubmissions(data.submissions);
-      if (data.notSubmitted) setNotSubmitted(data.notSubmitted);
-    } catch {
-      setErrorMsg("Error al cargar entregas");
-    }
-    setLoadingSubs(false);
   };
 
   const handleDelete = async (aid: number) => {
@@ -272,7 +286,7 @@ export function CreateAssignmentForm() {
         return;
       }
       setFeedback("Tarea eliminada");
-      fetchAssignments();
+      queryClient.invalidateQueries({ queryKey: ["assignments-list"] });
       setTimeout(() => setFeedback(""), 3000);
     } catch {
       setErrorMsg("Error de conexion al eliminar");
@@ -381,7 +395,7 @@ export function CreateAssignmentForm() {
       if (res.ok) {
         cancelEdit();
         setFeedback(editId ? "Tarea actualizada" : "Tarea creada exitosamente");
-        fetchAssignments();
+        queryClient.invalidateQueries({ queryKey: ["assignments-list"] });
         setTimeout(() => setFeedback(""), 3000);
       } else {
         const d = await res.json();
@@ -864,7 +878,7 @@ export function CreateAssignmentForm() {
             </Card>
           )}
 
-          {loading ? (
+          {assignmentsLoading ? (
             <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : assignments.length === 0 ? (
             <Card className="shadow-sm">

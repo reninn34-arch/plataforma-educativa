@@ -1,36 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Printer, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { apiFetch } from "@/lib/fetch-utils";
 
+interface CredentialsData { curso: string; nivel: string; students: { fullName: string; email: string | null; cedula: string }[]; }
+
 export default function CredencialesPage() {
   const params = useParams();
   const cursoId = params.id as string;
 
-  const [curso, setCurso] = useState("");
-  const [nivel, setNivel] = useState("");
-  const [students, setStudents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading } = useQuery<CredentialsData, Error>({
+    queryKey: ["admin-credentials", cursoId],
+    queryFn: async () => { const res = await apiFetch(`/api/admin/courses/${cursoId}/credentials`); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    apiFetch(`/api/admin/courses/${cursoId}/credentials`)
-      .then(r => r.json())
-      .then(d => {
-        setCurso(d.curso || "");
-        setNivel(d.nivel || "");
-        setStudents(d.students || []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [cursoId]);
+  const curso = data?.curso || "";
+  const nivel = data?.nivel || "";
+  const students = data?.students || [];
 
   const handlePrint = () => window.print();
 
-  if (loading) return (
+  if (isLoading) return (
     <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
   );
 

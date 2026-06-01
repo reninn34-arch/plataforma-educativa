@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Save, Loader2, CheckCircle, AlertCircle, Mail, Server } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,7 +40,6 @@ const PROVIDERS: Record<string, { host: string; port: string; label: string; ins
 };
 
 export default function ConfiguracionPage() {
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState("");
@@ -52,28 +52,30 @@ export default function ConfiguracionPage() {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState("");
 
+  interface ConfigData { smtp_host: string; smtp_port: string; smtp_user: string; smtp_pass: string; smtp_from_name: string; }
+  const { data: configData, isLoading } = useQuery<ConfigData, Error>({
+    queryKey: ["admin-config"],
+    queryFn: async () => { const res = await apiFetch("/api/admin/config"); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
+    staleTime: 5 * 60 * 1000,
+  });
+
   useEffect(() => {
-    apiFetch("/api/admin/config")
-      .then(r => r.json())
-      .then(d => {
-        setHost(d.smtp_host || "");
-        setPort(d.smtp_port || "587");
-        setUser(d.smtp_user || "");
-        setPass(d.smtp_pass || "");
-        setFromName(d.smtp_from_name || "Atlas Edu");
-        if (!d.smtp_host) {
-          setProvider("gmail");
-          setHost(PROVIDERS.gmail.host);
-          setPort(PROVIDERS.gmail.port);
-        } else {
-          for (const [k, v] of Object.entries(PROVIDERS)) {
-            if (v.host === d.smtp_host) { setProvider(k); break; }
-          }
-        }
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
+    if (!configData) return;
+    setHost(configData.smtp_host || "");
+    setPort(configData.smtp_port || "587");
+    setUser(configData.smtp_user || "");
+    setPass(configData.smtp_pass || "");
+    setFromName(configData.smtp_from_name || "Atlas Edu");
+    if (!configData.smtp_host) {
+      setProvider("gmail");
+      setHost(PROVIDERS.gmail.host);
+      setPort(PROVIDERS.gmail.port);
+    } else {
+      for (const [k, v] of Object.entries(PROVIDERS)) {
+        if (v.host === configData.smtp_host) { setProvider(k); break; }
+      }
+    }
+  }, [configData]);
 
   const onProviderChange = (p: string) => {
     setProvider(p);
@@ -125,7 +127,7 @@ export default function ConfiguracionPage() {
     setTesting(false);
   };
 
-  if (loading) return <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  if (isLoading) return <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
 
   const currentInstructions = PROVIDERS[provider].instructions;
 

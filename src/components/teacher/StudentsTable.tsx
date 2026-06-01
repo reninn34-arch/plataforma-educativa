@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/fetch-utils";
@@ -39,6 +40,9 @@ interface StatsData {
   totalCursos: number;
 }
 
+interface StudentsResponse { students: StudentData[]; }
+interface StatsResponse extends StatsData {}
+
 function getInitials(name: string) {
   return name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
 }
@@ -62,27 +66,39 @@ function daysAgo(dateStr: string | null): string {
 export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [students, setStudents] = useState<StudentData[]>([]);
-  const [stats, setStats] = useState<StatsData>({ totalEstudiantes: 0, pendientes: 0, bajoRendimiento: 0, promedioGeneral: 0, totalCursos: 0 });
-  const [loading, setLoading] = useState(true);
   const [sortKey, setSortKey] = useState<string>("fullName");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
-  useEffect(() => {
-    setLoading(true);
-    const params = new URLSearchParams();
-    if (cursoId) params.set("cursoId", String(cursoId));
-    if (search) params.set("search", search);
+  const params = new URLSearchParams();
+  if (cursoId) params.set("cursoId", String(cursoId));
+  if (search) params.set("search", search);
 
-    Promise.all([
-      apiFetch(`/api/teacher/students?${params}`).then(r => r.json()),
-      apiFetch(`/api/teacher/academic-stats${cursoId ? `?cursoId=${cursoId}` : ""}`).then(r => r.json()),
-    ]).then(([sd, st]) => {
-      setStudents(sd.students || []);
-      setStats(st.totalEstudiantes !== undefined ? st : { totalEstudiantes: 0, pendientes: 0, bajoRendimiento: 0, promedioGeneral: 0, totalCursos: 0 });
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  }, [cursoId, search]);
+  const { data: studentsData, isLoading: isStudentsLoading } = useQuery<StudentsResponse, Error>({
+    queryKey: ["teacher-students", cursoId, search],
+    queryFn: async () => {
+      const res = await apiFetch(`/api/teacher/students?${params}`);
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      const d = await res.json();
+      return { students: d.students || [] };
+    },
+    staleTime: 0,
+  });
+
+  const statsParams = cursoId ? `?cursoId=${cursoId}` : "";
+  const { data: statsData, isLoading: isStatsLoading } = useQuery<StatsResponse, Error>({
+    queryKey: ["teacher-academic-stats", cursoId],
+    queryFn: async () => {
+      const res = await apiFetch(`/api/teacher/academic-stats${statsParams}`);
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      const d = await res.json();
+      return d.totalEstudiantes !== undefined ? d : { totalEstudiantes: 0, pendientes: 0, bajoRendimiento: 0, promedioGeneral: 0, totalCursos: 0 };
+    },
+    staleTime: 0,
+  });
+
+  const students = studentsData?.students || [];
+  const stats: StatsData = statsData || { totalEstudiantes: 0, pendientes: 0, bajoRendimiento: 0, promedioGeneral: 0, totalCursos: 0 };
+  const loading = isStudentsLoading || isStatsLoading;
 
   const handleSort = (key: string) => {
     if (sortKey === key) {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Search, Loader2, X, UserPlus, Trash2, Printer, Mail, Users as UsersIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,10 +47,6 @@ export default function CursoDetailPage() {
   const router = useRouter();
   const cursoId = params.id as string;
 
-  const [cursoInfo, setCursoInfo] = useState<CursoInfo | null>(null);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [allStudents, setAllStudents] = useState<AvailableStudent[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [addSearch, setAddSearch] = useState("");
@@ -68,26 +65,56 @@ export default function CursoDetailPage() {
     { horaInicio: "10:45", horaFin: "11:30" },
   ]);
 
-  const fetchHorario = useCallback(async () => {
-    try {
-      const res = await apiFetch(`/api/admin/courses/${cursoId}/horarios`);
-      const d = await res.json();
-      const hor = d.horarios || [];
-      if (hor.length > 0) {
-        setSchedule(hor);
-        const seen = new Set<string>();
-        const unique: { horaInicio: string; horaFin: string }[] = [];
-        for (const h of hor) {
-          const key = `${h.horaInicio}-${h.horaFin}`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            unique.push({ horaInicio: h.horaInicio, horaFin: h.horaFin });
-          }
-        }
-        setTimeBlocks(unique);
+  const queryClient = useQueryClient();
+
+  interface CoursesResponse { cursos: CursoInfo[]; }
+  interface StudentsResponse { students: Student[]; }
+  interface HorariosResponse { horarios: any[]; }
+  interface AllStudentsResponse { users: AvailableStudent[]; }
+
+  const { data: coursesData } = useQuery<CoursesResponse, Error>({
+    queryKey: ["admin-courses"],
+    queryFn: async () => { const res = await apiFetch("/api/admin/courses"); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: studentsData } = useQuery<StudentsResponse, Error>({
+    queryKey: ["admin-course-students", cursoId],
+    queryFn: async () => { const res = await apiFetch(`/api/admin/courses/${cursoId}/students`); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const { data: horariosData } = useQuery<HorariosResponse, Error>({
+    queryKey: ["admin-course-horarios", cursoId],
+    queryFn: async () => { const res = await apiFetch(`/api/admin/courses/${cursoId}/horarios`); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const { data: allStudentsData } = useQuery<AllStudentsResponse, Error>({
+    queryKey: ["admin-users-student"],
+    queryFn: async () => { const res = await apiFetch("/api/admin/users?role=student"); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const cursoInfo = coursesData?.cursos.find(c => c.id === parseInt(cursoId)) || null;
+  const students = studentsData?.students || [];
+  const allStudents = allStudentsData?.users || [];
+
+  const loading = !coursesData && !studentsData;
+
+  useEffect(() => {
+    if (horariosData?.horarios && horariosData.horarios.length > 0 && schedule.length === 0) {
+      const hor = horariosData.horarios;
+      setSchedule(hor);
+      const seen = new Set<string>();
+      const unique: { horaInicio: string; horaFin: string }[] = [];
+      for (const h of hor) {
+        const key = `${h.horaInicio}-${h.horaFin}`;
+        if (!seen.has(key)) { seen.add(key); unique.push({ horaInicio: h.horaInicio, horaFin: h.horaFin }); }
       }
-    } catch {}
-  }, [cursoId]);
+      if (unique.length > 0) setTimeBlocks(unique);
+    }
+  }, [horariosData]);
 
   const addTimeBlock = () => {
     setTimeBlocks([...timeBlocks, { horaInicio: "00:00", horaFin: "00:45" }]);
@@ -140,15 +167,6 @@ export default function CursoDetailPage() {
     return b.subjectId ? String(b.subjectId) : "";
   };
 
-  const fetchCursoInfo = useCallback(async () => {
-    try {
-      const res = await apiFetch("/api/admin/courses");
-      const d = await res.json();
-      const found = (d.cursos || []).find((c: CursoInfo) => c.id === parseInt(cursoId));
-      if (found) setCursoInfo(found);
-    } catch {}
-  }, [cursoId]);
-
   const handleSendEmails = async () => {
     setSendingEmail(true);
     setEmailFeedback("");
@@ -171,24 +189,6 @@ export default function CursoDetailPage() {
     setSendingEmail(false);
   };
 
-  const fetchStudents = useCallback(async () => {
-    try {
-      const res = await apiFetch(`/api/admin/courses/${cursoId}/students`);
-      const d = await res.json();
-      setStudents(d.students || []);
-    } catch {}
-  }, [cursoId]);
-
-  useEffect(() => {
-    fetchCursoInfo();
-    fetchStudents();
-    fetchHorario();
-    apiFetch("/api/admin/users?role=student")
-      .then(r => r.json()).then(d => setAllStudents(d.users || []))
-      .catch(() => {});
-    setLoading(false);
-  }, [fetchCursoInfo, fetchStudents, cursoId]);
-
   const handleAddStudent = async (estudianteId: number) => {
     try {
       await apiFetch(`/api/admin/courses/${cursoId}/students`, {
@@ -196,8 +196,8 @@ export default function CursoDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ estudianteId }),
       });
-      fetchStudents();
-      fetchCursoInfo();
+      queryClient.invalidateQueries({ queryKey: ["admin-course-students", cursoId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
     } catch {}
   };
 
@@ -208,8 +208,8 @@ export default function CursoDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ estudianteId }),
       });
-      fetchStudents();
-      fetchCursoInfo();
+      queryClient.invalidateQueries({ queryKey: ["admin-course-students", cursoId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
     } catch {}
   };
 

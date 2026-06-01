@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Plus, Loader2, X, Trash2, ArrowRight, Users as UsersIcon, Pencil, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,65 +9,50 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/fetch-utils";
 
-interface TeacherSubjectRow {
-  teacherId: number | null;
-  subjectId: number | null;
-}
+interface TeacherSubjectRow { teacherId: number | null; subjectId: number | null; }
+interface CursoTeacherSubject { teacherId: number; teacherName: string; subjectId: number; subjectName: string; subjectEmoji: string; }
+interface CursoData { id: number; nombre: string; nivel: string; profesorId: number | null; profesorNombre: string | null; activo: boolean; studentCount: number; createdAt: string; teacherSubjects: CursoTeacherSubject[]; }
+interface CursoDeleteData { id: number; nombre: string; }
+interface ProfesorOption { id: number; fullName: string; }
+interface SubjectOption { id: number; name: string; emoji: string; slug: string; }
 
-interface CursoTeacherSubject {
-  teacherId: number;
-  teacherName: string;
-  subjectId: number;
-  subjectName: string;
-  subjectEmoji: string;
-}
-
-interface CursoData {
-  id: number;
-  nombre: string;
-  nivel: string;
-  profesorId: number | null;
-  profesorNombre: string | null;
-  activo: boolean;
-  studentCount: number;
-  createdAt: string;
-  teacherSubjects: CursoTeacherSubject[];
-}
-
-interface CursoDeleteData {
-  id: number;
-  nombre: string;
-}
-
-interface ProfesorOption {
-  id: number;
-  fullName: string;
-}
-
-interface SubjectOption {
-  id: number;
-  name: string;
-  emoji: string;
-  slug: string;
-}
+interface CoursesData { cursos: CursoData[]; }
+interface TeachersData { users: ProfesorOption[]; }
+interface SubjectsData { subjects: SubjectOption[]; }
 
 export default function AdminCursosPage() {
   const router = useRouter();
-  const [cursos, setCursos] = useState<CursoData[]>([]);
-  const [profesores, setProfesores] = useState<ProfesorOption[]>([]);
-  const [subjects, setSubjects] = useState<SubjectOption[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  // Create state
+  const { data: coursesData, isLoading: coursesLoading } = useQuery<CoursesData, Error>({
+    queryKey: ["admin-courses"],
+    queryFn: async () => { const res = await apiFetch("/api/admin/courses"); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: teachersData, isLoading: teachersLoading } = useQuery<TeachersData, Error>({
+    queryKey: ["admin-teachers"],
+    queryFn: async () => { const res = await apiFetch("/api/admin/users?role=teacher"); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: subjectsData, isLoading: subjectsLoading } = useQuery<SubjectsData, Error>({
+    queryKey: ["subjects"],
+    queryFn: async () => { const res = await apiFetch("/api/subjects"); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const isLoading = coursesLoading || teachersLoading || subjectsLoading;
+  const cursos = coursesData?.cursos || [];
+  const profesores = teachersData?.users || [];
+  const subjects = subjectsData?.subjects || [];
+
   const [showCreate, setShowCreate] = useState(false);
   const [nombre, setNombre] = useState("");
   const [nivel, setNivel] = useState("");
   const [profesorId, setProfesorId] = useState<number | null>(null);
-  const [createRows, setCreateRows] = useState<TeacherSubjectRow[]>([
-    { teacherId: null, subjectId: null },
-  ]);
+  const [createRows, setCreateRows] = useState<TeacherSubjectRow[]>([{ teacherId: null, subjectId: null }]);
 
-  // Edit state
   const [editingCurso, setEditingCurso] = useState<CursoData | null>(null);
   const [editNombre, setEditNombre] = useState("");
   const [editNivel, setEditNivel] = useState("");
@@ -78,343 +64,123 @@ export default function AdminCursosPage() {
   const [feedback, setFeedback] = useState("");
   const [deleteCurso, setDeleteCurso] = useState<CursoDeleteData | null>(null);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [cr, pr, sr] = await Promise.all([
-        apiFetch("/api/admin/courses").then(r => r.json()),
-        apiFetch("/api/admin/users?role=teacher").then(r => r.json()),
-        apiFetch("/api/subjects").then(r => r.json()),
-      ]);
-      setCursos(cr.cursos || []);
-      setProfesores(pr.users || []);
-      setSubjects(sr.subjects || []);
-    } catch {}
-    setLoading(false);
-  }, []);
+  const invalidateCourses = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
+  }, [queryClient]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  // ---- CREATE ----
-  const addCreateRow = () => {
-    setCreateRows([...createRows, { teacherId: null, subjectId: null }]);
-  };
-  const removeCreateRow = (idx: number) => {
-    if (createRows.length <= 1) return;
-    setCreateRows(createRows.filter((_, i) => i !== idx));
-  };
+  const addCreateRow = () => { setCreateRows([...createRows, { teacherId: null, subjectId: null }]); };
+  const removeCreateRow = (idx: number) => { if (createRows.length <= 1) return; setCreateRows(createRows.filter((_, i) => i !== idx)); };
   const updateCreateRow = (idx: number, field: "teacherId" | "subjectId", value: number | null) => {
-    const updated = [...createRows];
-    updated[idx] = { ...updated[idx], [field]: value };
-    setCreateRows(updated);
+    const updated = [...createRows]; updated[idx] = { ...updated[idx], [field]: value }; setCreateRows(updated);
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nombre || !nivel) return;
-    setSaving(true);
-    setError("");
-
-    const validTeacherSubjects = createRows
-      .filter(ts => ts.teacherId && ts.subjectId)
-      .map(ts => ({ teacherId: ts.teacherId!, subjectId: ts.subjectId! }));
-
+  const handleCreate = async () => {
+    if (!nombre.trim() || !nivel.trim()) { setError("Todos los campos son requeridos"); return; }
+    setSaving(true); setError("");
     try {
-      const res = await apiFetch("/api/admin/courses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre, nivel, profesorId, teacherSubjects: validTeacherSubjects }),
-      });
-      if (res.ok) {
-        resetCreate();
-        fetchData();
-      } else {
-        const d = await res.json();
-        setError(d.error);
-      }
+      const teacherSubjects = createRows.filter(r => r.teacherId && r.subjectId).map(r => ({ teacherId: r.teacherId!, subjectId: r.subjectId! }));
+      const res = await apiFetch("/api/admin/courses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombre: nombre.trim(), nivel: nivel.trim(), profesorId, teacherSubjects }) });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Error al crear curso"); }
+      else { setShowCreate(false); setNombre(""); setNivel(""); setProfesorId(null); setCreateRows([{ teacherId: null, subjectId: null }]); invalidateCourses(); setFeedback("Curso creado exitosamente"); setTimeout(() => setFeedback(""), 3000); }
     } catch { setError("Error de conexion"); }
     setSaving(false);
   };
 
-  const resetCreate = () => {
-    setShowCreate(false);
-    setNombre("");
-    setNivel("");
-    setProfesorId(null);
-    setCreateRows([{ teacherId: null, subjectId: null }]);
+  const startEdit = (curso: CursoData) => {
+    setEditingCurso(curso); setEditNombre(curso.nombre); setEditNivel(curso.nivel); setEditProfesorId(curso.profesorId);
+    setEditRows(curso.teacherSubjects.map(ts => ({ teacherId: ts.teacherId, subjectId: ts.subjectId })));
   };
 
-  // ---- EDIT ----
-  const openEdit = (c: CursoData) => {
-    setEditingCurso(c);
-    setEditNombre(c.nombre);
-    setEditNivel(c.nivel);
-    setEditProfesorId(c.profesorId);
-    if (c.teacherSubjects.length > 0) {
-      setEditRows(
-        c.teacherSubjects.map(ts => ({ teacherId: ts.teacherId, subjectId: ts.subjectId }))
-      );
-    } else {
-      setEditRows([{ teacherId: null, subjectId: null }]);
-    }
-    setError("");
-  };
-
-  const addEditRow = () => {
-    setEditRows([...editRows, { teacherId: null, subjectId: null }]);
-  };
-  const removeEditRow = (idx: number) => {
-    if (editRows.length <= 1) return;
-    setEditRows(editRows.filter((_, i) => i !== idx));
-  };
+  const addEditRow = () => { setEditRows([...editRows, { teacherId: null, subjectId: null }]); };
+  const removeEditRow = (idx: number) => { if (editRows.length <= 1) return; setEditRows(editRows.filter((_, i) => i !== idx)); };
   const updateEditRow = (idx: number, field: "teacherId" | "subjectId", value: number | null) => {
-    const updated = [...editRows];
-    updated[idx] = { ...updated[idx], [field]: value };
-    setEditRows(updated);
+    const updated = [...editRows]; updated[idx] = { ...updated[idx], [field]: value }; setEditRows(updated);
   };
 
-  const handleSaveEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingCurso || !editNombre || !editNivel) return;
-    setSaving(true);
-    setError("");
-
-    const validTeacherSubjects = editRows
-      .filter(ts => ts.teacherId && ts.subjectId)
-      .map(ts => ({ teacherId: ts.teacherId!, subjectId: ts.subjectId! }));
-
+  const handleEdit = async () => {
+    if (!editingCurso || !editNombre.trim() || !editNivel.trim()) { setError("Todos los campos son requeridos"); return; }
+    setSaving(true); setError("");
     try {
-      const res = await apiFetch(`/api/admin/courses/${editingCurso.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nombre: editNombre,
-          nivel: editNivel,
-          profesorId: editProfesorId,
-          teacherSubjects: validTeacherSubjects,
-        }),
-      });
-      if (res.ok) {
-        setFeedback(`Curso "${editNombre}" actualizado.`);
-        setEditingCurso(null);
-        fetchData();
-      } else {
-        const d = await res.json();
-        setError(d.error);
-      }
+      const teacherSubjects = editRows.filter(r => r.teacherId && r.subjectId).map(r => ({ teacherId: r.teacherId!, subjectId: r.subjectId! }));
+      const res = await apiFetch(`/api/admin/courses/${editingCurso.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nombre: editNombre.trim(), nivel: editNivel.trim(), profesorId: editProfesorId, teacherSubjects }) });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Error al actualizar"); }
+      else { setEditingCurso(null); invalidateCourses(); setFeedback("Curso actualizado"); setTimeout(() => setFeedback(""), 3000); }
     } catch { setError("Error de conexion"); }
     setSaving(false);
   };
 
-  // ---- DELETE ----
-  const doDelete = async () => {
+  const handleDelete = async () => {
     if (!deleteCurso) return;
+    setSaving(true);
     try {
-      await apiFetch(`/api/admin/courses/${deleteCurso.id}`, { method: "DELETE" });
-      fetchData();
-    } catch {}
-    setDeleteCurso(null);
+      const res = await apiFetch(`/api/admin/courses/${deleteCurso.id}`, { method: "DELETE" });
+      if (!res.ok) { const data = await res.json(); setError(data.error || "Error al eliminar"); }
+      else { setDeleteCurso(null); invalidateCourses(); setFeedback("Curso eliminado"); setTimeout(() => setFeedback(""), 3000); }
+    } catch { setError("Error de conexion"); }
+    setSaving(false);
   };
 
-  // Helper: check if teacher+subject combo already exists in current rows
-  const comboExists = (rows: TeacherSubjectRow[], idx: number): boolean => {
-    const row = rows[idx];
-    if (!row.teacherId || !row.subjectId) return false;
-    return rows.some((r, i) => i !== idx && r.teacherId === row.teacherId && r.subjectId === row.subjectId);
-  };
+  if (isLoading) return (
+    <div className="flex items-center justify-center py-24">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+  );
 
   return (
-    <div className="p-6 sm:p-8 w-full max-w-5xl mx-auto space-y-6 animate-fade-in-up">
+    <div className="p-6 sm:p-8 w-full max-w-6xl mx-auto space-y-6 animate-fade-in-up">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Cursos</h1>
-          <p className="text-sm text-muted-foreground mt-1">Gestiona los cursos y asigna profesores</p>
+          <h1 className="text-2xl font-bold text-foreground">Gestionar Cursos</h1>
+          <p className="text-sm text-muted-foreground mt-1">{cursos.length} cursos creados</p>
         </div>
-        <Button onClick={() => { setShowCreate(true); setError(""); }} size="sm" className="gap-2">
-          <Plus className="h-4 w-4" /> Nuevo curso
-        </Button>
+        <Button onClick={() => setShowCreate(true)} className="gap-2"><Plus className="h-4 w-4" /> Nuevo Curso</Button>
       </div>
 
       {feedback && (
-        <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-medium text-emerald-700 flex items-center justify-between">
-          <span>{feedback}</span>
-          <Button variant="ghost" size="icon-sm" onClick={() => setFeedback("")}><X className="h-3 w-3" /></Button>
+        <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-700">{feedback}</div>
+      )}
+      {error && (
+        <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700 flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 shrink-0" />{error}
         </div>
       )}
 
-      {/* ======= CREATE PANEL ======= */}
-      {showCreate && (
-        <Card className="shadow-sm animate-scale-in">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Crear curso</CardTitle>
-              <Button variant="ghost" size="icon-sm" onClick={resetCreate}><X className="h-4 w-4" /></Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-semibold mb-1.5 block">Nombre del curso</label>
-                  <input
-                    type="text" value={nombre} onChange={e => setNombre(e.target.value)}
-                    className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm" required
-                    placeholder="3ro Bachillerato A"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold mb-1.5 block">Nivel</label>
-                  <input
-                    type="text" value={nivel} onChange={e => setNivel(e.target.value)}
-                    className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm" required
-                    placeholder="3ro Bachillerato"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-semibold mb-1.5 block">Profesor tutor (coordinador de curso)</label>
-                <select
-                  value={profesorId || ""}
-                  onChange={e => setProfesorId(e.target.value ? Number(e.target.value) : null)}
-                  className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm"
-                >
-                  <option value="">Sin asignar</option>
-                  {profesores.map(p => (
-                    <option key={p.id} value={p.id}>{p.fullName}</option>
-                  ))}
-                </select>
-              </div>
-              {renderTeacherSubjectSection(createRows, addCreateRow, removeCreateRow, updateCreateRow, profesores, subjects, comboExists)}
-              {error && <p className="text-sm text-red-600">{error}</p>}
-              <div className="flex gap-3">
-                <Button type="submit" disabled={saving} className="gap-2">
-                  {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Crear curso
-                </Button>
-                <Button type="button" variant="outline" onClick={resetCreate}>Cancelar</Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ======= EDIT MODAL ======= */}
-      {editingCurso && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <Card className="max-w-lg w-full mx-4 shadow-xl animate-scale-in max-h-[90vh] overflow-y-auto">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Editar: {editingCurso.nombre}</CardTitle>
-                <Button variant="ghost" size="icon-sm" onClick={() => setEditingCurso(null)}><X className="h-4 w-4" /></Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSaveEdit} className="space-y-4">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-semibold mb-1.5 block">Nombre del curso</label>
-                    <input
-                      type="text" value={editNombre} onChange={e => setEditNombre(e.target.value)}
-                      className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm" required
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold mb-1.5 block">Nivel</label>
-                    <input
-                      type="text" value={editNivel} onChange={e => setEditNivel(e.target.value)}
-                      className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm" required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-semibold mb-1.5 block">Profesor tutor (coordinador de curso)</label>
-                  <select
-                    value={editProfesorId || ""}
-                    onChange={e => setEditProfesorId(e.target.value ? Number(e.target.value) : null)}
-                    className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm"
-                  >
-                    <option value="">Sin asignar</option>
-                    {profesores.map(p => (
-                      <option key={p.id} value={p.id}>{p.fullName}</option>
-                    ))}
-                  </select>
-                </div>
-                {renderTeacherSubjectSection(editRows, addEditRow, removeEditRow, updateEditRow, profesores, subjects, comboExists)}
-                {error && <p className="text-sm text-red-600">{error}</p>}
-                <div className="flex gap-3">
-                  <Button type="submit" disabled={saving} className="gap-2">
-                    {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                    Guardar cambios
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => setEditingCurso(null)}>Cancelar</Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* ======= COURSE LIST ======= */}
-      {loading ? (
-        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-      ) : cursos.length === 0 ? (
+      {cursos.length === 0 ? (
         <Card className="shadow-sm">
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">No hay cursos creados</p>
+          <CardContent className="py-16 text-center">
+            <UsersIcon className="mx-auto h-10 w-10 text-muted-foreground/30" />
+            <p className="mt-4 font-medium text-muted-foreground">No hay cursos creados</p>
+            <Button onClick={() => setShowCreate(true)} className="mt-4 gap-2"><Plus className="h-4 w-4" /> Crear primer curso</Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid sm:grid-cols-2 gap-4">
-          {cursos.map(c => (
-            <Card key={c.id} className="shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-5 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 cursor-pointer min-w-0" onClick={() => router.push(`/admin/cursos/${c.id}`)}>
-                    <h3 className="font-bold text-foreground truncate">{c.nombre}</h3>
-                    <p className="text-sm text-muted-foreground">{c.nivel}</p>
+        <div className="space-y-4">
+          {cursos.map(curso => (
+            <Card key={curso.id} className="shadow-sm">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-foreground truncate">{curso.nombre}</h3>
+                      <Badge variant={curso.activo ? "default" : "secondary"} className="text-[10px]">{curso.activo ? "Activo" : "Inactivo"}</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-0.5">{curso.nivel} — {curso.profesorNombre || "Sin tutor"}</p>
+                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><UsersIcon className="h-3 w-3" />{curso.studentCount} estudiantes</p>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button variant="ghost" size="icon-sm" onClick={() => openEdit(c)} className="text-muted-foreground hover:text-primary" title="Editar curso">
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="icon-sm" onClick={() => setDeleteCurso({ id: c.id, nombre: c.nombre })} className="text-muted-foreground hover:text-destructive" title="Eliminar curso">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                  <div className="flex gap-2 shrink-0">
+                    <Button variant="outline" size="sm" className="gap-1" onClick={() => router.push(`/admin/cursos/${curso.id}`)}><ArrowRight className="h-3 w-3" />Gestionar</Button>
+                    <Button variant="ghost" size="icon-sm" onClick={() => startEdit(curso)}><Pencil className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon-sm" className="text-red-500 hover:text-red-600" onClick={() => setDeleteCurso({ id: curso.id, nombre: curso.nombre })}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 </div>
-
-                {c.teacherSubjects.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {c.teacherSubjects.map((ts, i) => (
-                      <Badge key={i} variant="outline" className="text-[10px] py-0.5 gap-1">
-                        <span>{ts.subjectEmoji}</span>
-                        <span className="max-w-[80px] truncate">{ts.teacherName}</span>
-                      </Badge>
+                {curso.teacherSubjects.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-3">
+                    {curso.teacherSubjects.map((ts, i) => (
+                      <Badge key={i} variant="outline" className="text-[10px] gap-1">{ts.subjectEmoji} {ts.subjectName}<span className="text-muted-foreground ml-1">— {ts.teacherName}</span></Badge>
                     ))}
                   </div>
-                )}
-
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{c.profesorNombre ? `Tutor: ${c.profesorNombre}` : "Sin tutor"}</span>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-[10px] flex items-center gap-1">
-                      <UsersIcon className="h-3 w-3" /> {c.studentCount}
-                    </Badge>
-                  </div>
-                </div>
-                <button
-                  onClick={() => router.push(`/admin/cursos/${c.id}`)}
-                  className="flex items-center gap-1 text-xs text-primary font-medium hover:underline"
-                >
-                  Gestionar estudiantes <ArrowRight className="h-3 w-3" />
-                </button>
-                {c.studentCount > 0 && (
-                  <button
-                    onClick={() => router.push(`/admin/boletin/${c.id}`)}
-                    className="flex items-center gap-1 text-xs text-emerald-600 font-medium hover:underline"
-                  >
-                    Ver boletin <ArrowRight className="h-3 w-3" />
-                  </button>
                 )}
               </CardContent>
             </Card>
@@ -422,23 +188,123 @@ export default function AdminCursosPage() {
         </div>
       )}
 
-      {deleteCurso && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="max-w-sm w-full mx-4 shadow-xl animate-scale-in rounded-xl bg-popover p-4 text-sm ring-1 ring-foreground/10">
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-red-600">
-                <AlertTriangle className="h-5 w-5" />
-                <span className="font-heading text-base leading-none font-medium">Eliminar curso</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Estas seguro de eliminar <strong>{deleteCurso.nombre}</strong>?
-                <br /><br />
-                Se eliminaran permanentemente: el curso, todos los estudiantes matriculados, las tareas y calificaciones asociadas.
-              </p>
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-card rounded-xl shadow-lg w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="font-bold text-foreground">Nuevo Curso</h2>
+              <Button variant="ghost" size="icon-sm" onClick={() => { setShowCreate(false); setError(""); }}><X className="h-4 w-4" /></Button>
             </div>
-            <div className="-mx-4 -mb-4 flex gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:justify-end mt-4">
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Nombre del curso</label>
+                <input value={nombre} onChange={e => setNombre(e.target.value)} className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm" placeholder="Ej: Matematicas 3 BGU" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Nivel / Paralelo</label>
+                <input value={nivel} onChange={e => setNivel(e.target.value)} className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm" placeholder="Ej: 3 BGU" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Tutor (opcional)</label>
+                <select value={profesorId || ""} onChange={e => setProfesorId(e.target.value ? parseInt(e.target.value) : null)} className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm">
+                  <option value="">Sin tutor asignado</option>
+                  {profesores.map(p => <option key={p.id} value={p.id}>{p.fullName}</option>)}
+                </select>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs text-muted-foreground">Profesores y materias</label>
+                  <Button variant="ghost" size="sm" onClick={addCreateRow} className="gap-1"><Plus className="h-3 w-3" />Agregar</Button>
+                </div>
+                <div className="space-y-2">
+                  {createRows.map((row, idx) => (
+                    <div key={idx} className="flex gap-2">
+                      <select value={row.teacherId || ""} onChange={e => updateCreateRow(idx, "teacherId", e.target.value ? parseInt(e.target.value) : null)} className="flex-1 h-10 rounded-lg border border-input bg-card px-3 text-sm">
+                        <option value="">Profesor</option>
+                        {profesores.map(p => <option key={p.id} value={p.id}>{p.fullName}</option>)}
+                      </select>
+                      <select value={row.subjectId || ""} onChange={e => updateCreateRow(idx, "subjectId", e.target.value ? parseInt(e.target.value) : null)} className="flex-1 h-10 rounded-lg border border-input bg-card px-3 text-sm">
+                        <option value="">Materia</option>
+                        {subjects.map(s => <option key={s.id} value={s.id}>{s.emoji} {s.name}</option>)}
+                      </select>
+                      <Button variant="ghost" size="icon-sm" onClick={() => removeCreateRow(idx)} className="shrink-0"><X className="h-4 w-4" /></Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t">
+              <Button variant="outline" onClick={() => { setShowCreate(false); setError(""); }}>Cancelar</Button>
+              <Button onClick={handleCreate} disabled={saving} className="gap-2">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}Crear Curso</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingCurso && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-card rounded-xl shadow-lg w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="font-bold text-foreground">Editar Curso</h2>
+              <Button variant="ghost" size="icon-sm" onClick={() => { setEditingCurso(null); setError(""); }}><X className="h-4 w-4" /></Button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Nombre del curso</label>
+                <input value={editNombre} onChange={e => setEditNombre(e.target.value)} className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Nivel / Paralelo</label>
+                <input value={editNivel} onChange={e => setEditNivel(e.target.value)} className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Tutor (opcional)</label>
+                <select value={editProfesorId || ""} onChange={e => setEditProfesorId(e.target.value ? parseInt(e.target.value) : null)} className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm">
+                  <option value="">Sin tutor</option>
+                  {profesores.map(p => <option key={p.id} value={p.id}>{p.fullName}</option>)}
+                </select>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs text-muted-foreground">Profesores y materias</label>
+                  <Button variant="ghost" size="sm" onClick={addEditRow} className="gap-1"><Plus className="h-3 w-3" />Agregar</Button>
+                </div>
+                <div className="space-y-2">
+                  {editRows.map((row, idx) => (
+                    <div key={idx} className="flex gap-2">
+                      <select value={row.teacherId || ""} onChange={e => updateEditRow(idx, "teacherId", e.target.value ? parseInt(e.target.value) : null)} className="flex-1 h-10 rounded-lg border border-input bg-card px-3 text-sm">
+                        <option value="">Profesor</option>
+                        {profesores.map(p => <option key={p.id} value={p.id}>{p.fullName}</option>)}
+                      </select>
+                      <select value={row.subjectId || ""} onChange={e => updateEditRow(idx, "subjectId", e.target.value ? parseInt(e.target.value) : null)} className="flex-1 h-10 rounded-lg border border-input bg-card px-3 text-sm">
+                        <option value="">Materia</option>
+                        {subjects.map(s => <option key={s.id} value={s.id}>{s.emoji} {s.name}</option>)}
+                      </select>
+                      <Button variant="ghost" size="icon-sm" onClick={() => removeEditRow(idx)} className="shrink-0"><X className="h-4 w-4" /></Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t">
+              <Button variant="outline" onClick={() => { setEditingCurso(null); setError(""); }}>Cancelar</Button>
+              <Button onClick={handleEdit} disabled={saving} className="gap-2">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}Guardar Cambios</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteCurso && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-card rounded-xl shadow-lg w-full max-w-md mx-4 p-6">
+            <div className="flex items-center gap-3 text-red-500 mb-4">
+              <AlertTriangle className="h-6 w-6" />
+              <h2 className="font-bold text-foreground">Eliminar Curso</h2>
+            </div>
+            <p className="text-sm text-muted-foreground mb-6">Estas seguro de eliminar <strong>{deleteCurso.nombre}</strong>? Esta accion no se puede deshacer.</p>
+            <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setDeleteCurso(null)}>Cancelar</Button>
-              <Button variant="destructive" onClick={doDelete}>Eliminar</Button>
+              <Button variant="destructive" onClick={handleDelete} disabled={saving} className="gap-2">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}Eliminar</Button>
             </div>
           </div>
         </div>
@@ -446,68 +312,3 @@ export default function AdminCursosPage() {
     </div>
   );
 }
-
-// Shared teacher-subject rows UI
-function renderTeacherSubjectSection(
-  rows: TeacherSubjectRow[],
-  onAdd: () => void,
-  onRemove: (idx: number) => void,
-  onUpdate: (idx: number, field: "teacherId" | "subjectId", value: number | null) => void,
-  profesores: ProfesorOption[],
-  subjects: SubjectOption[],
-  comboExists: (rows: TeacherSubjectRow[], idx: number) => boolean,
-) {
-  return (
-    <div className="border-t pt-4">
-      <div className="flex items-center justify-between mb-2">
-        <label className="text-sm font-semibold">Profesores por materia</label>
-        <Button type="button" variant="outline" size="sm" onClick={onAdd} className="gap-1 text-xs h-7">
-          <Plus className="h-3 w-3" /> Agregar
-        </Button>
-      </div>
-      <div className="space-y-2">
-        {rows.map((row, idx) => {
-          const isDuplicateCombo = comboExists(rows, idx);
-          return (
-            <div key={idx} className="space-y-1">
-              <div className="flex items-center gap-2">
-                <select
-                  value={row.subjectId || ""}
-                  onChange={e => onUpdate(idx, "subjectId", e.target.value ? Number(e.target.value) : null)}
-                  className="flex-1 h-10 rounded-lg border border-input bg-card px-3 text-sm"
-                >
-                  <option value="">Materia...</option>
-                  {subjects.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.emoji} {s.name}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={row.teacherId || ""}
-                  onChange={e => onUpdate(idx, "teacherId", e.target.value ? Number(e.target.value) : null)}
-                  className="flex-1 h-10 rounded-lg border border-input bg-card px-3 text-sm"
-                >
-                  <option value="">Profesor...</option>
-                  {profesores.map(p => (
-                    <option key={p.id} value={p.id}>{p.fullName}</option>
-                  ))}
-                </select>
-                {rows.length > 1 && (
-                  <Button type="button" variant="ghost" size="icon-sm" onClick={() => onRemove(idx)} className="shrink-0 text-muted-foreground hover:text-destructive">
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-              {isDuplicateCombo && (
-                <p className="text-xs text-amber-600 ml-1">
-                  Ese profesor ya tiene esa materia asignada en este curso.
-                </p>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}  

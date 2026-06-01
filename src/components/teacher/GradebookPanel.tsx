@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Loader2, TrendingUp, Target, Award, BarChart3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,28 +43,33 @@ function GradeStat({ value, isYearly }: { value: number | null; isYearly?: boole
   );
 }
 
+interface CoursesData { cursos: CursoOption[]; }
+interface GradebookData { gradebook: StudentGrade[]; }
+
 export function GradebookPanel({ cursoId: initialCursoId }: { cursoId?: number | null }) {
-  const [gradebook, setGradebook] = useState<StudentGrade[]>([]);
-  const [loading, setLoading] = useState(true);
   const [trimesterFilter, setTrimesterFilter] = useState(0);
   const [cursoId, setCursoId] = useState<number | null>(initialCursoId ?? null);
-  const [cursos, setCursos] = useState<CursoOption[]>([]);
 
-  const fetchGradebook = () => {
-    setLoading(true);
-    let url = `/api/analytics/gradebook?trimester=${trimesterFilter}`;
-    if (cursoId) url += `&cursoId=${cursoId}`;
-    apiFetch(url)
-      .then(r => r.json())
-      .then(d => { setGradebook(d.gradebook || []); setLoading(false); })
-      .catch(() => setLoading(false));
-  };
+  const { data: coursesData } = useQuery<CoursesData, Error>({
+    queryKey: ["teacher-courses"],
+    queryFn: async () => { const res = await apiFetch("/api/teacher/courses"); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    apiFetch("/api/teacher/courses").then(r => r.json()).then(d => setCursos(d.cursos || [])).catch(() => {});
-  }, []);
+  const { data: gradebookData, isLoading } = useQuery<GradebookData, Error>({
+    queryKey: ["analytics-gradebook", trimesterFilter, cursoId],
+    queryFn: async () => {
+      let url = `/api/analytics/gradebook?trimester=${trimesterFilter}`;
+      if (cursoId) url += `&cursoId=${cursoId}`;
+      const res = await apiFetch(url);
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json();
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
-  useEffect(() => { fetchGradebook(); }, [trimesterFilter, cursoId]);
+  const cursos = coursesData?.cursos || [];
+  const gradebook = gradebookData?.gradebook || [];
 
   const classStats = useMemo(() => {
     const allSubjects = new Map<number, { name: string; emoji: string; yearlyAvgs: number[]; t1Avgs: number[]; t2Avgs: number[]; t3Avgs: number[] }>();
@@ -95,7 +101,7 @@ export function GradebookPanel({ cursoId: initialCursoId }: { cursoId?: number |
     };
   }, [gradebook]);
 
-  if (loading) return (
+  if (isLoading) return (
     <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
   );
 

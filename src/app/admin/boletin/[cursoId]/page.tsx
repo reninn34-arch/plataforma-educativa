@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { Loader2, ArrowLeft, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,27 +13,28 @@ interface GradeData {
   cursoNombre: string; subjectName: string; subjectEmoji: string;
   assignmentTitle: string; trimester: number; grade: number | null; status: string;
 }
+interface CoursesData { cursos: { id: number; nombre: string }[]; }
+interface GradesData { grades: GradeData[]; }
 
 export default function BoletinPage() {
   const params = useParams();
   const router = useRouter();
   const cursoId = parseInt(params.cursoId as string);
-  const [grades, setGrades] = useState<GradeData[]>([]);
-  const [cursoNombre, setCursoNombre] = useState("");
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    Promise.all([
-      apiFetch("/api/admin/courses").then(r => r.json()).then(d => {
-        const found = (d.cursos || []).find((c: any) => c.id === cursoId);
-        if (found) setCursoNombre(found.nombre);
-      }).catch(() => {}),
-      apiFetch(`/api/admin/grades?cursoId=${cursoId}&limit=1000`).then(r => r.json()).then(d => {
-        setGrades(d.grades || []);
-        setLoading(false);
-      }).catch(() => setLoading(false)),
-    ]);
-  }, [cursoId]);
+  const { data: coursesData } = useQuery<CoursesData, Error>({
+    queryKey: ["admin-courses-boletin"],
+    queryFn: async () => { const res = await apiFetch("/api/admin/courses"); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: gradesData, isLoading } = useQuery<GradesData, Error>({
+    queryKey: ["admin-grades", cursoId],
+    queryFn: async () => { const res = await apiFetch(`/api/admin/grades?cursoId=${cursoId}&limit=1000`); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const cursoNombre = coursesData?.cursos.find(c => c.id === cursoId)?.nombre || "";
+  const grades = gradesData?.grades || [];
 
   const students = new Map<number, { name: string; cedula: string; subjects: Map<string, { emoji: string; t1: (number | null)[]; t2: (number | null)[]; t3: (number | null)[] }> }>();
 
@@ -69,7 +70,7 @@ export default function BoletinPage() {
     })),
   }));
 
-  if (loading) return (
+  if (isLoading) return (
     <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin" /></div>
   );
 
