@@ -9,11 +9,16 @@ import { verifyToken } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { practiceGenerateSchema } from "@/lib/api-helpers";
 
-export const CACHED_EXERCISES_VERSION = 2;
+export const CACHED_EXERCISES_VERSION = 3;
 
 const diagramSchema = z.object({
   mermaid: z.string(),
   caption: z.string(),
+});
+
+const exampleStepSchema = z.object({
+  text: z.string(),
+  svg: z.string().optional(),
 });
 
 const lessonSchema = z.object({
@@ -21,14 +26,13 @@ const lessonSchema = z.object({
   explanation: z.string(),
   example: z.object({
     problem: z.string(),
-    steps: z.array(z.string()),
+    steps: z.array(exampleStepSchema),
     answer: z.string(),
   }),
   commonMistake: z.object({
     description: z.string(),
     correction: z.string(),
   }),
-  diagram: diagramSchema.optional(),
   quickCheck: z.object({
     question: z.string(),
     options: z.array(z.string()).length(4),
@@ -54,9 +58,18 @@ const practiceResponseSchema = z.object({
   exercises: z.array(exerciseItemSchema).length(4),
 });
 
+const cachedLessonSchema = lessonSchema.extend({
+  diagram: diagramSchema.optional(),
+});
+
+const cachedPracticeResponseSchema = z.object({
+  lesson: cachedLessonSchema,
+  exercises: z.array(exerciseItemSchema).length(4),
+});
+
 const cachedExercisesSchema = z.object({
   version: z.number(),
-  data: practiceResponseSchema,
+  data: cachedPracticeResponseSchema,
 });
 
 const SUBJECT_CONTEXTS: Record<string, { area: string; topics: string[]; canHaveDiagram: boolean }> = {
@@ -124,17 +137,34 @@ export async function POST(request: NextRequest) {
       ? `${aiPromptContext}`
       : (topic || ctx.topics.slice(0, 1).join(", "));
 
-    const lessonPrompt = `Eres un profesor experto en andragogia para adultos en bachillerato acelerado (PCEI).
-Genera una leccion y 4 ejercicios sobre el tema.
+    const lessonPrompt = `Eres un tutor cercano, paciente y entusiasta. Ensenas a adultos en bachillerato acelerado (PCEI). Tu mision es explicar un tema de forma clara, visual y amigable.
 
 AREA: ${ctx.area}
 Tema: ${topicContext}
 
-REGLAS LECCION (SE BREVE):
-- "explanation": 3-4 oraciones cortas maximo. Desde cero, con analogia de vida real.
-- "example": 2-3 pasos. "answer" en 1 oracion.
-- "commonMistake": 1 oracion description, 1 oracion correction.
-- "quickCheck": 1 oracion question, feedback en 1 oracion.
+ESTILO DE ENSENANZA:
+- Habla como un amigo explicando algo nuevo: cercano, animado, sin jerga innecesaria.
+- Usa frases como "Imagina que...", "Piensa en esto...", "Vamos paso a paso".
+- Maximo 2 oraciones por idea. Se directo y claro.
+- Usa ejemplos de la vida cotidiana que cualquier adulto reconozca.
+
+EXPLICACION INICIAL ("explanation"):
+- 2-3 oraciones cortas que introduzcan el concepto desde cero.
+- Empieza con una pregunta o analogia que conecte con la vida real.
+
+EJEMPLO ("example"):
+- Plantea un problema practico y relevante para adultos.
+- Cada paso es un objeto con "text" (explicacion) y opcionalmente "svg".
+- El SVG debe ser MUY simple: maximo 6 elementos (rect, circle, text, line). viewBox="0 0 260 120".
+- Usa colores hexadecimales (#FF6B6B, #4ECDC4, #333). Nada complejo.
+- Importante: escapa las comillas dentro del SVG como comillas SIMPLES (comillas simples). Ejemplo: viewBox='0 0 260 120'.
+- Incluye "answer" como conclusion clara del ejemplo.
+
+ERROR COMUN ("commonMistake"):
+- 1 oracion para el error. 1 oracion para la correccion.
+
+COMPROBACION RAPIDA ("quickCheck"):
+- 1 pregunta con 4 opciones. Feedback util en 1 oracion.
 
 REGLAS EJERCICIOS:
 - EXACTAMENTE 4 ejercicios.
@@ -143,17 +173,17 @@ REGLAS EJERCICIOS:
 - MCQ: "options" con 4 strings, "correctIndex" (0-3). NO usar "correctAnswer".
 - FILL_BLANK: "acceptedAnswers" OBLIGATORIO (array de strings).
 - TRUE_FALSE: "correctAnswer" OBLIGATORIO (true o false).
-- Hard: "timeLimit": null. Easy/Medium: "timeLimit" entre 20 y 40.
-- Lenguaje claro, ejemplos de la vida real.`;
+- Hard: "timeLimit": null. Easy/Medium: "timeLimit" entre 20 y 40.`;
 
     const diagramPrompt = ctx.canHaveDiagram
-      ? `Genera un diagrama educativo en sintaxis Mermaid.js para el siguiente tema.
+      ? `Genera un diagrama educativo visual en sintaxis Mermaid.js sobre el tema.
 
 AREA: ${ctx.area}
 Tema: ${topicContext}
 
 REGLAS:
-- Usa graph TD/LR con nodos descriptivos en espanol.
+- Usa graph TD o LR con nodos descriptivos en espanol.
+- Que sea claro y facil de seguir visualmente.
 - caption: maximo 6 palabras descriptivas.`
       : null;
 
@@ -175,7 +205,7 @@ REGLAS:
           schema: practiceResponseSchema,
           prompt: lessonPrompt,
           temperature: 0.6,
-          maxOutputTokens: 4000,
+          maxOutputTokens: 8000,
           abortSignal: abortController.signal,
         });
 
@@ -245,7 +275,8 @@ REGLAS:
     lessonResult.exercises = lessonResult.exercises.map((ex, i) => ({ ...ex, id: i + 1 }));
 
     if (diagram) {
-      lessonResult.lesson.diagram = diagram;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (lessonResult.lesson as any).diagram = diagram;
     }
 
     if (nodeId) {

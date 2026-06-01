@@ -24,12 +24,17 @@ interface Exercise {
   difficulty: "easy" | "medium" | "hard";
 }
 
+interface ExampleStep {
+  text: string;
+  svg?: string;
+}
+
 interface LessonData {
   title: string;
   explanation: string;
   example: {
     problem: string;
-    steps: string[];
+    steps: ExampleStep[];
     answer: string;
   };
   commonMistake: {
