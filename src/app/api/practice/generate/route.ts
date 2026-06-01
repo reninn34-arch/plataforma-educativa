@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel } from "@/lib/ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, repairJson, tryParseJson } from "@/lib/ai";
 import { db } from "@/lib/db";
 import { nodes } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { generateText } from "ai";
+import { generateText, Output } from "ai";
 import { z } from "zod/v4";
 import { verifyToken } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
@@ -82,113 +82,76 @@ const SUBJECT_CONTEXTS: Record<string, { area: string; topics: string[]; canHave
   },
 };
 
-// ── Main prompt: lesson + 4 exercises (NO diagram) ──
-
-const LESSON_PROMPT = `Eres un profesor experto en andragogia para adultos en bachillerato acelerado (PCEI). Genera EXCLUSIVAMENTE un JSON valido con una leccion y 4 ejercicios.
-
-ESTRUCTURA JSON OBLIGATORIA:
-{
-  "lesson": {
-    "title": "Titulo atractivo (max 6 palabras)",
-    "explanation": "Explicacion con analogia de la vida real. 3-4 oraciones breves.",
-    "example": {
-      "problem": "Enunciado del ejemplo con numeros/datos concretos",
-      "steps": ["Paso 1: ...", "Paso 2: ..."],
-      "answer": "Respuesta final"
-    },
-    "commonMistake": {
-      "description": "Error tipico en UNA oracion",
-      "correction": "Como evitarlo en UNA oracion"
-    },
-    "quickCheck": {
-      "question": "Pregunta corta (1 oracion)",
-      "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
-      "correctIndex": 0,
-      "feedback": "Explicacion en 1 oracion"
-    }
-  },
-  "exercises": [EJERCICIO1, EJERCICIO2, EJERCICIO3, EJERCICIO4]
+function isResponseFormatError(error: unknown): boolean {
+  const msg = String((error as any)?.message ?? "").toLowerCase();
+  return msg.includes("response_format") || msg.includes("unavailable");
 }
 
-REGLAS LECCION (SE BREVE):
-1. "explanation": 3-4 oraciones cortas maximo. Desde cero, con analogia de vida real.
-2. "example": 2-3 pasos. "answer" en 1 oracion.
-3. "commonMistake": 1 oracion description, 1 oracion correction.
-4. "quickCheck": 1 oracion question, feedback en 1 oracion.
-
-REGLAS EJERCICIOS:
-1. EXACTAMENTE 4 ejercicios. NUNCA menos de 4.
-2. Variar tipos: maximo 2 del mismo tipo (mcq, fill_blank, true_false).
-3. Dificultad variada: al menos 1 easy, 1 medium, 1 hard.
-4. MCQ: 4 opciones, "correctIndex" (0-3). NO usar "correctAnswer".
-5. FILL_BLANK: "acceptedAnswers" OBLIGATORIO (array de strings).
-6. TRUE_FALSE: "correctAnswer" OBLIGATORIO (true o false).
-7. Hard: "timeLimit": null. Easy/Medium: "timeLimit" entre 20 y 40.
-8. Lenguaje claro, ejemplos de la vida real.
-
-CRITICO: Responde UNICAMENTE con el JSON. Sin markdown, sin explicaciones, sin texto antes o despues del JSON.`;
-
-// ── Diagram prompt: Mermaid syntax ──
-
-const DIAGRAM_PROMPT = `Eres un disenador grafico educativo. Genera EXCLUSIVAMENTE un objeto JSON con un diagrama en sintaxis Mermaid.js.
-
-Tu respuesta DEBE empezar con { y terminar con }. El formato exacto es:
-
-{"mermaid":"graph TD\\n    A[Concepto] --> B[Explicacion]\\n    B --> C[Ejemplo]","caption":"Flujo del concepto"}
-
-REGLAS:
-1. Empieza SIEMPRE con { y termina con }.
-2. "mermaid": string con sintaxis Mermaid.js. Usa \\n para saltos de linea.
-3. Tipos de diagrama segun el tema:
-   - Quimica: graph TD/LR para reacciones, enlaces, estructura atomica
-   - Fisica: graph TD/LR para fuerzas, flujo de energia. flowchart para circuitos.
-   - Matematicas: graph TD/LR para jerarquia de conceptos, flowchart para pasos de resolucion
-4. Usa nodos con texto descriptivo: A[Enunciado del problema], B[Identificar variables]
-5. Usa formas: () rectangulo redondeado, [] rectangulo, {} rombo, (()) circulo
-6. Colores con style: style A fill:#e0f0ff. NO abuses de colores.
-7. "caption": maximo 6 palabras descriptivas.
-8. IMPORTANTISIMO: JSON puro. La respuesta empieza con { y termina con }.
-9. El texto de los nodos debe ser en espanol, claro y educativo.`;
-
-// ── JSON repair utilities ──
-
-function repairJson(text: string): string {
-  text = text.trim();
-  text = text.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
-  let openBraces = 0;
-  let openBrackets = 0;
-  let inString = false;
-  let prevChar = "";
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (inString) {
-      if (c === "\\" && prevChar !== "\\") { prevChar = c; continue; }
-      if (c === '"' && prevChar !== "\\") { inString = false; prevChar = c; continue; }
-      prevChar = c;
-      continue;
+function normalizePracticeOutput(data: any): any {
+  if (!data || !Array.isArray(data.exercises)) return data;
+  const normalized = data.exercises.map((ex: any) => {
+    if (!ex) return ex;
+    // Normalize type
+    let type = ex.type;
+    if (typeof type === "string") {
+      const t = type.toLowerCase().trim();
+      if (t === "mcq" || t === "multiple_choice" || t === "multiple choice" || t === "opcion multiple") type = "mcq";
+      else if (t === "fill_blank" || t === "fill_in_the_blank" || t === "fill in the blank" || t === "completar" || t === "complete") type = "fill_blank";
+      else if (t === "true_false" || t === "true or false" || t === "verdadero_falso" || t === "verdadero o falso" || t === "boolean") type = "true_false";
+      else type = "mcq";
     }
-    if (c === '"') { inString = true; prevChar = c; continue; }
-    if (c === "{") openBraces++;
-    if (c === "}") openBraces--;
-    if (c === "[") openBrackets++;
-    if (c === "]") openBrackets--;
-    prevChar = c;
-  }
-  if (inString) text += '"';
-  text += "]".repeat(Math.max(0, openBrackets));
-  text += "}".repeat(Math.max(0, openBraces));
-  return text;
+    // Normalize difficulty
+    let difficulty = ex.difficulty;
+    if (typeof difficulty === "string") {
+      const d = difficulty.toLowerCase().trim();
+      if (d.startsWith("eas") || d === "bajo" || d === "baja" || d === "1") difficulty = "easy";
+      else if (d.startsWith("med") || d === "intermedio" || d === "intermedia" || d === "2") difficulty = "medium";
+      else if (d.startsWith("har") || d === "dificil" || d === "avanzado" || d === "3") difficulty = "hard";
+      else difficulty = "medium";
+    }
+    return { ...ex, type, difficulty };
+  });
+  return { ...data, exercises: normalized };
 }
 
-function tryParseJson(text: string): any {
-  try { return JSON.parse(text); } catch {}
-  try { return JSON.parse(repairJson(text)); } catch {}
-  const firstBrace = text.indexOf("{");
-  const lastBrace = text.lastIndexOf("}");
-  if (firstBrace >= 0 && lastBrace > firstBrace) {
-    try { return JSON.parse(repairJson(text.slice(firstBrace, lastBrace + 1))); } catch {}
+async function generateStructured<T>(
+  model: ReturnType<typeof getChatModel>,
+  prompt: string,
+  schema: z.ZodType<T>,
+  opts: { temperature: number; maxOutputTokens: number; abortSignal: AbortSignal },
+): Promise<{ output: T; text: string }> {
+  try {
+    const response = await generateText({
+      model,
+      output: Output.json(),
+      prompt,
+      temperature: opts.temperature,
+      maxOutputTokens: opts.maxOutputTokens,
+      abortSignal: opts.abortSignal,
+    });
+    const normalized = normalizePracticeOutput(response.output);
+    return {
+      output: schema.parse(normalized),
+      text: response.text,
+    };
+  } catch (error) {
+    if (isResponseFormatError(error)) {
+      const response = await generateText({
+        model,
+        prompt,
+        temperature: opts.temperature,
+        maxOutputTokens: opts.maxOutputTokens,
+        abortSignal: opts.abortSignal,
+      });
+      const json = tryParseJson(response.text);
+      const normalized = normalizePracticeOutput(json);
+      return {
+        output: schema.parse(normalized),
+        text: response.text,
+      };
+    }
+    throw error;
   }
-  throw new Error("No se pudo extraer JSON valido de la respuesta");
 }
 
 // ── POST handler ──
@@ -211,6 +174,7 @@ export async function POST(request: NextRequest) {
     }
     const candidates = getChatModelCandidates(model);
 
+    // DB cache check
     if (nodeId && !retry) {
       const nodeRecord = await db
         .select({ cachedExercises: nodes.cachedExercises })
@@ -235,8 +199,49 @@ export async function POST(request: NextRequest) {
       ? `${aiPromptContext}`
       : (topic || ctx.topics.slice(0, 1).join(", "));
 
+    const lessonPrompt = `Eres un profesor experto en andragogia para adultos en bachillerato acelerado (PCEI).
+Genera una leccion y 4 ejercicios sobre el tema en formato JSON.
+
+AREA: ${ctx.area}
+Tema: ${topicContext}
+
+VALORES EXACTOS OBLIGATORIOS PARA EJERCICIOS:
+- "type": SOLO "mcq", "fill_blank" o "true_false" (minusculas, sin variantes)
+- "difficulty": SOLO "easy", "medium" o "hard" (minusculas, sin variantes)
+- "timeLimit": numero (20-40) o null para hard
+
+REGLAS LECCION (SE BREVE):
+- "explanation": 3-4 oraciones cortas maximo. Desde cero, con analogia de vida real.
+- "example": 2-3 pasos. "answer" en 1 oracion.
+- "commonMistake": 1 oracion description, 1 oracion correction.
+- "quickCheck": 1 oracion question, feedback en 1 oracion.
+
+REGLAS EJERCICIOS:
+- EXACTAMENTE 4 ejercicios.
+- Variar tipos: maximo 2 del mismo tipo.
+- Dificultad variada: al menos 1 easy, 1 medium, 1 hard.
+- MCQ: "options" con 4 strings, "correctIndex" (0-3). NO usar "correctAnswer".
+- FILL_BLANK: "acceptedAnswers" OBLIGATORIO (array de strings).
+- TRUE_FALSE: "correctAnswer" OBLIGATORIO (true o false).
+- Hard: "timeLimit": null. Easy/Medium: "timeLimit" entre 20 y 40.
+- Lenguaje claro, ejemplos de la vida real.`;
+
+    const diagramPrompt = ctx.canHaveDiagram
+      ? `Genera un diagrama educativo en sintaxis Mermaid.js para el siguiente tema.
+
+AREA: ${ctx.area}
+Tema: ${topicContext}
+
+REGLAS:
+- Usa graph TD/LR con nodos descriptivos en espanol.
+- Tipos de diagrama: Quimica: reacciones/enlaces/estructura atomica. Fisica: fuerzas/flujo de energia. Matematicas: jerarquia de conceptos/pasos de resolucion.
+- Usa formas: () rectangulo redondeado, [] rectangulo, {} rombo, (()) circulo.
+- Colores sutiles con style: style A fill:#e0f0ff. NO abuses.
+- caption: maximo 6 palabras descriptivas.`
+      : null;
+
     const REQUEST_TIMEOUT_MS = 60_000;
-    let lessonResult: Awaited<ReturnType<typeof generateText>> | null = null;
+    let lessonResult: z.infer<typeof practiceResponseSchema> | null = null;
     let diagram: z.infer<typeof diagramSchema> | null = null;
     let usedModel = resolved;
     let lastError: unknown;
@@ -247,49 +252,34 @@ export async function POST(request: NextRequest) {
 
       try {
         const aiModel = getChatModel(candidate);
+        const genOpts = { temperature: 0.6, maxOutputTokens: 4000, abortSignal: abortController.signal };
 
-        const lessonPromise = generateText({
-          model: aiModel,
-          prompt: `${LESSON_PROMPT}\n\nAREA: ${ctx.area}\nTema: ${topicContext}`,
-          temperature: 0.6,
-          maxOutputTokens: 4000,
-          abortSignal: abortController.signal,
-        });
+        const lessonPromise = generateStructured(aiModel, lessonPrompt, practiceResponseSchema, genOpts);
 
         let diagramPromise: Promise<z.infer<typeof diagramSchema> | null> = Promise.resolve(null);
-        if (ctx.canHaveDiagram) {
+        if (diagramPrompt) {
           const diagramStart = performance.now();
-          diagramPromise = generateText({
-            model: aiModel,
-            prompt: `${DIAGRAM_PROMPT}\n\nAREA: ${ctx.area}\nTema: ${topicContext}\n\nGenera un diagrama Mermaid.js educativo para este tema.`,
-            temperature: 0.3,
-            maxOutputTokens: 1500,
-            abortSignal: abortController.signal,
-          }).then((r) => {
-            logAiCall({
-              route: "practice-diagram",
-              model: candidate.modelId,
-              durationMs: Math.round(performance.now() - diagramStart),
-              usage: { inputTokens: r.usage?.inputTokens, outputTokens: r.usage?.outputTokens, totalTokens: (r.usage?.inputTokens ?? 0) + (r.usage?.outputTokens ?? 0) },
-            });
-            try {
-              const json = tryParseJson(r.text);
-              return diagramSchema.parse(json);
-            } catch (e) {
-              console.error("[diagram] JSON parse/schema error:", e);
-              console.log("[diagram] raw output (first 300 chars):", r.text.substring(0, 300));
+          const diagramGenOpts = { temperature: 0.3, maxOutputTokens: 1500, abortSignal: abortController.signal };
+          diagramPromise = generateStructured(aiModel, diagramPrompt, diagramSchema, diagramGenOpts)
+            .then((r) => {
+              logAiCall({
+                route: "practice-diagram",
+                model: candidate.modelId,
+                durationMs: Math.round(performance.now() - diagramStart),
+                usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+              });
+              return r.output;
+            })
+            .catch((err) => {
+              console.error("[diagram] failed:", err?.message || err);
+              logAiCall({
+                route: "practice-diagram",
+                model: candidate.modelId,
+                durationMs: Math.round(performance.now() - diagramStart),
+                error: err?.message || "unknown",
+              });
               return null;
-            }
-          }).catch((err) => {
-            console.error("[diagram] generateText failed:", err?.message || err);
-            logAiCall({
-              route: "practice-diagram",
-              model: candidate.modelId,
-              durationMs: Math.round(performance.now() - diagramStart),
-              error: err?.message || "unknown",
             });
-            return null;
-          });
         }
 
         const startTime = performance.now();
@@ -301,10 +291,10 @@ export async function POST(request: NextRequest) {
           route: "practice-generate",
           model: candidate.modelId,
           durationMs,
-          usage: { inputTokens: lessonAttempt.usage?.inputTokens, outputTokens: lessonAttempt.usage?.outputTokens, totalTokens: (lessonAttempt.usage?.inputTokens ?? 0) + (lessonAttempt.usage?.outputTokens ?? 0) },
+          usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
         });
 
-        lessonResult = lessonAttempt;
+        lessonResult = lessonAttempt.output;
         diagram = diagramAttempt;
         usedModel = candidate;
         break;
@@ -317,27 +307,26 @@ export async function POST(request: NextRequest) {
 
     if (!lessonResult) throw (lastError ?? new Error("No se pudo generar practica con los modelos configurados"));
 
-    const jsonData = tryParseJson(lessonResult.text);
-    const parsed = practiceResponseSchema.parse(jsonData);
-    parsed.exercises = parsed.exercises.map((ex, i) => ({ ...ex, id: i + 1 }));
+    lessonResult.exercises = lessonResult.exercises.map((ex: z.infer<typeof exerciseItemSchema>, i: number) => ({ ...ex, id: i + 1 }));
 
     if (diagram) {
-      parsed.lesson.diagram = diagram;
+      lessonResult.lesson.diagram = diagram;
     }
 
+    // Cache to DB
     if (nodeId) {
       await db
         .update(nodes)
         .set({
           cachedExercises: {
             version: CACHED_EXERCISES_VERSION,
-            data: parsed,
+            data: lessonResult,
           } as any,
         })
         .where(eq(nodes.id, nodeId));
     }
 
-    return Response.json({ ...parsed, modelUsed: usedModel.modelId });
+    return Response.json({ ...lessonResult, modelUsed: usedModel.modelId });
   } catch (error) {
     console.error("Generate exercises error:", error);
     return Response.json(

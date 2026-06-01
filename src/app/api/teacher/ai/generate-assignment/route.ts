@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, type ResolvedModel } from "@/lib/ai";
-import { generateText } from "ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, repairJson, tryParseJson } from "@/lib/ai";
+import { generateText, Output } from "ai";
 import { z } from "zod/v4";
 import { verifyToken } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
@@ -27,83 +27,66 @@ const generateResponseSchema = z.object({
     .max(15),
 });
 
-const GENERATE_PROMPT = `Eres un docente experto creando tareas para educacion secundaria acelerada de adultos (PCEI Ecuador). Responde EXCLUSIVAMENTE con JSON valido.
+function isResponseFormatError(error: unknown): boolean {
+  const msg = String((error as any)?.message ?? "").toLowerCase();
+  return msg.includes("response_format") || msg.includes("unavailable");
+}
 
-USA SOLO PREGUNTAS MCQ (multiple choice). NO uses file_upload a menos que el tema sea imposible sin ello. Las MCQ deben tener EXACTAMENTE 4 campos obligatorios: type, question, options, correctIndex, points.
-
-FORMATO JSON OBLIGATORIO (copia esta estructura exacta):
-{
-  "title": "Titulo claro (max 80 chars)",
-  "description": "2 parrafos con instrucciones y contexto practico para adultos",
-  "questions": [
-    {
-      "type": "mcq",
-      "question": "Enunciado de la pregunta",
-      "options": ["Opcion A", "Opcion B", "Opcion C", "Opcion D"],
-      "correctIndex": 0,
-      "points": 2
+function normalizeQuestions(data: any): any {
+  if (!data || !Array.isArray(data.questions)) return data;
+  const normalized = data.questions.map((q: any) => {
+    if (!q || typeof q.type !== "string") return q;
+    const t = q.type.toLowerCase().trim();
+    if (t === "mcq" || t === "multiple_choice" || t === "multiple choice" || t === "opcion multiple" || t === "opcion_multiple") {
+      return { ...q, type: "mcq" };
     }
-  ]
-}
-
-REGLAS ESTRICTAS:
-1. Solo preguntas MCQ. NUNCA omitas "question", "options", "correctIndex" o "points".
-2. "options": EXACTAMENTE 4 strings en array. "correctIndex": 0-3 (A=0, B=1, C=2, D=3).
-3. "points": 1-3 para preguntas faciles, 4-5 para dificiles.
-4. Lenguaje adulto, practico, laboral. Contexto ecuatoriano.
-5. CRITICO: responde SOLO el JSON. Sin markdown, sin triple backtick, sin texto antes/despues.`;
-
-const REPAIR_SYSTEM_PROMPT = `Eres un reparador de JSON. El siguiente texto deberia ser JSON valido pero tiene errores de formato.
-Corrige los errores (comas faltantes, llaves desbalanceadas, strings sin cerrar) y devuelve UNICAMENTE el JSON reparado, sin markdown ni explicaciones.`;
-
-function repairJson(text: string): string {
-  text = text.trim();
-  text = text.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
-  let openBraces = 0;
-  let openBrackets = 0;
-  let inString = false;
-  let prevChar = "";
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (inString) {
-      if (c === "\\" && prevChar !== "\\") { prevChar = c; continue; }
-      if (c === '"' && prevChar !== "\\") { inString = false; prevChar = c; continue; }
-      prevChar = c;
-      continue;
+    if (t === "file_upload" || t === "file" || t === "upload" || t === "archivo" || t === "subir_archivo") {
+      return { ...q, type: "file_upload" };
     }
-    if (c === '"') { inString = true; prevChar = c; continue; }
-    if (c === "{") openBraces++;
-    if (c === "}") openBraces--;
-    if (c === "[") openBrackets++;
-    if (c === "]") openBrackets--;
-    prevChar = c;
-  }
-  if (inString) text += '"';
-  text += "]".repeat(Math.max(0, openBrackets));
-  text += "}".repeat(Math.max(0, openBraces));
-  return text;
-}
-
-function tryParseJson(text: string): any {
-  try { return JSON.parse(text); } catch { /* continue */ }
-  try { return JSON.parse(repairJson(text)); } catch { /* continue */ }
-  const firstBrace = text.indexOf("{");
-  const lastBrace = text.lastIndexOf("}");
-  if (firstBrace >= 0 && lastBrace > firstBrace) {
-    try { return JSON.parse(repairJson(text.slice(firstBrace, lastBrace + 1))); } catch { /* continue */ }
-  }
-  throw new Error("No se pudo extraer JSON valido de la respuesta");
-}
-
-async function repairWithAi(malformed: string, resolvedModel: ResolvedModel): Promise<any> {
-  const { text } = await generateText({
-    model: getChatModel(resolvedModel),
-    system: REPAIR_SYSTEM_PROMPT,
-    prompt: malformed,
-    temperature: 0.1,
-    maxOutputTokens: 4000,
+    return { ...q, type: "mcq" };
   });
-  return tryParseJson(text);
+  return { ...data, questions: normalized };
+}
+
+async function generateWithFallback(
+  candidate: ReturnType<typeof getChatModelCandidates>[number],
+  prompt: string,
+  abortSignal: AbortSignal,
+) {
+  try {
+    const response = await generateText({
+      model: getChatModel(candidate),
+      output: Output.json(),
+      prompt,
+      temperature: 0.6,
+      maxOutputTokens: 4000,
+      abortSignal,
+    });
+    const normalized = normalizeQuestions(response.output);
+    return {
+      output: normalized,
+      parsed: generateResponseSchema.parse(normalized),
+      usage: response.usage,
+    };
+  } catch (error) {
+    if (isResponseFormatError(error)) {
+      const textResponse = await generateText({
+        model: getChatModel(candidate),
+        prompt,
+        temperature: 0.6,
+        maxOutputTokens: 4000,
+        abortSignal,
+      });
+      const json = tryParseJson(textResponse.text);
+      const normalized = normalizeQuestions(json);
+      return {
+        output: normalized,
+        parsed: generateResponseSchema.parse(normalized),
+        usage: textResponse.usage,
+      };
+    }
+    throw error;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -139,11 +122,30 @@ export async function POST(request: NextRequest) {
 
     const count = Math.min(Math.max(1, questionCount), 15);
 
-    const prompt = `${GENERATE_PROMPT}\n\nMateria: ${subject}\nTema: ${topic}\nCantidad de preguntas: ${count}\nTrimestre: ${body.trimester || 1}`;
+    const prompt = `Eres un docente experto en educacion secundaria acelerada para adultos (PCEI Ecuador).
+Genera una tarea en formato JSON con esta estructura exacta:
+{
+  "title": "Titulo claro (max 80 caracteres)",
+  "description": "2 parrafos con instrucciones y contexto practico",
+  "questions": [
+    { "type": "mcq", "question": "...", "options": ["A","B","C","D"], "correctIndex": 0, "points": 2 }
+  ]
+}
 
-    const start = Date.now();
-    let rawText = "";
-    const REQUEST_TIMEOUT_MS = 60_000;
+VALORES OBLIGATORIOS:
+- questions[].type: SOLO "mcq" o "file_upload" (en minusculas, sin variantes)
+- questions[].options: array de exactamente 4 strings
+- questions[].correctIndex: numero 0-3 (0=A, 1=B, 2=C, 3=D)
+- questions[].points: 1-3 facil, 4-5 dificil
+
+Materia: ${subject}
+Tema: ${topic}
+Cantidad de preguntas: ${count}
+Trimestre: ${body.trimester || 1}
+
+Usa lenguaje adulto, practico, laboral con contexto ecuatoriano. Prefiere preguntas tipo "mcq".`;
+
+    const REQUEST_TIMEOUT_MS = 30_000;
     let lastError: unknown;
 
     for (const candidate of candidates) {
@@ -151,51 +153,26 @@ export async function POST(request: NextRequest) {
       const timeoutId = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MS);
 
       try {
-        const response = await generateText({
-          model: getChatModel(candidate),
-          prompt,
-          temperature: 0.6,
-          maxOutputTokens: 4000,
-          abortSignal: abortController.signal,
-        });
+        const start = Date.now();
+        const result = await generateWithFallback(candidate, prompt, abortController.signal);
         clearTimeout(timeoutId);
-        rawText = response.text || "";
 
         logAiCall({
           route: "teacher/ai/generate-assignment",
           model: candidate.modelId,
           durationMs: Date.now() - start,
-          usage: response.usage ? {
-            inputTokens: response.usage.inputTokens,
-            outputTokens: response.usage.outputTokens,
-            totalTokens: (response.usage.inputTokens ?? 0) + (response.usage.outputTokens ?? 0),
+          usage: result.usage ? {
+            inputTokens: result.usage.inputTokens,
+            outputTokens: result.usage.outputTokens,
+            totalTokens: (result.usage.inputTokens ?? 0) + (result.usage.outputTokens ?? 0),
           } : undefined,
         });
 
-        let result: any;
-        try {
-          result = tryParseJson(rawText);
-        } catch {
-          try {
-            result = await repairWithAi(rawText, candidate);
-          } catch {
-            continue;
-          }
-        }
-
-        const parsed = generateResponseSchema.safeParse(result);
-        if (parsed.success) {
-          return NextResponse.json({
-            success: true,
-            data: parsed.data,
-            modelUsed: candidate.modelId,
-          });
-        }
-
-        console.error(
-          `[AI Assignment] Schema validation failed with ${candidate.modelId}:`,
-          parsed.error.issues.map((i: any) => i.path?.join(".") || i.message).slice(0, 5),
-        );
+        return NextResponse.json({
+          success: true,
+          data: result.parsed,
+          modelUsed: candidate.modelId,
+        });
       } catch (aiError: any) {
         clearTimeout(timeoutId);
         lastError = aiError;
@@ -204,7 +181,7 @@ export async function POST(request: NextRequest) {
         logAiCall({
           route: "teacher/ai/generate-assignment",
           model: candidate.modelId,
-          durationMs: Date.now() - start,
+          durationMs: 0,
           error: wasAborted ? `Timeout (${REQUEST_TIMEOUT_MS / 1000}s)` : (aiError.message || "AI error"),
         });
 
@@ -232,7 +209,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: "Ningun modelo pudo generar datos completos. Intenta con otro tema." },
+      { error: "Ningun modelo pudo generar datos validos. Intenta con otro tema." },
       { status: 422 }
     );
   } catch (error) {

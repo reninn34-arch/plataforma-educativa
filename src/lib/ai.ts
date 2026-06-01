@@ -295,7 +295,48 @@ export function isRetryableModelError(error: unknown): boolean {
     || message.includes("model")
     || message.includes("unsupported")
     || message.includes("no configurado")
+    || message.includes("response_format")
+    || message.includes("unavailable")
   );
+}
+
+export function repairJson(text: string): string {
+  text = text.trim();
+  text = text.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
+  let openBraces = 0;
+  let openBrackets = 0;
+  let inString = false;
+  let prevChar = "";
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inString) {
+      if (c === "\\" && prevChar !== "\\") { prevChar = c; continue; }
+      if (c === '"' && prevChar !== "\\") { inString = false; prevChar = c; continue; }
+      prevChar = c;
+      continue;
+    }
+    if (c === '"') { inString = true; prevChar = c; continue; }
+    if (c === "{") openBraces++;
+    if (c === "}") openBraces--;
+    if (c === "[") openBrackets++;
+    if (c === "]") openBrackets--;
+    prevChar = c;
+  }
+  if (inString) text += '"';
+  text += "]".repeat(Math.max(0, openBrackets));
+  text += "}".repeat(Math.max(0, openBraces));
+  return text;
+}
+
+export function tryParseJson(text: string): any {
+  try { return JSON.parse(text); } catch { /* fallback */ }
+  try { return JSON.parse(repairJson(text)); } catch { /* fallback */ }
+  const firstBrace = text.indexOf("{");
+  const lastBrace = text.lastIndexOf("}");
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    try { return JSON.parse(repairJson(text.slice(firstBrace, lastBrace + 1))); } catch { /* fallback */ }
+  }
+  throw new Error("No se pudo extraer JSON valido de la respuesta");
 }
 
 export async function generateEmbedding(value: string, requestedModel?: unknown) {

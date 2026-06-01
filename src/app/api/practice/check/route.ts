@@ -1,16 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
-import { getChatModel, getChatModelCandidates, isRetryableModelError, resolveModel } from "@/lib/ai";
-import { generateText } from "ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, resolveModel, repairJson, tryParseJson } from "@/lib/ai";
+import { generateText, Output } from "ai";
 import { practiceCheckSchema } from "@/lib/api-helpers";
+import { z } from "zod/v4";
+
+const semanticCheckResponseSchema = z.object({
+  isCorrect: z.boolean(),
+});
+
+function isResponseFormatError(error: unknown): boolean {
+  const msg = String((error as any)?.message ?? "").toLowerCase();
+  return msg.includes("response_format") || msg.includes("unavailable");
+}
 
 const SEMANTIC_CHECK_PROMPT = `Eres un evaluador de respuestas para ejercicios de completar espacios (fill in the blank) en bachillerato acelerado para adultos (PCEI). Tu unica tarea es determinar si la respuesta del estudiante es SEMANTICAMENTE EQUIVALENTE a alguna de las respuestas aceptadas.
 
-REGLAS ESTRICTAS:
-1. Responde UNICAMENTE con un JSON valido: {"isCorrect": true/false}
-2. "isCorrect": true SOLO si la respuesta del estudiante significa lo mismo que al menos una respuesta aceptada, aunque use sinonimos, mayusculas/minusculas diferentes, o pequenas variaciones gramaticales.
-3. "isCorrect": false si la respuesta es semantica o conceptualmente incorrecta.
-4. No seas demasiado laxo. Errores conceptuales = false.`;
+REGLAS:
+- "isCorrect": true SOLO si la respuesta significa lo mismo que al menos una respuesta aceptada (sinonimos, mayusculas/minusculas, variaciones gramaticales menores).
+- "isCorrect": false si la respuesta es semantica o conceptualmente incorrecta.
+- No seas demasiado laxo. Errores conceptuales = false.`;
 
 function isDeterministicMatch(studentAnswer: string, accepted: string[]): boolean {
   return accepted.some((a: string) =>
@@ -27,26 +36,51 @@ async function aiSemanticCheck(
   const candidates = getChatModelCandidates(requestedModel);
   for (const candidate of candidates) {
     try {
-      const result = await Promise.race([
-        generateText({
-          model: getChatModel(candidate),
+      const model = getChatModel(candidate);
+      const prompt = `Pregunta: ${question}
+
+Respuesta del estudiante: "${studentAnswer}"
+
+Respuestas aceptadas: ${JSON.stringify(acceptedAnswers)}
+
+Evalua si la respuesta del estudiante es semanticamente equivalente a alguna de las aceptadas.`;
+
+      let result: { isCorrect: boolean } | null = null;
+
+      try {
+        const response = await generateText({
+          model,
+          output: Output.json(),
           system: SEMANTIC_CHECK_PROMPT,
-          prompt: `Pregunta: ${question}\n\nRespuesta del estudiante: "${studentAnswer}"\n\nRespuestas aceptadas: ${JSON.stringify(acceptedAnswers)}\n\nEvalua si la respuesta del estudiante es semanticamente equivalente a alguna de las aceptadas. Responde solo con el JSON.`,
+          prompt,
           maxOutputTokens: 30,
           temperature: 0,
-        }),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
-      ]);
+        });
+        result = semanticCheckResponseSchema.parse(response.output);
+      } catch (error) {
+        if (isResponseFormatError(error)) {
+          const response = await generateText({
+            model,
+            system: SEMANTIC_CHECK_PROMPT,
+            prompt,
+            maxOutputTokens: 30,
+            temperature: 0,
+          });
+          result = semanticCheckResponseSchema.parse(tryParseJson(response.text));
+        } else {
+          throw error;
+        }
+      }
 
       if (!result) continue;
 
-      const text = result.text.trim();
-      try {
-        const parsed = JSON.parse(text);
-        if (typeof parsed.isCorrect === "boolean") return parsed.isCorrect;
-      } catch {
-        // Invalid JSON from AI, try fallback model
-      }
+      // Race with timeout
+      const timed = await Promise.race([
+        Promise.resolve(result),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
+      ]);
+
+      if (timed) return timed.isCorrect;
     } catch (error) {
       if (!isRetryableModelError(error)) return null;
     }
