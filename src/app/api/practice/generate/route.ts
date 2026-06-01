@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel } from "@/lib/ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, tryParseJson } from "@/lib/ai";
+import { isValidMermaid } from "@/lib/mermaid-validate";
 import { db } from "@/lib/db";
 import { nodes } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { generateObject } from "ai";
+import { generateObject, generateText } from "ai";
 import { z } from "zod/v4";
 import { verifyToken } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { practiceGenerateSchema } from "@/lib/api-helpers";
 
-export const CACHED_EXERCISES_VERSION = 3;
+export const CACHED_EXERCISES_VERSION = 4;
 
 const diagramSchema = z.object({
   mermaid: z.string(),
@@ -182,8 +183,9 @@ AREA: ${ctx.area}
 Tema: ${topicContext}
 
 REGLAS:
-- Usa graph TD o LR con nodos descriptivos en espanol.
-- Que sea claro y facil de seguir visualmente.
+- Usa graph TD con nodos A, B, C, D conectados con flechas --> .
+- Texto de cada nodo: claro y descriptivo, en espanol.
+- Ejemplo: A[Suma] --> B[Resta]
 - caption: maximo 6 palabras descriptivas.`
       : null;
 
@@ -212,35 +214,67 @@ REGLAS:
         let diagramPromise: Promise<z.infer<typeof diagramSchema> | null> = Promise.resolve(null);
         if (diagramPrompt) {
           const diagramStart = performance.now();
-          diagramPromise = generateObject({
-            model: aiModel,
-            schema: diagramSchema,
-            prompt: diagramPrompt,
-            temperature: 0.3,
-            maxOutputTokens: 1500,
-            abortSignal: abortController.signal,
-          }).then((r) => {
-            logAiCall({
-              route: "practice-diagram",
-              model: candidate.modelId,
-              durationMs: Math.round(performance.now() - diagramStart),
-              usage: r.usage ? {
-                inputTokens: r.usage.inputTokens,
-                outputTokens: r.usage.outputTokens,
-                totalTokens: (r.usage.inputTokens ?? 0) + (r.usage.outputTokens ?? 0),
-              } : undefined,
-            });
-            return r.object;
-          }).catch((err) => {
-            console.error("[diagram] failed:", err?.message || err);
-            logAiCall({
-              route: "practice-diagram",
-              model: candidate.modelId,
-              durationMs: Math.round(performance.now() - diagramStart),
-              error: err?.message || "unknown",
-            });
-            return null;
-          });
+          diagramPromise = (async () => {
+            try {
+              const r = await generateObject({
+                model: aiModel,
+                schema: diagramSchema,
+                prompt: diagramPrompt,
+                temperature: 0.3,
+                maxOutputTokens: 1500,
+                abortSignal: abortController.signal,
+              });
+              logAiCall({
+                route: "practice-diagram",
+                model: candidate.modelId,
+                durationMs: Math.round(performance.now() - diagramStart),
+                usage: r.usage ? {
+                  inputTokens: r.usage.inputTokens,
+                  outputTokens: r.usage.outputTokens,
+                  totalTokens: (r.usage.inputTokens ?? 0) + (r.usage.outputTokens ?? 0),
+                } : undefined,
+              });
+              return r.object;
+            } catch (err) {
+              const msg = String((err as any)?.message ?? err ?? "");
+              // Fallback to generateText if response_format not supported
+              if (msg.includes("response_format") || msg.includes("unavailable")) {
+                console.log("[diagram] response_format not supported, falling back to generateText");
+                const r = await generateText({
+                  model: aiModel,
+                  prompt: diagramPrompt + "\n\nResponde SOLO con un JSON valido con dos campos: \"mermaid\" (string con el diagrama) y \"caption\" (string corta).",
+                  temperature: 0.3,
+                  maxOutputTokens: 1500,
+                  abortSignal: abortController.signal,
+                });
+                logAiCall({
+                  route: "practice-diagram-text",
+                  model: candidate.modelId,
+                  durationMs: Math.round(performance.now() - diagramStart),
+                  usage: r.usage ? {
+                    inputTokens: r.usage.inputTokens,
+                    outputTokens: r.usage.outputTokens,
+                    totalTokens: (r.usage.inputTokens ?? 0) + (r.usage.outputTokens ?? 0),
+                  } : undefined,
+                });
+                try {
+                  const parsed = tryParseJson(r.text);
+                  return { mermaid: parsed.mermaid || "", caption: parsed.caption || "" };
+                } catch {
+                  console.error("[diagram] failed to parse JSON from generateText");
+                  return null;
+                }
+              }
+              console.error("[diagram] failed:", (err as any)?.message || err);
+              logAiCall({
+                route: "practice-diagram",
+                model: candidate.modelId,
+                durationMs: Math.round(performance.now() - diagramStart),
+                error: (err as any)?.message || "unknown",
+              });
+              return null;
+            }
+          })();
         }
 
         const startTime = performance.now();
@@ -274,7 +308,7 @@ REGLAS:
 
     lessonResult.exercises = lessonResult.exercises.map((ex, i) => ({ ...ex, id: i + 1 }));
 
-    if (diagram) {
+    if (diagram && isValidMermaid(diagram.mermaid)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (lessonResult.lesson as any).diagram = diagram;
     }

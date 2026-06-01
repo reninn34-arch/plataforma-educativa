@@ -97,7 +97,7 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                 return p?.status === "completed" || p?.status === "mastered";
               }).length;
               const modPct = modNodes.length > 0 ? Math.round((modCompleted / modNodes.length) * 100) : 0;
-              const isModLocked = mod.requiredPoints > totalStars;
+              const isModLocked = mod.generated ? mod.requiredPoints > totalStars : false;
 
               return (
                 <div key={mod.id} className="relative">
@@ -150,7 +150,7 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                   <div className="flex flex-col items-center gap-6 py-4">
                     {modNodes.map((node, i) => {
                       const prog = progressMap.get(node.id);
-                      const status = isModLocked ? "locked" : (prog?.status || (i === 0 ? "unlocked" : "locked"));
+                      const status = isModLocked ? "locked" : (prog?.status || "unlocked");
                       const isLocked = status === "locked";
                       const isCompleted = status === "completed" || status === "mastered";
                       const isCurrent = status === "unlocked";

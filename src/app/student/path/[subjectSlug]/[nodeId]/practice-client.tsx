@@ -6,6 +6,7 @@ import { Countdown } from "@/components/practice/Countdown";
 import { QuestionCard } from "@/components/practice/QuestionCard";
 import { TimerRing } from "@/components/practice/TimerRing";
 import { ResultsScreen } from "@/components/practice/ResultsScreen";
+import { ModuleComplete } from "@/components/practice/ModuleComplete";
 import { Hearts } from "@/components/practice/Hearts";
 import { LessonView } from "@/components/practice/LessonView";
 import { sounds } from "@/lib/sounds";
@@ -65,9 +66,11 @@ interface PracticeClientProps {
   aiPromptContext: string | null;
   subjectId: number;
   nextNodeId: number | null;
+  nextModuleFirstNodeId?: number | null;
+  nextModuleTitle?: string | null;
 }
 
-export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext, subjectId, nextNodeId }: PracticeClientProps) {
+export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext, subjectId, nextNodeId, nextModuleFirstNodeId, nextModuleTitle }: PracticeClientProps) {
   const router = useRouter();
   const theme = subjectTheme(subjectSlug);
 
@@ -90,6 +93,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
   const [coachLoading, setCoachLoading] = useState(false);
   const [retryGenerating, setRetryGenerating] = useState(false);
   const [flashRed, setFlashRed] = useState(false);
+  const [showModuleComplete, setShowModuleComplete] = useState(false);
 
   useEffect(() => {
     if (flashRed) {
@@ -324,6 +328,10 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     if (gameOverRef.current || currentIndex >= exercises.length - 1) {
       const perfect = correctCount >= exercises.length;
       setXpEarned((prev) => prev + (perfect ? 200 : 0));
+
+      if (nextModuleFirstNodeId && correctCount > 0 && !gameOverRef.current) {
+        setShowModuleComplete(true);
+      }
       setGameState("results");
     } else {
       setCurrentIndex((i) => i + 1);
@@ -352,6 +360,24 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     setGameState("countdown");
   };
 
+  const handleRegenerateDiagram = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/practice/diagram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: subjectSlug,
+          topicContext: aiPromptContext || nodeTitle,
+          nodeId,
+        }),
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  }, [subjectSlug, aiPromptContext, nodeTitle, nodeId]);
+
   const handleBackToStudy = async () => {
     if (savePromiseRef.current) {
       try { await savePromiseRef.current; } catch {}
@@ -364,6 +390,13 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
       try { await savePromiseRef.current; } catch {}
     }
     if (nextNodeId) router.push(`/student/path/${subjectSlug}/${nextNodeId}`);
+  };
+
+  const handleNextModule = async () => {
+    if (savePromiseRef.current) {
+      try { await savePromiseRef.current; } catch {}
+    }
+    if (nextModuleFirstNodeId) router.push(`/student/path/${subjectSlug}/${nextModuleFirstNodeId}`);
   };
 
   return (
@@ -419,7 +452,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
 
         {/* LESSON (Enriched teaching phase) */}
         {gameState === "lesson" && lesson && (
-          <LessonView lesson={lesson} onStartPractice={handleStartPractice} subjectSlug={subjectSlug} />
+          <LessonView lesson={lesson} onStartPractice={handleStartPractice} subjectSlug={subjectSlug} onRegenerateDiagram={handleRegenerateDiagram} />
         )}
 
         {/* COUNTDOWN */}
@@ -487,7 +520,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
         )}
 
         {/* RESULTS */}
-        {gameState === "results" && (
+        {gameState === "results" && !showModuleComplete && (
           <ResultsScreen
             correct={correctCount}
             total={exercises.length}
@@ -499,6 +532,19 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
             onBack={handleBackToStudy}
             hasNextNode={nextNodeId !== null}
             onNextNode={nextNodeId ? handleNextNode : undefined}
+          />
+        )}
+
+        {/* MODULE COMPLETE */}
+        {showModuleComplete && (
+          <ModuleComplete
+            correct={correctCount}
+            total={exercises.length}
+            xpEarned={xpEarned}
+            maxCombo={maxCombo}
+            moduleTitle={nextModuleTitle || ""}
+            onNextModule={handleNextModule}
+            onBack={handleBackToStudy}
           />
         )}
 

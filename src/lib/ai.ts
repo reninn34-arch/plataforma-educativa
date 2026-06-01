@@ -297,6 +297,8 @@ export function isRetryableModelError(error: unknown): boolean {
     || message.includes("no configurado")
     || message.includes("response_format")
     || message.includes("unavailable")
+    || message.includes("failed to validate")
+    || (message.includes("json") && !message.includes("success"))
   );
 }
 

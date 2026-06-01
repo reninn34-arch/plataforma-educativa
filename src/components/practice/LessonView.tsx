@@ -47,15 +47,18 @@ interface LessonViewProps {
   lesson: LessonData;
   onStartPractice: () => void;
   subjectSlug?: string;
+  onRegenerateDiagram?: () => Promise<{ mermaid: string; caption: string } | null>;
 }
 
-function MermaidDiagram({ code, large }: { code: string; large?: boolean }) {
+function MermaidDiagram({ code, large, onRetry }: { code: string; large?: boolean; onRetry?: () => Promise<{ mermaid: string; caption: string } | null> }) {
   const [svg, setSvg] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [id] = useState(() => `mermaid-${Math.random().toString(36).slice(2, 8)}`);
 
   useEffect(() => {
     let cancelled = false;
+    setSvg(null);
+    setError(false);
     import("mermaid").then((mermaid) => {
       if (cancelled) return;
       mermaid.default.initialize({ startOnLoad: false, theme: "neutral" });
@@ -70,7 +73,21 @@ function MermaidDiagram({ code, large }: { code: string; large?: boolean }) {
     return () => { cancelled = true; };
   }, [code, id]);
 
-  if (error) return <p className="text-sm text-red-500 p-4">No se pudo renderizar el diagrama</p>;
+  if (error) return (
+    <div className="flex flex-col items-center justify-center p-6 space-y-3">
+      <AlertTriangle className="h-8 w-8 text-amber-500" />
+      <p className="text-sm text-amber-700 font-medium">No se pudo renderizar el diagrama</p>
+      {onRetry && (
+        <button
+          onClick={onRetry}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 transition-colors"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+          Regenerar diagrama
+        </button>
+      )}
+    </div>
+  );
   if (!svg) return <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-blue-500" /></div>;
   return (
     <div
@@ -83,15 +100,31 @@ function MermaidDiagram({ code, large }: { code: string; large?: boolean }) {
   );
 }
 
-function DiagramView({ diagram }: { diagram: NonNullable<LessonData["diagram"]> }) {
+function DiagramView({ diagram, onRetry }: { diagram: NonNullable<LessonData["diagram"]>; onRetry?: () => Promise<{ mermaid: string; caption: string } | null> }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [retrying, setRetrying] = useState(false);
+  const [currentDiagram, setCurrentDiagram] = useState(diagram);
+
+  useEffect(() => { setCurrentDiagram(diagram); }, [diagram]);
+
+  const handleRetry: () => Promise<{ mermaid: string; caption: string } | null> = async () => {
+    if (!onRetry || retrying) return null;
+    setRetrying(true);
+    try {
+      const result = await onRetry();
+      if (result) setCurrentDiagram(result);
+      return result;
+    } finally {
+      setRetrying(false);
+    }
+  };
 
   const renderContent = (large = false) => {
-    if (diagram.mermaid) {
-      return <MermaidDiagram code={diagram.mermaid} large={large} />;
+    if (currentDiagram.mermaid) {
+      return <MermaidDiagram code={currentDiagram.mermaid} large={large} onRetry={handleRetry} />;
     }
-    if (diagram.svg) {
+    if (currentDiagram.svg) {
       return (
         <div
           className={cn(
@@ -100,7 +133,7 @@ function DiagramView({ diagram }: { diagram: NonNullable<LessonData["diagram"]> 
               ? "[&_svg]:max-w-full [&_svg]:max-h-[80vh] [&_svg]:h-auto"
               : "max-w-full [&_svg]:max-w-full [&_svg]:h-auto"
           )}
-          dangerouslySetInnerHTML={{ __html: diagram.svg }}
+          dangerouslySetInnerHTML={{ __html: currentDiagram.svg }}
         />
       );
     }
@@ -113,7 +146,7 @@ function DiagramView({ diagram }: { diagram: NonNullable<LessonData["diagram"]> 
         <div className="flex items-center justify-between px-5 py-3 bg-blue-50/80">
           <div className="flex items-center gap-2">
             <Image className="h-4 w-4 text-blue-600" aria-hidden="true" />
-            <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">{diagram.caption}</span>
+            <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">{currentDiagram.caption}</span>
           </div>
           <span
             role="button"
@@ -148,7 +181,7 @@ function DiagramView({ diagram }: { diagram: NonNullable<LessonData["diagram"]> 
             <div className="flex items-center justify-between gap-4">
               <DialogTitle className="text-base font-bold text-blue-800 flex items-center gap-2 shrink-0">
                 <Image className="h-4 w-4 text-blue-600" />
-                {diagram.caption}
+                {currentDiagram.caption}
               </DialogTitle>
               <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
                 <button
@@ -351,7 +384,7 @@ function ExampleSlide({ lesson, onNextSlide }: { lesson: LessonData; onNextSlide
   );
 }
 
-export function LessonView({ lesson, onStartPractice, subjectSlug }: LessonViewProps) {
+export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateDiagram }: LessonViewProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const touchStartX = useRef(0);
   const touchDeltaX = useRef(0);
@@ -467,7 +500,7 @@ export function LessonView({ lesson, onStartPractice, subjectSlug }: LessonViewP
           {/* Diagram slide */}
           {lesson.diagram && (
             <div className="w-full flex-shrink-0 px-0.5 h-full overflow-y-auto">
-              <DiagramView diagram={lesson.diagram} />
+              <DiagramView diagram={lesson.diagram} onRetry={onRegenerateDiagram} />
             </div>
           )}
 

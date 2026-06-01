@@ -25,8 +25,8 @@ export default async function NodePracticePage({ params }: { params: Promise<{ s
   if (moduleRecord.length > 0) {
     const mod = moduleRecord[0];
 
-    // Check module-level star requirement
-    if (mod.requiredPoints > 0) {
+    // Module star requirement (only for AI-generated)
+    if (mod.generated && mod.requiredPoints > 0) {
       const allSubjectNodes = await db
         .select({ id: nodes.id })
         .from(nodes)
@@ -45,56 +45,6 @@ export default async function NodePracticePage({ params }: { params: Promise<{ s
         redirect(`/student/path/${subject.slug}`);
       }
     }
-
-    const firstNodeInModule = await db
-      .select({ id: nodes.id })
-      .from(nodes)
-      .where(and(eq(nodes.moduleId, node.moduleId), eq(nodes.order, 1)))
-      .limit(1);
-    const isFirstNode = firstNodeInModule.length > 0 && firstNodeInModule[0].id === nodeId;
-
-    if (!isFirstNode) {
-      const prog = await db
-        .select({ id: userProgress.id, status: userProgress.status })
-        .from(userProgress)
-        .where(and(eq(userProgress.userId, session.id), eq(userProgress.nodeId, nodeId)))
-        .limit(1);
-
-      if (prog.length === 0 || prog[0].status === "locked") {
-        // Auto-unlock: if user completed the previous node, unlock this one
-        const prevNode = await db
-          .select({ id: nodes.id })
-          .from(nodes)
-          .where(and(eq(nodes.moduleId, node.moduleId), eq(nodes.order, node.order - 1)))
-          .limit(1);
-
-        if (prevNode.length > 0) {
-          const prevProg = await db
-            .select({ status: userProgress.status })
-            .from(userProgress)
-            .where(and(eq(userProgress.userId, session.id), eq(userProgress.nodeId, prevNode[0].id)))
-            .limit(1);
-
-          if (prevProg.length > 0 && (prevProg[0].status === "completed" || prevProg[0].status === "mastered")) {
-            if (prog.length > 0) {
-              await db.update(userProgress).set({ status: "unlocked" }).where(eq(userProgress.id, prog[0].id));
-            } else {
-              await db.insert(userProgress).values({
-                userId: session.id,
-                nodeId,
-                status: "unlocked",
-                starsEarned: 0,
-                attempts: 0,
-              });
-            }
-          } else {
-            redirect(`/student/path/${subject.slug}`);
-          }
-        } else {
-          redirect(`/student/path/${subject.slug}`);
-        }
-      }
-    }
   }
 
   const moduleTitle = moduleRecord.length > 0 ? moduleRecord[0].title : "";
@@ -105,6 +55,34 @@ export default async function NodePracticePage({ params }: { params: Promise<{ s
     .from(nodes)
     .where(and(eq(nodes.moduleId, node.moduleId), eq(nodes.order, node.order + 1)))
     .limit(1);
+
+  const isLastInModule = nextNode.length === 0;
+
+  // Find next module's first node (if current is last in module)
+  let nextModuleFirstNodeId: number | null = null;
+  let nextModuleTitle: string | null = null;
+  if (isLastInModule && moduleRecord.length > 0) {
+    const currentModule = moduleRecord[0];
+    const allSubjectModules = await db
+      .select()
+      .from(modules)
+      .where(eq(modules.subjectId, subject.id))
+      .orderBy(modules.order);
+    const currentModIndex = allSubjectModules.findIndex(m => m.id === currentModule.id);
+    const nextMod = currentModIndex >= 0 ? allSubjectModules[currentModIndex + 1] : null;
+
+    if (nextMod) {
+      nextModuleTitle = nextMod.title;
+      const firstNodeOfNext = await db
+        .select({ id: nodes.id })
+        .from(nodes)
+        .where(and(eq(nodes.moduleId, nextMod.id), eq(nodes.order, 1)))
+        .limit(1);
+      if (firstNodeOfNext.length > 0) {
+        nextModuleFirstNodeId = firstNodeOfNext[0].id;
+      }
+    }
+  }
 
   const displayContext = [
     moduleTitle && `Modulo: ${moduleTitle}`,
@@ -119,6 +97,8 @@ export default async function NodePracticePage({ params }: { params: Promise<{ s
       aiPromptContext={displayContext}
       subjectId={subject.id}
       nextNodeId={nextNode.length > 0 ? nextNode[0].id : null}
+      nextModuleFirstNodeId={nextModuleFirstNodeId}
+      nextModuleTitle={nextModuleTitle}
     />
   );
 }
