@@ -8,6 +8,7 @@ import { generateObject } from "ai";
 import { z } from "zod/v4";
 import { rateLimit } from "@/lib/rate-limit";
 import { pathGenerateSchema } from "@/lib/api-helpers";
+import { getStudyMaterialForStudent } from "@/lib/study-material";
 
 const nodeSchema = z.object({
   title: z.string(),
@@ -61,6 +62,11 @@ export async function POST(request: NextRequest) {
     const subject = subjectRecord[0];
     const areaContext = SUBJECT_META[subjectSlug] || subject.name;
 
+    const studyMaterial = await getStudyMaterialForStudent(user.id, subjectSlug);
+    const materialBlock = studyMaterial
+      ? `\n\nMATERIAL DE ESTUDIO DEL CURSO (basa los nodos en este contenido):\n${studyMaterial.content}`
+      : "";
+
     const systemPrompt = `Eres un disenador curricular experto en andragogia para adultos en bachillerato acelerado (PCEI).
 Genera un "Learning Path" (camino de aprendizaje) sobre un tema especifico.
 
@@ -89,9 +95,9 @@ REGLAS:
           schema: pathSchema,
           system: systemPrompt,
           prompt: `AREA: ${areaContext}
-TEMA SOLICITADO POR EL ESTUDIANTE: "${topic}"
+TEMA SOLICITADO POR EL ESTUDIANTE: "${topic}"${materialBlock}
 
-Genera un Learning Path de 6-8 nodos para este tema. Los primeros nodos deben ser de tipo "concept" (ensenanza) y los ultimos de tipo "quiz" o "challenge" (practica).`,
+Genera un Learning Path de 6-8 nodos para este tema, basandote en el MATERIAL DE ESTUDIO DEL CURSO proporcionado. Los primeros nodos deben ser de tipo "concept" (ensenanza) y los ultimos de tipo "quiz" o "challenge" (practica).`,
           temperature: 0.8,
           maxOutputTokens: 4000,
           abortSignal: abortController.signal,

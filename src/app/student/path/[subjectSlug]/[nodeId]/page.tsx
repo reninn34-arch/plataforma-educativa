@@ -84,10 +84,7 @@ export default async function NodePracticePage({ params }: { params: Promise<{ s
     }
   }
 
-  const displayContext = [
-    moduleTitle && `Modulo: ${moduleTitle}`,
-    node.aiPromptContext,
-  ].filter(Boolean).join(". ");
+  const displayContext = node.aiPromptContext;
 
   return (
     <PracticeClient
