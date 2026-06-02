@@ -86,6 +86,7 @@ export async function GET(request: NextRequest) {
         cursoId: studyMaterials.cursoId,
         subjectId: studyMaterials.subjectId,
         title: studyMaterials.title,
+        content: studyMaterials.content,
         fileType: studyMaterials.fileType,
         createdAt: studyMaterials.createdAt,
       })

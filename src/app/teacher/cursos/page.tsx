@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Loader2, Users as UsersIcon, BookOpen, Upload, FileText, Trash2, Check } from "lucide-react";
+import { ArrowRight, Loader2, Users as UsersIcon, BookOpen, Upload, FileText, Trash2, Check, CheckCircle2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { apiFetch } from "@/lib/fetch-utils";
 
 interface Bloque {
@@ -26,7 +26,7 @@ interface CursoInfo {
 interface CoursesData { cursos: CursoInfo[]; }
 interface HorarioData { horarios: Bloque[]; }
 
-interface StudyMaterial { id: number; title: string; fileType: string; createdAt: string; }
+interface StudyMaterial { id: number; subjectId: number; title: string; content: string; fileType: string; createdAt: string; }
 
 export default function TeacherCursosPage() {
   const router = useRouter();
@@ -36,6 +36,7 @@ export default function TeacherCursosPage() {
   const [pastedText, setPastedText] = useState("");
   const [uploading, setUploading] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const [selectedPdf, setSelectedPdf] = useState<File | null>(null);
 
   const { data: coursesData, isLoading: coursesLoading } = useQuery<CoursesData, Error>({
     queryKey: ["teacher-courses"],
@@ -57,21 +58,40 @@ export default function TeacherCursosPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: materialsData } = useQuery<{ materials: StudyMaterial[] }>({
-    queryKey: ["teacher-study-materials", modalCursoId, modalSubject?.id],
+  const cursos = coursesData?.cursos || [];
+  const horarios = horarioData?.horarios || [];
+
+  const { data: materialMap } = useQuery<Record<string, StudyMaterial>>({
+    queryKey: ["teacher-material-map", cursos.map(c => c.id)],
     queryFn: async () => {
-      if (!modalCursoId || !modalSubject?.id) return { materials: [] };
+      const map: Record<string, StudyMaterial> = {};
+      await Promise.all(cursos.map(async (curso) => {
+        const res = await apiFetch(`/api/teacher/study-material?cursoId=${curso.id}`);
+        if (res.ok) {
+          const data: { materials: StudyMaterial[] } = await res.json();
+          for (const m of data.materials) {
+            map[`${curso.id}-${m.subjectId}`] = m;
+          }
+        }
+      }));
+      return map;
+    },
+    enabled: cursos.length > 0,
+  });
+
+  const { data: modalMaterial } = useQuery<StudyMaterial | null>({
+    queryKey: ["teacher-study-material", modalCursoId, modalSubject?.id],
+    queryFn: async () => {
+      if (!modalCursoId || !modalSubject?.id) return null;
       const res = await apiFetch(`/api/teacher/study-material?cursoId=${modalCursoId}&subjectId=${modalSubject.id}`);
-      if (!res.ok) return { materials: [] };
-      return res.json();
+      if (!res.ok) return null;
+      const data: { materials: StudyMaterial[] } = await res.json();
+      return data.materials?.[0] || null;
     },
     enabled: !!modalCursoId && !!modalSubject?.id,
   });
 
   const isLoading = coursesLoading || horarioLoading;
-  const cursos = coursesData?.cursos || [];
-  const horarios = horarioData?.horarios || [];
-  const existingMaterial = materialsData?.materials?.[0] || null;
 
   const schedule: Record<number, Bloque[]> = {};
   for (const h of horarios) {
@@ -84,6 +104,7 @@ export default function TeacherCursosPage() {
     setModalSubject(subject);
     setPastedText("");
     setFeedback("");
+    setSelectedPdf(null);
   };
 
   const handleSaveText = async () => {
@@ -103,8 +124,8 @@ export default function TeacherCursosPage() {
       });
       if (res.ok) {
         setFeedback("Material guardado correctamente");
-        queryClient.invalidateQueries({ queryKey: ["teacher-study-materials"] });
-        setTimeout(() => { setFeedback(""); setModalCursoId(null); setModalSubject(null); }, 1500);
+        queryClient.invalidateQueries({ queryKey: ["teacher-material-map"] });
+        queryClient.invalidateQueries({ queryKey: ["teacher-study-material"] });
       } else {
         const d = await res.json();
         setFeedback(d.error || "Error al guardar");
@@ -115,15 +136,15 @@ export default function TeacherCursosPage() {
     setUploading(false);
   };
 
-  const handleUploadPdf = async (file: File) => {
-    if (!modalCursoId || !modalSubject) return;
+  const handleUploadPdf = async () => {
+    if (!modalCursoId || !modalSubject || !selectedPdf) return;
     setUploading(true);
     setFeedback("");
     try {
       const formData = new FormData();
       formData.append("cursoId", String(modalCursoId));
       formData.append("subjectId", String(modalSubject.id));
-      formData.append("file", file);
+      formData.append("file", selectedPdf);
       const res = await fetch("/api/teacher/study-material", {
         method: "POST",
         body: formData,
@@ -131,8 +152,9 @@ export default function TeacherCursosPage() {
       });
       if (res.ok) {
         setFeedback("PDF subido correctamente");
-        queryClient.invalidateQueries({ queryKey: ["teacher-study-materials"] });
-        setTimeout(() => { setFeedback(""); setModalCursoId(null); setModalSubject(null); }, 1500);
+        setSelectedPdf(null);
+        queryClient.invalidateQueries({ queryKey: ["teacher-material-map"] });
+        queryClient.invalidateQueries({ queryKey: ["teacher-study-material"] });
       } else {
         const d = await res.json();
         setFeedback(d.error || "Error al subir PDF");
@@ -148,13 +170,21 @@ export default function TeacherCursosPage() {
     try {
       const res = await apiFetch(`/api/teacher/study-material/${id}`, { method: "DELETE" });
       if (res.ok) {
-        queryClient.invalidateQueries({ queryKey: ["teacher-study-materials"] });
         setFeedback("Material eliminado");
-        setTimeout(() => setFeedback(""), 2000);
+        queryClient.invalidateQueries({ queryKey: ["teacher-material-map"] });
+        queryClient.invalidateQueries({ queryKey: ["teacher-study-material"] });
       }
     } catch {
       setFeedback("Error al eliminar");
     }
+  };
+
+  const closeModal = () => {
+    setModalCursoId(null);
+    setModalSubject(null);
+    setPastedText("");
+    setFeedback("");
+    setSelectedPdf(null);
   };
 
   if (isLoading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
@@ -233,18 +263,25 @@ export default function TeacherCursosPage() {
                   <div>
                     <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Tus materias</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {c.mySubjects.map((s, i) => (
-                        <button
-                          key={i}
-                          onClick={() => openMaterialModal(c.id, { id: s.subjectId, name: s.subjectName, emoji: s.subjectEmoji })}
-                          className="inline-flex items-center gap-1 rounded-lg border border-input bg-card px-2.5 py-1.5 text-xs font-medium hover:bg-accent transition-colors text-left"
-                          title="Subir material de estudio"
-                        >
-                          <span>{s.subjectEmoji}</span>
-                          <span>{s.subjectName}</span>
-                          <Upload className="h-3 w-3 text-muted-foreground ml-0.5" />
-                        </button>
-                      ))}
+                      {c.mySubjects.map((s, i) => {
+                        const hasMaterial = materialMap?.[`${c.id}-${s.subjectId}`];
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => openMaterialModal(c.id, { id: s.subjectId, name: s.subjectName, emoji: s.subjectEmoji })}
+                            className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors text-left ${hasMaterial ? "border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100" : "border-input bg-card hover:bg-accent"}`}
+                            title={hasMaterial ? "Ver o cambiar material de estudio" : "Subir material de estudio"}
+                          >
+                            <span>{s.subjectEmoji}</span>
+                            <span>{s.subjectName}</span>
+                            {hasMaterial ? (
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                            ) : (
+                              <Upload className="h-3 w-3 text-muted-foreground ml-0.5" />
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -273,7 +310,7 @@ export default function TeacherCursosPage() {
         </div>
       )}
 
-      <Dialog open={!!modalCursoId && !!modalSubject} onOpenChange={(open) => { if (!open) { setModalCursoId(null); setModalSubject(null); setPastedText(""); setFeedback(""); } }}>
+      <Dialog open={!!modalCursoId && !!modalSubject} onOpenChange={(open) => { if (!open) closeModal(); }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
@@ -289,26 +326,31 @@ export default function TeacherCursosPage() {
               </div>
             )}
 
-            {existingMaterial && (
+            {modalMaterial && (
               <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-800">{existingMaterial.title}</span>
-                    <Badge variant="outline" className="text-[10px]">{existingMaterial.fileType === "pdf" ? "PDF" : "Texto"}</Badge>
+                    <span className="text-sm font-medium text-blue-800">{modalMaterial.title}</span>
+                    <Badge variant="outline" className="text-[10px]">{modalMaterial.fileType === "pdf" ? "PDF" : "Texto"}</Badge>
                   </div>
-                  <button onClick={() => handleDeleteMaterial(existingMaterial.id)}
+                  <button onClick={() => handleDeleteMaterial(modalMaterial.id)}
                     className="p-1 rounded-md hover:bg-red-100 text-red-500 transition-colors"
                     title="Eliminar material">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-                <p className="text-xs text-blue-600">Subido el {new Date(existingMaterial.createdAt).toLocaleDateString("es-ES")}</p>
+                <p className="text-xs text-blue-600">Subido el {new Date(modalMaterial.createdAt).toLocaleDateString("es-ES")}</p>
+                {modalMaterial.content && (
+                  <p className="text-xs text-blue-500">{modalMaterial.content.length} caracteres</p>
+                )}
               </div>
             )}
 
             <div>
-              <label className="text-xs font-semibold text-muted-foreground block mb-2">Pega el contenido del material</label>
+              <label className="text-xs font-semibold text-muted-foreground block mb-2">
+                {modalMaterial ? "Editar o reemplazar contenido" : "Pega el contenido del material"}
+              </label>
               <textarea
                 value={pastedText}
                 onChange={e => setPastedText(e.target.value)}
@@ -318,9 +360,9 @@ export default function TeacherCursosPage() {
               />
             </div>
 
-            <Button onClick={handleSaveText} disabled={uploading || !pastedText.trim()} className="w-full gap-2">
+            <Button onClick={handleSaveText} disabled={uploading || !pastedText.trim() || pastedText === modalMaterial?.content} className="w-full gap-2">
               {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-              Guardar material
+              {modalMaterial ? "Actualizar material" : "Guardar material"}
             </Button>
 
             <div className="relative">
@@ -328,15 +370,34 @@ export default function TeacherCursosPage() {
               <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">o sube un PDF</span></div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="space-y-3">
               <input
                 type="file"
                 accept=".pdf"
-                onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadPdf(f); }}
+                onChange={e => setSelectedPdf(e.target.files?.[0] || null)}
                 className="block w-full text-sm text-muted-foreground file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
               />
+              {selectedPdf && (
+                <div className="flex items-center justify-between rounded-lg border border-input bg-card px-3 py-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{selectedPdf.name}</span>
+                    <span className="text-xs text-muted-foreground">({(selectedPdf.size / 1024).toFixed(0)} KB)</span>
+                  </div>
+                  <Button size="sm" onClick={handleUploadPdf} disabled={uploading} className="gap-1.5">
+                    {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                    Subir PDF
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
+
+          <DialogFooter className="mt-2">
+            <Button variant="outline" onClick={closeModal}>
+              Cerrar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
