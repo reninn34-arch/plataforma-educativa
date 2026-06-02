@@ -149,9 +149,7 @@ export async function POST(request: NextRequest) {
       ? `${aiPromptContext}`
       : (topic || ctx.topics.slice(0, 1).join(", "));
 
-    const videoSearchQuery = aiPromptContext
-      ? aiPromptContext.replace(/\n/g, " ").split(".")[0].trim().slice(0, 80) || ctx.topics[0]
-      : (topic || ctx.topics[0]);
+    const videoSearchQuery = topic || (aiPromptContext ? aiPromptContext.slice(0, 100).replace(/\n/g, " ") : ctx.topics[0]);
 
     const studyMaterial = await getStudyMaterialForStudent(user.id, subject);
     const materialBlock = studyMaterial
