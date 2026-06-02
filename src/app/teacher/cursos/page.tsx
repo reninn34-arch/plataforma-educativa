@@ -153,11 +153,14 @@ export default function TeacherCursosPage() {
       if (res.ok) {
         setFeedback("PDF subido correctamente");
         setSelectedPdf(null);
+        if (pdfInputRef.current) pdfInputRef.current.value = "";
         queryClient.invalidateQueries({ queryKey: ["teacher-material-map"] });
         queryClient.invalidateQueries({ queryKey: ["teacher-study-material"] });
       } else {
         const d = await res.json();
         setFeedback(d.error || "Error al subir PDF");
+        setSelectedPdf(null);
+        if (pdfInputRef.current) pdfInputRef.current.value = "";
       }
     } catch {
       setFeedback("Error de conexion");

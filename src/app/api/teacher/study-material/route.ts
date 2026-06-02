@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       const buffer = Buffer.from(await file.arrayBuffer());
       const content = await extractPdfText(buffer);
       if (!content.trim()) {
-        return NextResponse.json({ error: "No se pudo extraer texto del PDF" }, { status: 400 });
+        return NextResponse.json({ error: "El PDF no contiene texto extraible. Probablemente es un escaneado. Copia el texto manualmente y pegalo arriba." }, { status: 400 });
       }
 
       const title = file.name.replace(/\.pdf$/i, "");
