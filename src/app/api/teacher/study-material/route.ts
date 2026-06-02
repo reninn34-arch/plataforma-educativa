@@ -76,7 +76,11 @@ export async function GET(request: NextRequest) {
     const cursoId = searchParams.get("cursoId");
     const subjectId = searchParams.get("subjectId");
 
-    let query = db
+    const conditions = [];
+    if (cursoId) conditions.push(eq(studyMaterials.cursoId, Number(cursoId)));
+    if (subjectId) conditions.push(eq(studyMaterials.subjectId, Number(subjectId)));
+
+    const query = db
       .select({
         id: studyMaterials.id,
         cursoId: studyMaterials.cursoId,
@@ -85,17 +89,12 @@ export async function GET(request: NextRequest) {
         fileType: studyMaterials.fileType,
         createdAt: studyMaterials.createdAt,
       })
-      .from(studyMaterials);
+      .from(studyMaterials)
+      .orderBy(studyMaterials.createdAt);
 
-    const conditions = [];
-    if (cursoId) conditions.push(eq(studyMaterials.cursoId, Number(cursoId)));
-    if (subjectId) conditions.push(eq(studyMaterials.subjectId, Number(subjectId)));
-
-    if (conditions.length) {
-      query = query.where(and(...conditions));
-    }
-
-    const materials = await query.orderBy(studyMaterials.createdAt);
+    const materials = conditions.length
+      ? await query.where(and(...conditions))
+      : await query;
 
     return NextResponse.json({ materials });
   } catch (error) {
