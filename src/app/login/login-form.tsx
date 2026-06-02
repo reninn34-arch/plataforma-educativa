@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GraduationCap, Loader2, Eye, EyeOff, Shield, ArrowLeft } from "lucide-react";
-import { apiFetch } from "@/lib/fetch-utils";
+import { apiFetch, clearCache } from "@/lib/fetch-utils";
 
 type Props = { redirect?: string };
 
 export function LoginForm({ redirect }: Props) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [cedula, setCedula] = useState("");
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
@@ -42,6 +44,8 @@ export function LoginForm({ redirect }: Props) {
         return;
       }
 
+      queryClient.clear();
+      clearCache();
       const safeRedirect = redirect && redirect.startsWith("/") ? redirect : null;
       if (data.user.role === "teacher") {
         router.push("/teacher/dashboard");

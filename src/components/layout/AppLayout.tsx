@@ -4,8 +4,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut, GraduationCap, Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { apiFetch } from "@/lib/fetch-utils";
+import { apiFetch, clearCache } from "@/lib/fetch-utils";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -17,6 +18,7 @@ interface AppLayoutProps {
 export function AppLayout({ children, role, links, title }: AppLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Close mobile menu on route change
@@ -28,6 +30,8 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
     try {
       await apiFetch("/api/auth/logout", { method: "POST" });
     } catch {}
+    queryClient.clear();
+    clearCache();
     router.push("/login");
   };
 

@@ -4,8 +4,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { LogOut, GraduationCap, Menu, X, LayoutDashboard, Users, BookOpen, Calendar, Settings } from "lucide-react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { apiFetch } from "@/lib/fetch-utils";
+import { apiFetch, clearCache } from "@/lib/fetch-utils";
 import { AiAssistant } from "@/components/ai/AiAssistant";
 
 const links = [
@@ -19,6 +20,7 @@ const links = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -29,6 +31,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     try {
       await apiFetch("/api/auth/logout", { method: "POST" });
     } catch {}
+    queryClient.clear();
+    clearCache();
     router.push("/login");
   };
 
