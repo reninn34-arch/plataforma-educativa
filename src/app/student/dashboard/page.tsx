@@ -62,7 +62,9 @@ export default function StudentDashboard() {
     </div>
   );
 
-  const { profile, progress, metrics, assignments } = data;
+  const { profile, progress: rawProgress, metrics, assignments: rawAssignments } = data;
+  const progress = rawProgress || {};
+  const assignments = rawAssignments || [];
   const pendingAssignments = assignments.filter((a: any) => {
     if (a.status === "graded" || a.status === "submitted") return false;
     if (a.dueDate && new Date(a.dueDate).getTime() < Date.now()) return false;
