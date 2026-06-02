@@ -24,7 +24,7 @@ function createTeacherTools(userId: number, userFullName: string) {
   // ─── Consulta ───
 
   const getMyCourses = tool({
-    description: "Obtiene la lista de cursos que imparte o tutoriza el docente actual",
+    description: "Obtiene la lista de cursos que imparte o tutoriza el docente actual, incluyendo las materias que dicta en cada curso",
     inputSchema: z.object({}),
     execute: async () => {
       const own = await db
@@ -37,7 +37,39 @@ function createTeacherTools(userId: number, userFullName: string) {
         .from(cursos)
         .where(eq(cursos.profesorId, userId));
       const all = [...own, ...tutor.filter(t => !own.some(o => o.id === t.id))];
-      return { cursos: all, total: all.length };
+      const courseIds = all.map(c => c.id);
+      const subjectsMap: Record<number, { id: number; name: string; slug: string }[]> = {};
+      if (courseIds.length > 0) {
+        const cp = await db
+          .select({
+            cursoId: cursoProfesores.cursoId,
+            subjectId: subjects.id,
+            subjectName: subjects.name,
+            subjectSlug: subjects.slug,
+          })
+          .from(cursoProfesores)
+          .innerJoin(subjects, eq(cursoProfesores.subjectId, subjects.id))
+          .where(and(eq(cursoProfesores.teacherId, userId), inArray(cursoProfesores.cursoId, courseIds)));
+        for (const row of cp) {
+          if (!subjectsMap[row.cursoId]) subjectsMap[row.cursoId] = [];
+          subjectsMap[row.cursoId].push({ id: row.subjectId, name: row.subjectName, slug: row.subjectSlug });
+        }
+      }
+      const cursosConMaterias = all.map(c => ({ ...c, materias: subjectsMap[c.id] || [] }));
+      return { cursos: cursosConMaterias, total: all.length };
+    },
+  });
+
+  const searchSubject = tool({
+    description: "Busca materias por nombre o palabra clave. Devuelve el ID, nombre y slug de las materias que coinciden. Usala cuando el docente mencione una materia (ej: matematicas, fisica, ingles) para obtener su ID.",
+    inputSchema: z.object({ query: z.string().describe("Nombre o parte del nombre de la materia a buscar, ej: matematicas, fisica, quimica") }),
+    execute: async ({ query }) => {
+      const result = await db
+        .select({ id: subjects.id, name: subjects.name, slug: subjects.slug, emoji: subjects.emoji })
+        .from(subjects)
+        .where(sql`lower(${subjects.name}) LIKE ${`%${query.toLowerCase()}%`}`)
+        .orderBy(subjects.name);
+      return { materias: result, total: result.length };
     },
   });
 
@@ -614,7 +646,7 @@ Solo dime qué necesitas y lo hacemos juntos. 😊`
   // ─── Acción ───
 
   const generateAndCreateAssignment = tool({
-    description: "Genera una tarea con IA y la publica automaticamente en la plataforma. Usala cuando el docente pida crear una tarea nueva. Pregunta siempre el curso, materia, tema, numero de preguntas y fecha de entrega si el docente no los especifica. Si el usuario proporciona contenido en un archivo adjunto, basa las preguntas estrictamente en ese contenido.",
+    description: "Genera una tarea con IA y la publica automaticamente en la plataforma. Usala cuando el docente pida crear una tarea nueva. Primero usa getMyCourses y searchSubject para obtener los IDs. Si el usuario no especifica curso, materia, tema, numero de preguntas o fecha de entrega, preguntale. Si el usuario proporciona contenido en un archivo adjunto, basa las preguntas estrictamente en ese contenido.",
     inputSchema: z.object({
       cursoId: z.number().describe("ID del curso al que se asigna la tarea"),
       subjectId: z.number().describe("ID de la materia"),
@@ -1083,6 +1115,7 @@ FORMATO:
 
   return {
     getMyCourses,
+    searchSubject,
     getCourseStudents,
     getStudentRisk,
     getAttendanceToday,

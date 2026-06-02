@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, Check, X, Clock, FileText, Save, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,17 +26,21 @@ function fechaLegible(fecha: string): string { const [y, m, d] = fecha.split("-"
 export default function TeacherAsistenciaPage() {
   const [cursoId, setCursoId] = useState<number | null>(null);
   const [fecha, setFecha] = useState(formatFecha(new Date()));
-  const [asistencia, setAsistencia] = useState<AsistenciaRow[]>([]);
+  const [draft, setDraft] = useState<Record<number, string>>({});
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
 
   const { data: coursesData, isLoading: coursesLoading } = useQuery<CoursesData, Error>({
     queryKey: ["teacher-courses"],
-    queryFn: async () => { const res = await apiFetch("/api/teacher/courses"); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
+    queryFn: async () => {
+      const res = await apiFetch("/api/teacher/courses");
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json();
+    },
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: asistenciaData, isLoading: asistenciaLoading, refetch: refetchAsistencia } = useQuery<AsistenciaData, Error>({
+  const { data: asistenciaData, isLoading: asistenciaLoading } = useQuery<AsistenciaData, Error>({
     queryKey: ["teacher-asistencia", cursoId, fecha],
     queryFn: async () => {
       if (!cursoId) return { asistencia: [] };
@@ -49,37 +53,70 @@ export default function TeacherAsistenciaPage() {
   });
 
   const cursos = coursesData?.cursos || [];
+  const baseAsistencia = asistenciaData?.asistencia || [];
   const loading = coursesLoading || asistenciaLoading;
 
-  if (cursos.length > 0 && !cursoId) setCursoId(cursos[0].id);
+  const asistencia = baseAsistencia.length > 0
+    ? baseAsistencia.map(a => ({
+        ...a,
+        estado: a.studentId in draft ? draft[a.studentId] : a.estado,
+      }))
+    : [];
 
   const cambiarFecha = (dias: number) => {
     const f = new Date(fecha);
     f.setDate(f.getDate() + dias);
     setFecha(formatFecha(f));
+    setDraft({});
   };
 
-  const toggleEstado = (studentId: number, currentEstado: string) => {
-    const estados = ["presente", "ausente", "tardanza", "justificado"];
-    const idx = estados.indexOf(currentEstado === "pendiente" ? "presente" : currentEstado);
-    const next = estados[(idx + 1) % estados.length];
-    setAsistencia(prev => prev.map(a => a.studentId === studentId ? { ...a, estado: next } : a));
+  const toggleEstado = (studentId: number, targetEstado: string) => {
+    const actual = draft[studentId];
+    if (actual === targetEstado) {
+      setDraft(prev => ({ ...prev, [studentId]: "pendiente" }));
+    } else {
+      setDraft(prev => ({ ...prev, [studentId]: targetEstado }));
+    }
   };
 
   const guardarAsistencia = async () => {
     if (!cursoId) return;
+    const entries = Object.entries(draft) as [string, string][];
+    if (entries.length === 0) {
+      setFeedback("No hay cambios para guardar.");
+      setTimeout(() => setFeedback(""), 3000);
+      return;
+    }
     setSaving(true);
     try {
-      const registros = asistencia.filter(a => a.estado !== "pendiente").map(a => ({ studentId: a.studentId, estado: a.estado }));
-      if (registros.length === 0) { setFeedback("No hay cambios para guardar."); setSaving(false); return; }
-      const res = await apiFetch("/api/teacher/asistencia", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cursoId, fecha, registros }) });
-      if (res.ok) { setFeedback("Asistencia guardada correctamente."); setTimeout(() => setFeedback(""), 3000); }
-      else { const d = await res.json(); setFeedback(d.error || "Error al guardar"); }
-    } catch { setFeedback("Error de conexion"); }
+      const registros = entries.map(([studentId, estado]) => ({
+        studentId: Number(studentId),
+        estado,
+      }));
+      const res = await apiFetch("/api/teacher/asistencia", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cursoId, fecha, registros }),
+      });
+      if (res.ok) {
+        setDraft({});
+        setFeedback("Asistencia guardada correctamente.");
+        setTimeout(() => setFeedback(""), 3000);
+      } else {
+        const d = await res.json();
+        setFeedback(d.error || "Error al guardar");
+      }
+    } catch {
+      setFeedback("Error de conexion");
+    }
     setSaving(false);
   };
 
-  const marcarTodosPresente = () => { setAsistencia(prev => prev.map(a => ({ ...a, estado: "presente" }))); };
+  const marcarTodosPresente = () => {
+    const allPresente: Record<number, string> = {};
+    for (const a of baseAsistencia) allPresente[a.studentId] = "presente";
+    setDraft(allPresente);
+  };
 
   const conteo = {
     presente: asistencia.filter(a => a.estado === "presente").length,
@@ -113,7 +150,8 @@ export default function TeacherAsistenciaPage() {
           <div className="flex flex-wrap items-center gap-4">
             <div>
               <label className="text-xs font-semibold text-muted-foreground block mb-1">Curso</label>
-              <select value={cursoId || ""} onChange={e => setCursoId(e.target.value ? Number(e.target.value) : null)} className="h-9 rounded-lg border border-input bg-card px-3 text-sm min-w-[200px]">
+              <select value={cursoId || ""} onChange={e => { setCursoId(e.target.value ? Number(e.target.value) : null); setDraft({}); }} className="h-9 rounded-lg border border-input bg-card px-3 text-sm min-w-[200px]">
+                <option value="">Seleccionar curso</option>
                 {cursos.map(c => <option key={c.id} value={c.id}>{c.nombre} ({c.nivel})</option>)}
               </select>
             </div>
@@ -121,13 +159,13 @@ export default function TeacherAsistenciaPage() {
               <label className="text-xs font-semibold text-muted-foreground block mb-1">Fecha</label>
               <div className="flex items-center gap-1">
                 <Button variant="outline" size="icon-sm" onClick={() => cambiarFecha(-1)}><ChevronLeft className="h-4 w-4" /></Button>
-                <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} className="h-9 rounded-lg border border-input bg-card px-3 text-sm" />
+                <input type="date" value={fecha} onChange={e => { setFecha(e.target.value); setDraft({}); }} className="h-9 rounded-lg border border-input bg-card px-3 text-sm" />
                 <Button variant="outline" size="icon-sm" onClick={() => cambiarFecha(1)}><ChevronRight className="h-4 w-4" /></Button>
               </div>
             </div>
             <div className="flex items-end gap-2 ml-auto">
               <Button variant="outline" size="sm" onClick={marcarTodosPresente} className="h-9 gap-1"><Check className="h-4 w-4" />Todos presentes</Button>
-              <Button size="sm" onClick={guardarAsistencia} disabled={saving} className="h-9 gap-1">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}Guardar</Button>
+              <Button size="sm" onClick={guardarAsistencia} disabled={saving || Object.keys(draft).length === 0} className="h-9 gap-1">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}Guardar</Button>
             </div>
           </div>
           {conteo.total > 0 && (
@@ -150,11 +188,11 @@ export default function TeacherAsistenciaPage() {
             <CardTitle className="text-base">{cursoSeleccionado.nombre} · {fechaLegible(fecha)}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {(asistenciaData?.asistencia || asistencia).length === 0 ? (
+            {asistencia.length === 0 ? (
               <div className="py-16 text-center"><p className="text-muted-foreground">No hay estudiantes en este curso</p></div>
             ) : (
               <div className="divide-y">
-                {(asistenciaData?.asistencia || asistencia).map((a) => (
+                {asistencia.map((a) => (
                   <div key={a.studentId} className="flex items-center justify-between p-4 hover:bg-muted/30">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold">
@@ -170,7 +208,7 @@ export default function TeacherAsistenciaPage() {
                         const isActive = a.estado === est.value;
                         const Icon = est.icon;
                         return (
-                          <button key={est.value} onClick={() => toggleEstado(a.studentId, a.estado)}
+                          <button key={est.value} onClick={() => toggleEstado(a.studentId, est.value)}
                             className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${isActive ? `${est.color} text-white shadow-sm` : `bg-muted/50 ${est.textColor} hover:bg-muted`}`}
                             title={est.label}>
                             <Icon className="h-3.5 w-3.5" />

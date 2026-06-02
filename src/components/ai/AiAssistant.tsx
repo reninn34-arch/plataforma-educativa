@@ -1,18 +1,64 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { Bot, Send, X, Loader2, Sparkles, User, Wrench, Paperclip, Mic, FileText } from "lucide-react";
+import { Bot, Send, X, Loader2, Sparkles, Paperclip, Mic, FileText, Check, ArrowLeft, Wrench } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { usePathname } from "next/navigation";
+import { apiFetch } from "@/lib/fetch-utils";
 
 declare global {
   interface Window {
     SpeechRecognition: any;
     webkitSpeechRecognition: any;
   }
+}
+
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/__(.+?)__/g, "$1")
+    .replace(/_(.+?)_/g, "$1")
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/`(.+?)`/g, "$1")
+    .replace(/#{1,6}\s/g, "")
+    .replace(/~~(.+?)~~/g, "$1")
+    .trim();
+}
+
+type FlowType = "none" | "create-assignment" | "my-courses" | "risk" | "message";
+
+interface Course {
+  id: number;
+  nombre: string;
+  nivel: string;
+  studentCount: number;
+  mySubjects: { subjectId: number; subjectName: string; subjectEmoji: string }[];
+}
+
+interface RiskStudent {
+  id: number;
+  fullName: string;
+  cedula: string;
+  consecutiveFailures: number;
+  daysInactive: number;
+  subjectName: string;
+}
+
+interface GeneratedQuestion {
+  type: "mcq";
+  question: string;
+  options: string[];
+  correctIndex: number;
+  points: number;
+}
+
+interface GeneratedData {
+  title: string;
+  description: string;
+  questions: GeneratedQuestion[];
 }
 
 export function AiAssistant() {
@@ -22,7 +68,7 @@ export function AiAssistant() {
   const [isRecording, setIsRecording] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const pathname = usePathname();
+  const sendingRef = useRef(false);
 
   const { messages, sendMessage, status, error, setMessages } = useChat({
     transport: new DefaultChatTransport({
@@ -30,18 +76,24 @@ export function AiAssistant() {
     }),
   });
 
+  const loading = status === "submitted" || status === "streaming";
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
 
-  const loading = status === "submitted" || status === "streaming";
+  const handleActionClick = useCallback((msg: string) => {
+    if (sendingRef.current || loading) return;
+    sendingRef.current = true;
+    sendMessage({ text: msg });
+    setTimeout(() => { sendingRef.current = false; }, 500);
+  }, [sendMessage, loading]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
@@ -49,62 +101,505 @@ export function AiAssistant() {
     };
     reader.readAsText(file);
     if (fileInputRef.current) fileInputRef.current.value = "";
-  };
+  }, []);
 
-  const toggleRecording = () => {
-    if (isRecording) {
-      setIsRecording(false);
-      return;
-    }
-    
+  const toggleRecording = useCallback(() => {
+    if (isRecording) { setIsRecording(false); return; }
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("El reconocimiento de voz no está soportado en este navegador.");
-      return;
-    }
-
+    if (!SpeechRecognition) { alert("Reconocimiento de voz no soportado."); return; }
     const recognition = new SpeechRecognition();
     recognition.lang = "es-ES";
     recognition.interimResults = false;
-    
     recognition.onstart = () => setIsRecording(true);
     recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setInputText((prev) => prev ? `${prev} ${transcript}` : transcript);
+      setInputText((prev) => prev ? `${prev} ${event.results[0][0].transcript}` : event.results[0][0].transcript);
     };
     recognition.onerror = () => setIsRecording(false);
     recognition.onend = () => setIsRecording(false);
-    
     recognition.start();
-  };
+  }, [isRecording]);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (sendingRef.current || loading) return;
     let text = inputText.trim();
-    if ((!text && !attachedFile) || loading) return;
-
-    if (attachedFile) {
-      text = text + `\n\n[Archivo Adjunto: ${attachedFile.name}]\n${attachedFile.content}`;
-    }
-
+    if ((!text && !attachedFile)) return;
+    if (attachedFile) text += `\n\n[Archivo Adjunto: ${attachedFile.name}]\n${attachedFile.content}`;
+    sendingRef.current = true;
     sendMessage({ text: text || "Revisa el archivo adjunto y haz lo que te pido con él." });
     setInputText("");
     setAttachedFile(null);
+    setTimeout(() => { sendingRef.current = false; }, 500);
+  }, [inputText, attachedFile, loading, sendMessage]);
+
+  const [flow, setFlow] = useState<FlowType>("none");
+  const [flowLoading, setFlowLoading] = useState(false);
+  const [flowError, setFlowError] = useState<string | null>(null);
+
+  const clearFlow = useCallback(() => {
+    setFlow("none");
+    setFlowLoading(false);
+    setFlowError(null);
+  }, []);
+
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<{ subjectId: number; subjectName: string } | null>(null);
+  const [topic, setTopic] = useState("");
+  const [questionCount, setQuestionCount] = useState(5);
+  const [trimester, setTrimester] = useState(1);
+  const [dueDate, setDueDate] = useState("");
+  const [generatedData, setGeneratedData] = useState<GeneratedData | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [createdId, setCreatedId] = useState<number | null>(null);
+  const [myCoursesData, setMyCoursesData] = useState<Course[] | null>(null);
+  const [riskData, setRiskData] = useState<RiskStudent[] | null>(null);
+  const [messageCourse, setMessageCourse] = useState<Course | null>(null);
+  const [messageText, setMessageText] = useState("");
+  const [messageSent, setMessageSent] = useState(false);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      setTimeout(() => { scrollRef.current!.scrollTop = scrollRef.current!.scrollHeight; }, 100);
+    }
+  }, [flow, generatedData, myCoursesData, riskData, messageSent]);
+
+  const lastMsgIsAi = messages.length > 0 && messages[messages.length - 1]?.role !== "user";
+
+  const quickActions = [
+    { label: "Crear tarea", icon: "📝", action: () => {
+      clearFlow(); setFlow("create-assignment"); setCourses([]); setSelectedCourse(null); setSelectedSubject(null); setTopic(""); setQuestionCount(5); setTrimester(1); setDueDate(""); setGeneratedData(null); setCreatedId(null);
+    }},
+    { label: "Mis cursos", icon: "📋", action: async () => {
+      clearFlow(); setFlow("my-courses"); setFlowLoading(true); setFlowError(null);
+      try {
+        const res = await apiFetch("/api/teacher/courses");
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Error");
+        setMyCoursesData(data.cursos || []);
+      } catch (e: any) {
+        setFlowError(e.message || "Error al cargar cursos");
+      } finally {
+        setFlowLoading(false);
+      }
+    }},
+    { label: "En riesgo", icon: "⚠️", action: async () => {
+      clearFlow(); setFlow("risk"); setFlowLoading(true); setFlowError(null);
+      try {
+        const res = await apiFetch("/api/teacher/students?riesgo=true");
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Error");
+        setRiskData(data.estudiantes || []);
+      } catch (e: any) {
+        setFlowError(e.message || "Error al cargar estudiantes en riesgo");
+      } finally {
+        setFlowLoading(false);
+      }
+    }},
+    { label: "Mensaje", icon: "📤", action: () => {
+      clearFlow(); setFlow("message"); setMessageCourse(null); setMessageText(""); setMessageSent(false);
+    }},
+  ];
+
+  const loadCourses = useCallback(async () => {
+    setFlowLoading(true); setFlowError(null);
+    try {
+      const res = await apiFetch("/api/teacher/courses");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error");
+      setCourses(data.cursos || []);
+    } catch (e: any) {
+      setFlowError(e.message || "Error al cargar cursos");
+    } finally {
+      setFlowLoading(false);
+    }
+  }, []);
+
+  const handleGenerateAssignment = useCallback(async () => {
+    if (!selectedSubject || !topic.trim()) return;
+    setFlowLoading(true); setFlowError(null);
+    try {
+      const res = await apiFetch("/api/teacher/ai/generate-assignment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject: selectedSubject.subjectName, topic: topic.trim(), questionCount, trimester }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al generar");
+      setGeneratedData(data.data);
+    } catch (e: any) {
+      setFlowError(e.message || "Error al generar tarea");
+    } finally {
+      setFlowLoading(false);
+    }
+  }, [selectedSubject, topic, questionCount, trimester]);
+
+  const handleCreateAssignment = useCallback(async () => {
+    if (!selectedCourse || !selectedSubject || !generatedData) return;
+    setCreating(true); setFlowError(null);
+    try {
+      const res = await apiFetch("/api/assignments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cursoId: selectedCourse.id,
+          subjectId: selectedSubject.subjectId,
+          title: generatedData.title,
+          description: generatedData.description,
+          trimester,
+          puntos: 10,
+          dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
+          questions: generatedData.questions.map((q, i) => ({
+            type: "mcq",
+            question: q.question,
+            options: q.options,
+            correctIndex: q.correctIndex,
+            points: q.points,
+            orderIndex: i,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al crear");
+      setCreatedId(data.assignment?.id || data.id);
+    } catch (e: any) {
+      setFlowError(e.message || "Error al crear tarea");
+    } finally {
+      setCreating(false);
+    }
+  }, [selectedCourse, selectedSubject, generatedData, trimester, dueDate]);
+
+  const handleSendMessage = useCallback(async () => {
+    if (!messageCourse || !messageText.trim()) return;
+    setFlowLoading(true); setFlowError(null);
+    try {
+      const res = await apiFetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cursoId: messageCourse.id,
+          message: messageText.trim(),
+        }),
+      });
+      if (!res.ok) throw new Error("Error al enviar mensaje");
+      setMessageSent(true);
+    } catch (e: any) {
+      setFlowError(e.message || "Error al enviar mensaje");
+    } finally {
+      setFlowLoading(false);
+    }
+  }, [messageCourse, messageText]);
+
+  const renderCreateAssignmentFlow = () => {
+    if (createdId) {
+      return (
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 mb-3">
+            <Check className="h-7 w-7 text-emerald-600" />
+          </div>
+          <p className="text-sm font-semibold text-emerald-800 mb-1">Tarea creada exitosamente</p>
+          <p className="text-xs text-muted-foreground mb-4">{generatedData?.title} • {selectedSubject?.subjectName}</p>
+          <button onClick={clearFlow} className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors">
+            Volver al chat
+          </button>
+        </div>
+      );
+    }
+
+    if (generatedData) {
+      return (
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Previsualizar tarea</p>
+          <div className="rounded-xl border border-gray-200 bg-white p-3 space-y-2">
+            <p className="font-semibold text-sm">{generatedData.title}</p>
+            <p className="text-xs text-gray-600 line-clamp-3">{generatedData.description}</p>
+            <div className="max-h-48 overflow-y-auto space-y-1.5">
+              {generatedData.questions.map((q, i) => (
+                <div key={i} className="rounded-lg bg-gray-50 p-2 text-xs">
+                  <p className="font-medium">{i + 1}. {q.question}</p>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {q.options.map((opt, j) => (
+                      <span key={j} className={cn("rounded px-1.5 py-0.5 text-[10px]", j === q.correctIndex ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600")}>
+                        {opt}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground text-center">{generatedData.questions.length} preguntas</p>
+          </div>
+          {flowError && <p className="text-xs text-red-600 text-center">{flowError}</p>}
+          <div className="flex gap-2">
+            <button onClick={() => setGeneratedData(null)} disabled={creating} className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50">
+              Editar
+            </button>
+            <button onClick={handleCreateAssignment} disabled={creating} className="flex-1 rounded-lg bg-violet-600 px-3 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-1">
+              {creating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+              {creating ? "Creando..." : "Crear tarea"}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (!selectedSubject) {
+      if (!selectedCourse && courses.length === 0 && flowLoading) {
+        return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-violet-600" /></div>;
+      }
+
+      if (!selectedCourse) {
+        if (courses.length === 0 && !flowLoading) {
+          return (
+            <div className="text-center py-4">
+              <p className="text-xs text-gray-500 mb-3">Selecciona un curso:</p>
+              <button onClick={loadCourses} className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors">
+                Cargar cursos
+              </button>
+              {flowError && <p className="text-xs text-red-600 mt-2">{flowError}</p>}
+            </div>
+          );
+        }
+        return (
+          <div>
+            <p className="text-xs font-semibold text-gray-500 mb-2">Selecciona un curso:</p>
+            <div className="space-y-1.5">
+              {courses.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => { setSelectedCourse(c); if (c.mySubjects.length > 0) setSelectedSubject(c.mySubjects[0]); }}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left text-sm hover:border-violet-300 hover:bg-violet-50 transition-colors flex items-center justify-between"
+                >
+                  <span className="font-medium">{c.nombre}</span>
+                  <span className="text-xs text-muted-foreground">{c.studentCount} estudiantes</span>
+                </button>
+              ))}
+            </div>
+            {flowError && <p className="text-xs text-red-600 mt-2">{flowError}</p>}
+          </div>
+        );
+      }
+
+      return (
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <button onClick={() => { setSelectedCourse(null); setCourses([]); loadCourses(); }} className="rounded-lg p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <p className="text-xs font-semibold text-gray-500">Materia para {selectedCourse.nombre}:</p>
+          </div>
+          <div className="space-y-1.5">
+            {selectedCourse.mySubjects.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-4">No tienes materias asignadas en este curso</p>
+            ) : selectedCourse.mySubjects.map((s) => (
+              <button
+                key={s.subjectId}
+                onClick={() => setSelectedSubject(s)}
+                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left text-sm hover:border-violet-300 hover:bg-violet-50 transition-colors flex items-center gap-2"
+              >
+                <span>{s.subjectEmoji || "📚"}</span>
+                <span className="font-medium">{s.subjectName}</span>
+              </button>
+            ))}
+          </div>
+          {flowError && <p className="text-xs text-red-600 mt-2">{flowError}</p>}
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <button onClick={() => { setSelectedSubject(null); }} className="rounded-lg p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <p className="text-xs font-semibold text-gray-500">Detalles de la tarea</p>
+        </div>
+        <div className="space-y-2.5">
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Tema *</label>
+            <input
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="Ej: matrices 3x3, ecuaciones cuadraticas..."
+              className="w-full h-9 rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
+            />
+          </div>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="text-xs text-gray-500 mb-1 block">Preguntas</label>
+              <select value={questionCount} onChange={(e) => setQuestionCount(Number(e.target.value))} className="w-full h-9 rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400">
+                {[3, 4, 5, 6, 7, 8, 9, 10].map(n => <option key={n} value={n}>{n} preguntas</option>)}
+              </select>
+            </div>
+            <div className="flex-1">
+              <label className="text-xs text-gray-500 mb-1 block">Trimestre</label>
+              <select value={trimester} onChange={(e) => setTrimester(Number(e.target.value))} className="w-full h-9 rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400">
+                {[1, 2, 3].map(n => <option key={n} value={n}>Trimestre {n}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Fecha de entrega (opcional)</label>
+            <input
+              type="datetime-local"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="w-full h-9 rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
+            />
+          </div>
+          {flowError && <p className="text-xs text-red-600">{flowError}</p>}
+          <button
+            onClick={handleGenerateAssignment}
+            disabled={!topic.trim() || flowLoading}
+            className="w-full rounded-xl bg-violet-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
+          >
+            {flowLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {flowLoading ? "Generando..." : "Generar con IA"}
+          </button>
+        </div>
+      </div>
+    );
   };
 
-  const suggestedQueries: Record<string, string[]> = {
-    teacher: [
-      "Crea una tarea basada en el archivo adjunto",
-      "Envía un mensaje a todos mis alumnos",
-      "Registra estas notas de participación",
-      "¿Qué estudiantes están en riesgo?",
-    ],
-    admin: [
-      "Crea estudiantes desde este archivo CSV",
-      "Crea un curso nuevo y asigna estudiantes",
-      "Genera un examen para 3ro BGU",
-      "Envía credenciales al curso por correo",
-    ],
+  const renderFlowContent = () => {
+    switch (flow) {
+      case "create-assignment":
+        return renderCreateAssignmentFlow();
+      case "my-courses":
+        return (
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Mis cursos</p>
+            {flowLoading ? (
+              <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-violet-600" /></div>
+            ) : myCoursesData && myCoursesData.length > 0 ? (
+              <div className="space-y-2">
+                {myCoursesData.map((c) => (
+                  <div key={c.id} className="rounded-xl border border-gray-200 bg-white p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="font-semibold text-sm">{c.nombre}</p>
+                      <span className="text-xs text-muted-foreground">{c.studentCount} estudiantes</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {c.mySubjects.map((s) => (
+                        <span key={s.subjectId} className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] text-violet-700">
+                          {s.subjectEmoji} {s.subjectName}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-xs text-gray-400">No tienes cursos asignados</p>
+              </div>
+            )}
+            {flowError && <p className="text-xs text-red-600 text-center mt-2">{flowError}</p>}
+            {myCoursesData && <button onClick={clearFlow} className="w-full mt-3 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">Volver al chat</button>}
+          </div>
+        );
+      case "risk":
+        return (
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Estudiantes en riesgo</p>
+            {flowLoading ? (
+              <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-violet-600" /></div>
+            ) : riskData && riskData.length > 0 ? (
+              <div className="space-y-2">
+                {riskData.map((s) => (
+                  <div key={s.id} className="rounded-xl border border-red-100 bg-red-50 p-3">
+                    <p className="font-semibold text-sm text-red-800">{s.fullName}</p>
+                    <div className="flex gap-3 mt-1 text-xs text-red-600">
+                      {s.consecutiveFailures >= 3 && <span>⚠️ {s.consecutiveFailures} fallos consecutivos</span>}
+                      {s.daysInactive >= 7 && <span>📅 {s.daysInactive} días inactivo</span>}
+                    </div>
+                    <p className="text-[10px] text-red-400 mt-0.5">{s.subjectName}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 mx-auto mb-2">
+                  <Check className="h-6 w-6 text-emerald-600" />
+                </div>
+                <p className="text-xs font-medium text-emerald-700">No hay estudiantes en riesgo</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Todos están al día</p>
+              </div>
+            )}
+            {flowError && <p className="text-xs text-red-600 text-center mt-2">{flowError}</p>}
+            {riskData && <button onClick={clearFlow} className="w-full mt-3 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">Volver al chat</button>}
+          </div>
+        );
+      case "message":
+        return (
+          <div>
+            {messageSent ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 mb-3">
+                  <Check className="h-7 w-7 text-emerald-600" />
+                </div>
+                <p className="text-sm font-semibold text-emerald-800 mb-1">Mensaje enviado</p>
+                <p className="text-xs text-muted-foreground mb-3">A los estudiantes de {messageCourse?.nombre}</p>
+                <button onClick={clearFlow} className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors">
+                  Volver al chat
+                </button>
+              </div>
+            ) : !messageCourse ? (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 mb-2">Selecciona el curso:</p>
+                {courses.length === 0 && !flowLoading ? (
+                  <button onClick={loadCourses} className="w-full rounded-xl bg-violet-600 px-3 py-2.5 text-xs font-medium text-white hover:bg-violet-700 transition-colors">
+                    Cargar cursos
+                  </button>
+                ) : flowLoading ? (
+                  <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-violet-600" /></div>
+                ) : (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                    {courses.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => setMessageCourse(c)}
+                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left text-sm hover:border-violet-300 hover:bg-violet-50 transition-colors"
+                      >
+                        {c.nombre}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {flowError && <p className="text-xs text-red-600 mt-2">{flowError}</p>}
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <button onClick={() => { setMessageCourse(null); setMessageText(""); }} className="rounded-lg p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+                  <p className="text-xs font-semibold text-gray-500">Mensaje para {messageCourse.nombre}</p>
+                </div>
+                <textarea
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  placeholder="Escribe tu mensaje..."
+                  rows={4}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 resize-none"
+                />
+                {flowError && <p className="text-xs text-red-600 mt-1">{flowError}</p>}
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!messageText.trim() || flowLoading}
+                  className="w-full mt-2 rounded-xl bg-violet-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
+                >
+                  {flowLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  {flowLoading ? "Enviando..." : "Enviar mensaje"}
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -120,218 +615,183 @@ export function AiAssistant() {
       )}
 
       {open && (
-        <div className="fixed bottom-6 right-6 z-50 flex h-[520px] w-[380px] flex-col rounded-2xl border border-violet-200 bg-white shadow-2xl animate-scale-in overflow-hidden">
+        <div className="fixed bottom-6 right-6 z-50 flex h-[560px] w-[380px] flex-col rounded-2xl border border-violet-200 bg-white shadow-2xl animate-scale-in overflow-hidden">
           <div className="flex items-center justify-between bg-violet-600 px-4 py-3 text-white shrink-0">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20">
-                <Bot className="h-5 w-5" />
-              </div>
+              {flow !== "none" ? (
+                <button onClick={clearFlow} className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 transition-colors">
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20">
+                  <Bot className="h-5 w-5" />
+                </div>
+              )}
               <div>
-                <h3 className="text-sm font-bold">Atlas IA</h3>
-                <p className="text-[10px] text-violet-200">Asistente virtual</p>
+                <h3 className="text-sm font-bold">{flow !== "none" ? "Atlas IA" : "Atlas IA"}</h3>
+                <p className="text-[10px] text-violet-200">
+                  {flow === "create-assignment" ? "Crear tarea" :
+                   flow === "my-courses" ? "Mis cursos" :
+                   flow === "risk" ? "Estudiantes en riesgo" :
+                   flow === "message" ? "Enviar mensaje" :
+                   "Asistente virtual"}
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => { setMessages([]); setOpen(false); }}
-                className="rounded-lg p-1.5 text-violet-200 hover:bg-white/10 hover:text-white transition-colors"
-                title="Cerrar asistente"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+            <button
+              onClick={() => { clearFlow(); setMessages([]); setOpen(false); }}
+              className="rounded-lg p-1.5 text-violet-200 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
 
-          <ScrollArea className="flex-1 min-h-0">
-            <div ref={scrollRef} className="space-y-4 p-4">
-              {messages.length === 0 && (
-                <div className="space-y-4">
-                  <div className="text-center py-4">
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-violet-100 mb-3">
-                      <Sparkles className="h-6 w-6 text-violet-600" />
+          <div className="flex flex-col flex-1 min-h-0">
+            <ScrollArea className="flex-1">
+              <div ref={scrollRef} className="space-y-3 p-4">
+                {flow !== "none" ? (
+                  renderFlowContent()
+                ) : messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center min-h-[320px]">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-violet-100 mb-4">
+                      <Sparkles className="h-7 w-7 text-violet-600" />
                     </div>
-                    <p className="text-sm font-semibold text-foreground">
-                      Hola, soy Atlas IA
+                    <p className="text-base font-semibold text-foreground mb-1">Hola, soy Atlas IA</p>
+                    <p className="text-xs text-muted-foreground mb-6 text-center max-w-[260px]">
+                      Puedo ayudarte a consultar datos de la plataforma o crear contenido educativo.
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Puedo ayudarte a consultar datos de la plataforma.
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Prueba preguntarme algo:
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    {(pathname?.startsWith("/admin") ? suggestedQueries.admin : suggestedQueries.teacher).slice(0, 4).map((q, i) => (
-                      <button
-                        key={i}
-                        onClick={() => sendMessage({ text: q })}
-                        className="w-full rounded-xl border border-violet-100 bg-violet-50/50 px-4 py-2.5 text-left text-xs text-violet-700 hover:bg-violet-100 transition-colors"
-                      >
-                        {q}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {messages.map((m, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    "flex gap-3",
-                    m.role === "user" ? "justify-end" : "justify-start"
-                  )}
-                >
-                  {m.role !== "user" && (
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-100 mt-0.5">
-                      <Bot className="h-4 w-4 text-violet-600" />
+                    <div className="flex flex-wrap justify-center gap-2 max-w-[300px]">
+                      {quickActions.map((btn, i) => (
+                        <button
+                          key={i}
+                          onClick={btn.action}
+                          className="rounded-full border border-violet-200 bg-violet-50/60 px-3.5 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-100 hover:border-violet-300 transition-colors flex items-center gap-1.5"
+                        >
+                          <span>{btn.icon}</span>
+                          <span>{btn.label}</span>
+                        </button>
+                      ))}
                     </div>
-                  )}
-
-                  <div
-                    className={cn(
-                      "rounded-2xl px-4 py-2.5 text-sm leading-relaxed max-w-[85%]",
-                      m.role === "user"
-                        ? "bg-violet-600 text-white rounded-br-md"
-                        : "bg-muted text-foreground rounded-bl-md"
-                    )}
-                  >
-                    {m.parts?.map((part: any, j: number) => {
-                      if (part.type === "text") {
-                        return <span key={j}>{part.text}</span>;
-                      }
-                      if (part.type === "tool-call" || part.type === "tool-result") {
-                        const isResult = part.type === "tool-result";
-                        return (
-                          <div
-                            key={j}
-                            className="my-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2"
-                          >
-                            <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700">
-                              <Wrench className="h-3 w-3" />
-                              {isResult ? "Consultado" : "Consultando"}:{" "}
-                              {part.toolName}
-                            </div>
-                            {isResult && part.output && (
-                              <pre className="mt-1 text-[10px] text-amber-800 whitespace-pre-wrap max-h-32 overflow-y-auto">
-                                {typeof part.output === "string"
-                                  ? part.output
-                                  : JSON.stringify(part.output, null, 1)}
-                              </pre>
-                            )}
-                            {!isResult && (
-                              <div className="flex items-center gap-1 mt-1 text-xs text-amber-600">
-                                <Loader2 className="h-3 w-3 animate-spin" /> Ejecutando...
-                              </div>
-                            )}
+                  </div>
+                ) : (
+                  <>
+                    {messages.map((m, i) => (
+                      <div key={i}>
+                        <div className={cn("flex gap-2", m.role === "user" ? "justify-end" : "justify-start")}>
+                          <div className={cn(
+                            "rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed max-w-[88%]",
+                            m.role === "user"
+                              ? "bg-violet-600 text-white rounded-br-md"
+                              : "bg-gray-100 text-gray-800 rounded-bl-md"
+                          )}>
+                            {m.parts?.map((part: any, j: number) => {
+                              if (part.type === "text") {
+                                return <span key={j}>{stripMarkdown(part.text)}</span>;
+                              }
+                              if (part.type === "tool-call" || part.type === "tool-result") {
+                                return (
+                                  <div key={j} className={cn(
+                                    "my-1.5 rounded-lg px-3 py-2 text-xs",
+                                    part.type === "tool-result"
+                                      ? "border border-emerald-200 bg-emerald-50 text-emerald-800"
+                                      : "border border-amber-200 bg-amber-50 text-amber-800"
+                                  )}>
+                                    <div className="flex items-center gap-1.5 font-medium">
+                                      <Wrench className="h-3 w-3" />
+                                      {part.type === "tool-result" ? "Consultado" : "Consultando"}: {part.toolName}
+                                    </div>
+                                    {part.type !== "tool-result" && (
+                                      <div className="flex items-center gap-1 mt-1 text-amber-600">
+                                        <Loader2 className="h-3 w-3 animate-spin" /> Ejecutando...
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })}
                           </div>
-                        );
-                      }
-                      return null;
-                    })}
-                  </div>
+                        </div>
+                      </div>
+                    ))}
 
-                  {m.role === "user" && (
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-600 mt-0.5">
-                      <User className="h-4 w-4 text-white" />
-                    </div>
-                  )}
+                    {error && (
+                      <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700 text-center">
+                        Error de conexion. Intenta de nuevo.
+                      </div>
+                    )}
+
+                    {loading && messages[messages.length - 1]?.role === "user" && (
+                      <div className="flex gap-2 justify-start">
+                        <div className="rounded-2xl rounded-bl-md bg-gray-100 px-4 py-3">
+                          <div className="flex gap-1">
+                            <span className="h-2 w-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                            <span className="h-2 w-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                            <span className="h-2 w-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </ScrollArea>
+
+            {flow === "none" && !loading && lastMsgIsAi && messages.length > 0 && (
+              <div className="shrink-0 px-4 pb-1">
+                <div className="flex flex-wrap gap-1.5">
+                  {quickActions.map((btn, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={btn.action}
+                      className="rounded-full border border-violet-200 bg-violet-50/60 px-3 py-1 text-[11px] font-medium text-violet-700 hover:bg-violet-100 hover:border-violet-300 transition-colors whitespace-nowrap flex items-center gap-1"
+                    >
+                      <span>{btn.icon}</span>
+                      <span>{btn.label}</span>
+                    </button>
+                  ))}
                 </div>
-              ))}
+              </div>
+            )}
+          </div>
 
-              {error && (
-                <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700 text-center">
-                  Error de conexion. Intenta de nuevo.
-                </div>
-              )}
-
-              {loading && messages.length > 0 && messages[messages.length - 1]?.role === "user" && (
-                <div className="flex gap-3 justify-start">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-100">
-                    <Bot className="h-4 w-4 text-violet-600" />
-                  </div>
-                  <div className="rounded-2xl rounded-bl-md bg-muted px-4 py-3">
-                    <div className="flex gap-1">
-                      <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "0ms" }} />
-                      <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "150ms" }} />
-                      <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "300ms" }} />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </ScrollArea>
-
-          <div className="border-t bg-white p-3 shrink-0 flex flex-col gap-2">
+          <div className="border-t bg-white px-3 py-2.5 shrink-0">
             {attachedFile && (
-              <div className="flex items-center justify-between rounded-lg bg-violet-50 px-3 py-2 text-xs border border-violet-100">
+              <div className="flex items-center justify-between rounded-lg bg-violet-50 px-3 py-2 text-xs border border-violet-100 mb-2">
                 <div className="flex items-center gap-2 overflow-hidden">
                   <FileText className="h-4 w-4 text-violet-600 shrink-0" />
-                  <span className="truncate text-violet-800 font-medium">
-                    {attachedFile.name}
-                  </span>
+                  <span className="truncate text-violet-800 font-medium">{attachedFile.name}</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setAttachedFile(null)}
-                  className="text-violet-400 hover:text-red-500 transition-colors"
-                >
+                <button onClick={() => setAttachedFile(null)} className="text-violet-400 hover:text-red-500 transition-colors">
                   <X className="h-4 w-4" />
                 </button>
               </div>
             )}
-            
             <form onSubmit={handleSubmit} className="flex gap-2 items-center">
-              <input
-                type="file"
-                accept=".txt,.csv,.md"
-                className="hidden"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted transition-colors"
-                title="Adjuntar archivo (.txt, .csv)"
-              >
+              <input type="file" accept=".txt,.csv,.md" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-gray-100 transition-colors">
                 <Paperclip className="h-4 w-4" />
               </button>
-
-              <button
-                type="button"
-                onClick={toggleRecording}
-                className={cn(
-                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors",
-                  isRecording 
-                    ? "bg-red-100 text-red-600 animate-pulse" 
-                    : "text-muted-foreground hover:bg-muted"
-                )}
-                title="Dictar por voz"
-              >
+              <button type="button" onClick={toggleRecording} className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors", isRecording ? "bg-red-100 text-red-600 animate-pulse" : "text-muted-foreground hover:bg-gray-100")}>
                 <Mic className="h-4 w-4" />
               </button>
-
               <input
                 name="message"
                 type="text"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                placeholder="Preguntame algo..."
-                className="flex-1 h-10 rounded-xl border border-input bg-muted/50 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
+                placeholder="Escribe un mensaje..."
+                className="flex-1 h-9 rounded-xl border border-gray-200 bg-gray-50/60 px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
                 disabled={loading}
                 autoComplete="off"
               />
               <button
                 type="submit"
-                disabled={loading || (!inputText.trim() && !attachedFile)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 transition-colors"
+                disabled={loading || (!inputText.trim() && !attachedFile) || sendingRef.current}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </button>
             </form>
           </div>

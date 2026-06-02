@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from "next/server";
-
 /**
  * @swagger
  * /api/teacher/asistencia:
@@ -36,10 +34,10 @@ import { NextRequest, NextResponse } from "next/server";
  *       403:
  *         description: Solo profesores
  */
+import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { asistencia } from "@/lib/db/schema";
-import { sql, eq, and } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
@@ -54,15 +52,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Datos requeridos: cursoId, fecha, registros" }, { status: 400 });
     }
 
+    const date = new Date(fecha);
+
     for (const r of registros) {
       await db
         .insert(asistencia)
-        .values({
-          cursoId,
-          studentId: r.studentId,
-          fecha: new Date(fecha),
-          estado: r.estado,
-        })
+        .values({ cursoId, studentId: r.studentId, fecha: date, estado: r.estado })
         .onConflictDoUpdate({
           target: [asistencia.cursoId, asistencia.studentId, asistencia.fecha],
           set: { estado: r.estado },
