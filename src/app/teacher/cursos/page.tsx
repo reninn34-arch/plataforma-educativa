@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Loader2, Users as UsersIcon, BookOpen, Upload, FileText, Trash2, Check, CheckCircle2 } from "lucide-react";
@@ -37,6 +37,7 @@ export default function TeacherCursosPage() {
   const [uploading, setUploading] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [selectedPdf, setSelectedPdf] = useState<File | null>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
 
   const { data: coursesData, isLoading: coursesLoading } = useQuery<CoursesData, Error>({
     queryKey: ["teacher-courses"],
@@ -372,6 +373,7 @@ export default function TeacherCursosPage() {
 
             <div className="space-y-3">
               <input
+                ref={pdfInputRef}
                 type="file"
                 accept=".pdf"
                 onChange={e => setSelectedPdf(e.target.files?.[0] || null)}
@@ -384,10 +386,19 @@ export default function TeacherCursosPage() {
                     <span className="font-medium">{selectedPdf.name}</span>
                     <span className="text-xs text-muted-foreground">({(selectedPdf.size / 1024).toFixed(0)} KB)</span>
                   </div>
-                  <Button size="sm" onClick={handleUploadPdf} disabled={uploading} className="gap-1.5">
-                    {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                    Subir PDF
-                  </Button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => { setSelectedPdf(null); if (pdfInputRef.current) pdfInputRef.current.value = ""; }}
+                      className="p-1.5 rounded-md hover:bg-red-100 text-red-500 transition-colors"
+                      title="Quitar archivo"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                    <Button size="sm" onClick={handleUploadPdf} disabled={uploading} className="gap-1.5">
+                      {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                      Subir PDF
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
