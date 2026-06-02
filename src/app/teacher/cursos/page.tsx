@@ -146,10 +146,9 @@ export default function TeacherCursosPage() {
       formData.append("cursoId", String(modalCursoId));
       formData.append("subjectId", String(modalSubject.id));
       formData.append("file", selectedPdf);
-      const res = await fetch("/api/teacher/study-material", {
+      const res = await apiFetch("/api/teacher/study-material", {
         method: "POST",
         body: formData,
-        credentials: "include",
       });
       if (res.ok) {
         setFeedback("PDF subido correctamente");
