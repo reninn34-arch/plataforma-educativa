@@ -6,7 +6,7 @@ import { subjectTheme } from "@/lib/subject-theme";
 import {
   BookOpen, Lightbulb, AlertTriangle,
   Check, X, ArrowRight, ArrowLeft, Target, Image, Loader2, Maximize2,
-  ZoomIn, ZoomOut, RotateCcw, Play,
+  ZoomIn, ZoomOut, RotateCcw, Play, ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,14 @@ import {
 interface ExampleStep {
   text: string;
   svg?: string;
+}
+
+interface VideoData {
+  id: string;
+  title: string;
+  channelName: string;
+  thumbnailUrl: string;
+  duration: string;
 }
 
 interface LessonData {
@@ -41,6 +49,8 @@ interface LessonData {
     correctIndex: number;
     feedback: string;
   };
+  videos?: VideoData[];
+  videoSearchUrl?: string;
 }
 
 interface LessonViewProps {
@@ -96,6 +106,92 @@ function MermaidDiagram({ code, large, onRetry }: { code: string; large?: boolea
         )}
       dangerouslySetInnerHTML={{ __html: svg }}
     />
+  );
+}
+
+function VideoSlide({ videos, videoSearchUrl }: { videos: VideoData[]; videoSearchUrl?: string }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const active = videos[activeIndex];
+
+  return (
+    <div className="space-y-3 h-full overflow-y-auto">
+      {/* Reproductor embed */}
+      <div className="rounded-2xl overflow-hidden shadow-sm bg-black aspect-video">
+        <iframe
+          src={`https://www.youtube-nocookie.com/embed/${active.id}?autoplay=0&rel=0`}
+          title={active.title}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          className="w-full h-full"
+        />
+      </div>
+
+      {/* Info del video activo */}
+      <div className="px-1 space-y-1">
+        <p className="text-sm font-semibold text-slate-800 line-clamp-2">{active.title}</p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-slate-500">{active.channelName} · {active.duration}</p>
+          <a
+            href={`https://www.youtube.com/watch?v=${active.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-700 transition-colors"
+          >
+            Ver en YouTube <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
+      </div>
+
+      {/* Lista de videos disponibles */}
+      {videos.length > 1 && (
+        <div className="flex gap-2 px-0.5">
+          {videos.map((v, i) => (
+            <button
+              key={v.id}
+              onClick={() => setActiveIndex(i)}
+              className={`flex-1 rounded-xl overflow-hidden border-2 transition-all text-left ${
+                i === activeIndex
+                  ? "border-red-500 ring-1 ring-red-500"
+                  : "border-slate-200 hover:border-slate-300"
+              }`}
+            >
+              <div className="relative aspect-video bg-black">
+                {v.thumbnailUrl && (
+                  <img
+                    src={v.thumbnailUrl}
+                    alt={v.title}
+                    className="w-full h-full object-cover"
+                  />
+                )}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="h-8 w-8 rounded-full bg-black/60 flex items-center justify-center">
+                    <Play className="h-4 w-4 text-white ml-0.5" />
+                  </div>
+                </div>
+              </div>
+              <div className="p-1.5">
+                <p className="text-xs font-medium text-slate-700 line-clamp-1">{v.title}</p>
+                <p className="text-[10px] text-slate-400">{v.channelName}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {videoSearchUrl && (
+        <div className="text-center pt-1">
+          <a
+            href={videoSearchUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
+          >
+            <ExternalLink className="h-3 w-3" />
+            Ver mas videos en YouTube sobre este tema
+          </a>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -395,9 +491,10 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
   const theme = subjectTheme(subjectSlug || "");
 
   const slides = useMemo(() => {
-    const s: { type: "explanation" | "diagram" | "example" | "commonMistake" | "quickCheck" | "ready" }[] = [
+    const s: { type: "explanation" | "video" | "diagram" | "example" | "commonMistake" | "quickCheck" | "ready" }[] = [
       { type: "explanation" },
     ];
+    if (lesson.videos && lesson.videos.length > 0) s.push({ type: "video" });
     if (lesson.diagram) s.push({ type: "diagram" });
     s.push({ type: "example" });
     s.push({ type: "commonMistake" });
@@ -495,6 +592,22 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
               </div>
             </div>
           </div>
+
+          {/* Video slide */}
+          {lesson.videos && lesson.videos.length > 0 && (
+            <div className="min-w-0 w-full basis-full shrink-0 px-0.5 h-full overflow-y-auto overflow-x-hidden">
+              <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
+                <div className="bg-gradient-to-r from-red-600 to-red-500 px-5 py-3">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Play className="h-4 w-4" /> Video explicativo
+                  </h3>
+                </div>
+                <div className="p-4">
+                  <VideoSlide videos={lesson.videos || []} videoSearchUrl={lesson.videoSearchUrl} />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Diagram slide */}
           {lesson.diagram && (

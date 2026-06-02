@@ -9,8 +9,9 @@ import { z } from "zod/v4";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { practiceGenerateSchema } from "@/lib/api-helpers";
+import { searchYouTubeVideos, buildSearchUrl } from "@/lib/youtube";
 
-export const CACHED_EXERCISES_VERSION = 5;
+export const CACHED_EXERCISES_VERSION = 6;
 
 const diagramSchema = z.object({
   mermaid: z.string(),
@@ -54,9 +55,18 @@ const exerciseItemSchema = z.object({
   difficulty: z.enum(["easy", "medium", "hard"]),
 });
 
+const videoSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  channelName: z.string(),
+  thumbnailUrl: z.string(),
+  duration: z.string(),
+});
+
 const practiceResponseSchema = z.object({
   lesson: lessonSchema,
   exercises: z.array(exerciseItemSchema).length(4),
+  videos: z.array(videoSchema).default([]),
 });
 
 const cachedLessonSchema = lessonSchema.extend({
@@ -66,6 +76,7 @@ const cachedLessonSchema = lessonSchema.extend({
 const cachedPracticeResponseSchema = z.object({
   lesson: cachedLessonSchema,
   exercises: z.array(exerciseItemSchema).length(4),
+  videos: z.array(videoSchema).default([]),
 });
 
 const cachedExercisesSchema = z.object({
@@ -312,10 +323,16 @@ REGLAS:
       (lessonResult.lesson as any).diagram = diagram;
     }
 
+    const [videos] = await Promise.all([
+      searchYouTubeVideos(topicContext || topic || ctx.topics[0]),
+    ]);
+
+    const videoSearchUrl = buildSearchUrl(topicContext || topic || ctx.topics[0]);
+
     if (nodeId) {
       const exercisesData = {
         version: CACHED_EXERCISES_VERSION,
-        data: lessonResult,
+        data: { ...lessonResult, videos },
       } as any;
 
       await db
@@ -337,7 +354,7 @@ REGLAS:
         });
     }
 
-    return Response.json({ ...lessonResult, modelUsed: usedModel.modelId });
+    return Response.json({ ...lessonResult, videos, videoSearchUrl, modelUsed: usedModel.modelId });
   } catch (error) {
     console.error("Generate exercises error:", error);
     return Response.json(

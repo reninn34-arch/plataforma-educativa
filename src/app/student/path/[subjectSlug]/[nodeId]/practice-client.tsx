@@ -34,6 +34,14 @@ interface ExampleStep {
   svg?: string;
 }
 
+interface VideoData {
+  id: string;
+  title: string;
+  channelName: string;
+  thumbnailUrl: string;
+  duration: string;
+}
+
 interface LessonData {
   title: string;
   explanation: string;
@@ -57,6 +65,8 @@ interface LessonData {
     correctIndex: number;
     feedback: string;
   };
+  videos?: VideoData[];
+  videoSearchUrl?: string;
 }
 
 type GameState = "loading" | "lesson" | "countdown" | "playing" | "results";
@@ -144,7 +154,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
       if (data.exercises) {
         setExercises(data.exercises);
         if (data.lesson) {
-          setLesson(data.lesson);
+          setLesson({ ...data.lesson, videos: data.videos || [], videoSearchUrl: data.videoSearchUrl });
           setGameState("lesson");
         } else if (data.concept_bites && data.concept_bites.length > 0) {
           setGameState("countdown");
