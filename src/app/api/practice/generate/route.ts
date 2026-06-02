@@ -149,6 +149,8 @@ export async function POST(request: NextRequest) {
       ? `${aiPromptContext}`
       : (topic || ctx.topics.slice(0, 1).join(", "));
 
+    const videoSearchQuery = topic || (aiPromptContext ? aiPromptContext.slice(0, 100).replace(/\n/g, " ") : ctx.topics[0]);
+
     const studyMaterial = await getStudyMaterialForStudent(user.id, subject);
     const materialBlock = studyMaterial
       ? `\n\nMATERIAL DE ESTUDIO DEL CURSO:\n${studyMaterial.content}`
@@ -205,18 +207,23 @@ REGLAS:
 - caption: maximo 6 palabras descriptivas.`
       : null;
 
-    const REQUEST_TIMEOUT_MS = 60_000;
+    const LESSON_TIMEOUT_MS = 55_000;
+    const DIAGRAM_TIMEOUT_MS = 25_000;
     let lessonResult: z.infer<typeof practiceResponseSchema> | null = null;
     let diagram: z.infer<typeof diagramSchema> | null = null;
     let usedModel = resolved;
     let lastError: unknown;
 
     for (const candidate of candidates) {
-      const abortController = new AbortController();
-      const timeoutId = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MS);
+      const lessonAbort = new AbortController();
+      const diagramAbort = new AbortController();
+      const lessonTimeoutId = setTimeout(() => lessonAbort.abort(), LESSON_TIMEOUT_MS);
+      const diagramTimeoutId = setTimeout(() => diagramAbort.abort(), DIAGRAM_TIMEOUT_MS);
 
       try {
         const aiModel = getChatModel(candidate);
+
+        const startTime = performance.now();
 
         const lessonPromise = generateObject({
           model: aiModel,
@@ -224,7 +231,7 @@ REGLAS:
           prompt: lessonPrompt,
           temperature: 0.6,
           maxOutputTokens: 8000,
-          abortSignal: abortController.signal,
+          abortSignal: lessonAbort.signal,
         });
 
         let diagramPromise: Promise<z.infer<typeof diagramSchema> | null> = Promise.resolve(null);
@@ -238,7 +245,7 @@ REGLAS:
                 prompt: diagramPrompt,
                 temperature: 0.3,
                 maxOutputTokens: 1500,
-                abortSignal: abortController.signal,
+                abortSignal: diagramAbort.signal,
               });
               logAiCall({
                 route: "practice-diagram",
@@ -253,7 +260,6 @@ REGLAS:
               return r.object;
             } catch (err) {
               const msg = String((err as any)?.message ?? err ?? "");
-              // Fallback to generateText if response_format not supported
               if (msg.includes("response_format") || msg.includes("unavailable")) {
                 console.log("[diagram] response_format not supported, falling back to generateText");
                 const r = await generateText({
@@ -261,7 +267,7 @@ REGLAS:
                   prompt: diagramPrompt + "\n\nResponde SOLO con un JSON valido con dos campos: \"mermaid\" (string con el diagrama) y \"caption\" (string corta).",
                   temperature: 0.3,
                   maxOutputTokens: 1500,
-                  abortSignal: abortController.signal,
+                  abortSignal: diagramAbort.signal,
                 });
                 logAiCall({
                   route: "practice-diagram-text",
@@ -275,7 +281,9 @@ REGLAS:
                 });
                 try {
                   const parsed = tryParseJson(r.text);
-                  return { mermaid: parsed.mermaid || "", caption: parsed.caption || "" };
+                  let mermaidStr = parsed.mermaid || "";
+                  mermaidStr = mermaidStr.replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
+                  return { mermaid: mermaidStr, caption: parsed.caption || "" };
                 } catch {
                   console.error("[diagram] failed to parse JSON from generateText");
                   return null;
@@ -293,10 +301,10 @@ REGLAS:
           })();
         }
 
-        const startTime = performance.now();
         const [lessonAttempt, diagramAttempt] = await Promise.all([lessonPromise, diagramPromise]);
         const durationMs = Math.round(performance.now() - startTime);
-        clearTimeout(timeoutId);
+        clearTimeout(lessonTimeoutId);
+        clearTimeout(diagramTimeoutId);
 
         logAiCall({
           route: "practice-generate",
@@ -314,7 +322,8 @@ REGLAS:
         usedModel = candidate;
         break;
       } catch (error) {
-        clearTimeout(timeoutId);
+        clearTimeout(lessonTimeoutId);
+        clearTimeout(diagramTimeoutId);
         lastError = error;
         if (!isRetryableModelError(error)) throw error;
       }
@@ -330,10 +339,10 @@ REGLAS:
     }
 
     const [videos] = await Promise.all([
-      searchYouTubeVideos(topicContext || topic || ctx.topics[0]),
+      searchYouTubeVideos(videoSearchQuery),
     ]);
 
-    const videoSearchUrl = buildSearchUrl(topicContext || topic || ctx.topics[0]);
+    const videoSearchUrl = buildSearchUrl(videoSearchQuery);
 
     if (nodeId) {
       const exercisesData = {

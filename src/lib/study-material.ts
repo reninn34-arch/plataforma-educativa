@@ -9,7 +9,8 @@ export async function extractPdfText(buffer: Buffer): Promise<string> {
     const result = await parser.getText();
     await parser.destroy().catch(() => {});
     return result.text || "";
-  } catch {
+  } catch (error) {
+    console.error("Error in extractPdfText:", error);
     return "";
   }
 }

@@ -107,7 +107,9 @@ export async function POST(request: NextRequest) {
             });
             try {
               const parsed = tryParseJson(r.text);
-              diagram = { mermaid: parsed.mermaid || "", caption: parsed.caption || "" };
+              let mermaidStr = parsed.mermaid || "";
+              mermaidStr = mermaidStr.replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
+              diagram = { mermaid: mermaidStr, caption: parsed.caption || "" };
             } catch {
               console.error("[diagram-regen] failed to parse JSON from generateText");
               diagram = null;
