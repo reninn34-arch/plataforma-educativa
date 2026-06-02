@@ -127,6 +127,13 @@
       "when": 1780345203899,
       "tag": "0017_stiff_nemesis",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1780430342677,
+      "tag": "0018_high_black_bolt",
+      "breakpoints": true
     }
   ]
 }

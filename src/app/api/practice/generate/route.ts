@@ -10,6 +10,7 @@ import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { practiceGenerateSchema } from "@/lib/api-helpers";
 import { searchYouTubeVideos, buildSearchUrl } from "@/lib/youtube";
+import { getStudyMaterialForStudent } from "@/lib/study-material";
 
 export const CACHED_EXERCISES_VERSION = 6;
 
@@ -148,10 +149,15 @@ export async function POST(request: NextRequest) {
       ? `${aiPromptContext}`
       : (topic || ctx.topics.slice(0, 1).join(", "));
 
+    const studyMaterial = await getStudyMaterialForStudent(user.id, subject);
+    const materialBlock = studyMaterial
+      ? `\n\nMATERIAL DE ESTUDIO DEL CURSO:\n${studyMaterial.content}`
+      : "";
+
     const lessonPrompt = `Eres un tutor cercano, paciente y entusiasta. Ensenas a adultos en bachillerato acelerado (PCEI). Tu mision es explicar un tema de forma clara, visual y amigable.
 
 AREA: ${ctx.area}
-Tema: ${topicContext}
+Tema: ${topicContext}${materialBlock}
 
 ESTILO DE ENSENANZA:
 - Habla como un amigo explicando algo nuevo: cercano, animado, sin jerga innecesaria.

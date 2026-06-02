@@ -375,6 +375,28 @@ export const parentStudents = pgTable("parent_students", {
   uniqueParentStudent: unique("parent_student_unique").on(table.parentId, table.studentId),
 }));
 
+export const studyMaterials = pgTable("study_materials", {
+  id: serial("id").primaryKey(),
+  cursoId: integer("curso_id")
+    .notNull()
+    .references(() => cursos.id),
+  subjectId: integer("subject_id")
+    .notNull()
+    .references(() => subjects.id),
+  title: varchar("title", { length: 200 }).notNull(),
+  content: text("content").notNull(),
+  fileType: varchar("file_type", { length: 20 }).notNull().default("pasted"),
+  teacherId: integer("teacher_id")
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueCursoSubject: unique("study_materials_curso_subject_unique").on(table.cursoId, table.subjectId),
+  cursoIdIdx: index("idx_study_materials_curso_id").on(table.cursoId),
+  subjectIdIdx: index("idx_study_materials_subject_id").on(table.subjectId),
+}));
+
 export const horarios = pgTable("horarios", {
   id: serial("id").primaryKey(),
   cursoId: integer("curso_id")
