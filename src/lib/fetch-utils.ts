@@ -61,6 +61,9 @@ export async function apiFetch(
       cache.set(cacheKey, { data, expiresAt: Date.now() + 30_000 });
       return data;
     }
+    if (isStateChanging && res.ok) {
+      cache.clear();
+    }
     return res;
   })();
 

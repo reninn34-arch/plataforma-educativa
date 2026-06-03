@@ -191,26 +191,40 @@ export default function CursoDetailPage() {
 
   const handleAddStudent = async (estudianteId: number) => {
     try {
-      await apiFetch(`/api/admin/courses/${cursoId}/students`, {
+      const res = await apiFetch(`/api/admin/courses/${cursoId}/students`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ estudianteId }),
       });
+      if (!res.ok) {
+        const d = await res.json();
+        alert(d.error || "Error al agregar estudiante");
+        return;
+      }
       queryClient.invalidateQueries({ queryKey: ["admin-course-students", cursoId] });
       queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
-    } catch {}
+    } catch {
+      alert("Error de conexion");
+    }
   };
 
   const handleRemoveStudent = async (estudianteId: number) => {
     try {
-      await apiFetch(`/api/admin/courses/${cursoId}/students`, {
+      const res = await apiFetch(`/api/admin/courses/${cursoId}/students`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ estudianteId }),
       });
+      if (!res.ok) {
+        const d = await res.json();
+        alert(d.error || "Error al quitar estudiante");
+        return;
+      }
       queryClient.invalidateQueries({ queryKey: ["admin-course-students", cursoId] });
       queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
-    } catch {}
+    } catch {
+      alert("Error de conexion");
+    }
   };
 
   const enrolledIds = new Set(students.map(s => s.estudianteId));
