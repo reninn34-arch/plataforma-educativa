@@ -3,8 +3,8 @@ import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { subjects, modules, nodes } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel } from "@/lib/ai";
-import { generateObject } from "ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, tryParseJson } from "@/lib/ai";
+import { generateObject, generateText } from "ai";
 import { z } from "zod/v4";
 import { rateLimit } from "@/lib/rate-limit";
 import { pathGenerateSchema } from "@/lib/api-helpers";
@@ -84,8 +84,9 @@ REGLAS:
     let usedModel = resolved;
     let lastError: unknown;
     const REQUEST_TIMEOUT_MS = 60_000;
+    const MAX_CANDIDATES = 3;
 
-    for (const candidate of candidates) {
+    for (const candidate of candidates.slice(0, MAX_CANDIDATES)) {
       const abortController = new AbortController();
       const timeoutId = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MS);
 
@@ -108,6 +109,47 @@ Genera un Learning Path de 6-8 nodos para este tema, basandote en el MATERIAL DE
         break;
       } catch (error) {
         clearTimeout(timeoutId);
+
+        const msg = String((error as any)?.message || error || "");
+        if (msg.includes("response_format") || msg.includes("unavailable")) {
+          try {
+            const textResponse = await generateText({
+              model: getChatModel(candidate),
+              system: systemPrompt,
+              prompt: `AREA: ${areaContext}
+TEMA SOLICITADO POR EL ESTUDIANTE: "${topic}"${materialBlock}
+
+Genera un Learning Path de 6-8 nodos para este tema, basandote en el MATERIAL DE ESTUDIO DEL CURSO proporcionado. Los primeros nodos deben ser de tipo "concept" (ensenanza) y los ultimos de tipo "quiz" o "challenge" (practica).
+
+Responde SOLO con un JSON valido con la siguiente estructura:
+{
+  "moduleTitle": "string",
+  "nodes": [
+    { "title": "string", "type": "concept|quiz|challenge", "aiPromptContext": "string" }
+  ]
+}`,
+              temperature: 0.8,
+              maxOutputTokens: 4000,
+              abortSignal: abortController.signal,
+            });
+
+            try {
+              const parsed = tryParseJson(textResponse.text);
+              const validated = pathSchema.parse(parsed);
+              outputParsed = validated;
+              usedModel = candidate;
+              break;
+            } catch (parseError) {
+              lastError = parseError;
+              continue;
+            }
+          } catch (textModelError) {
+            lastError = textModelError;
+            if (!isRetryableModelError(textModelError)) throw textModelError;
+            continue;
+          }
+        }
+
         lastError = error;
         if (!isRetryableModelError(error)) throw error;
       }

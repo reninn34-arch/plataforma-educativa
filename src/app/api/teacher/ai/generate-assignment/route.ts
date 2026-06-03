@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel } from "@/lib/ai";
-import { generateObject } from "ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, tryParseJson } from "@/lib/ai";
+import { generateObject, generateText } from "ai";
 import { z } from "zod/v4";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
@@ -73,12 +73,28 @@ REGLAS:
 - Cada MCQ: 4 opciones (options), correctIndex 0-3, points 1-3 facil / 4-5 dificil.
 - Lenguaje adulto, practico, laboral. Contexto ecuatoriano.
 - Titulo claro (max 80 caracteres).
-- Descripcion: 2 parrafos con instrucciones y contexto practico.`;
+- Descripcion: 2 parrafos con instrucciones y contexto practico.
 
-    const REQUEST_TIMEOUT_MS = 30_000;
+Debes responder UNICAMENTE con un objeto JSON valido que coincida exactamente con esta estructura:
+{
+  "title": "string (max 80 caracteres)",
+  "description": "string (min 10 caracteres, 2 parrafos)",
+  "questions": [
+    {
+      "type": "mcq",
+      "question": "string",
+      "options": ["string", "string", "string", "string"],
+      "correctIndex": 0,
+      "points": 1
+    }
+  ]
+}`;
+
+    const REQUEST_TIMEOUT_MS = 60_000;
+    const MAX_CANDIDATES = 3;
     let lastError: unknown;
 
-    for (const candidate of candidates) {
+    for (const candidate of candidates.slice(0, MAX_CANDIDATES)) {
       const abortController = new AbortController();
       const timeoutId = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MS);
 
@@ -112,9 +128,71 @@ REGLAS:
         });
       } catch (aiError: any) {
         clearTimeout(timeoutId);
+
+        const msg = String(aiError?.message || aiError || "");
+        const wasAborted = aiError?.name === "AbortError" || msg.includes("abort");
+
+        if (msg.includes("response_format") || msg.includes("unavailable")) {
+          const start = Date.now();
+          try {
+            const textResponse = await generateText({
+              model: getChatModel(candidate),
+              prompt: prompt + `\n\nResponde SOLO con un JSON valido. No incluyas texto adicional, solo el JSON.`,
+              temperature: 0.6,
+              maxOutputTokens: 4000,
+              abortSignal: abortController.signal,
+            });
+
+            try {
+              const parsed = tryParseJson(textResponse.text);
+              const validated = generateResponseSchema.parse(parsed);
+
+              logAiCall({
+                route: "teacher/ai/generate-assignment",
+                model: candidate.modelId,
+                durationMs: Date.now() - start,
+                usage: textResponse.usage ? {
+                  inputTokens: textResponse.usage.inputTokens,
+                  outputTokens: textResponse.usage.outputTokens,
+                  totalTokens: (textResponse.usage.inputTokens ?? 0) + (textResponse.usage.outputTokens ?? 0),
+                } : undefined,
+              });
+
+              return NextResponse.json({
+                success: true,
+                data: validated,
+                modelUsed: candidate.modelId,
+              });
+            } catch (parseError: any) {
+              lastError = parseError;
+              logAiCall({
+                route: "teacher/ai/generate-assignment",
+                model: candidate.modelId,
+                durationMs: Date.now() - start,
+                error: `generateText fallback parse error: ${parseError.message || "unknown"}`,
+              });
+              continue;
+            }
+          } catch (textModelError: any) {
+            lastError = textModelError;
+            logAiCall({
+              route: "teacher/ai/generate-assignment",
+              model: candidate.modelId,
+              durationMs: Date.now() - start,
+              error: `generateText fallback model error: ${textModelError.message || "unknown"}`,
+            });
+            if (!isRetryableModelError(textModelError)) {
+              return NextResponse.json(
+                { error: "Error al generar con IA. Intenta de nuevo." },
+                { status: 502 }
+              );
+            }
+            continue;
+          }
+        }
+
         lastError = aiError;
 
-        const wasAborted = aiError?.name === "AbortError" || String(aiError?.message || "").includes("abort");
         logAiCall({
           route: "teacher/ai/generate-assignment",
           model: candidate.modelId,
