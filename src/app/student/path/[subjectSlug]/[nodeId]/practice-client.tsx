@@ -145,6 +145,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           subject: subjectSlug,
+          nodeTitle,
           aiPromptContext: aiPromptContext || nodeTitle,
           nodeId,
           retry: isRetry,

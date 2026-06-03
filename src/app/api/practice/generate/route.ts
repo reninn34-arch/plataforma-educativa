@@ -114,11 +114,13 @@ export async function POST(request: NextRequest) {
   if (!user || user.role !== "student") return NextResponse.json({ error: "Solo estudiantes" }, { status: 403 });
 
   try {
-    const inputParsed = practiceGenerateSchema.safeParse(await request.json());
+    const rawBody = await request.json();
+    const inputParsed = practiceGenerateSchema.safeParse(rawBody);
     if (!inputParsed.success) {
       return Response.json({ error: "Materia requerida" }, { status: 400 });
     }
     const { subject, topic, aiPromptContext, nodeId, retry, model } = inputParsed.data;
+    const nodeTitle: string | undefined = rawBody.nodeTitle;
 
     const resolved = resolveModel(model);
     if (resolved.error) {
@@ -149,7 +151,10 @@ export async function POST(request: NextRequest) {
       ? `${aiPromptContext}`
       : (topic || ctx.topics.slice(0, 1).join(", "));
 
-    const videoSearchQuery = topic || (aiPromptContext ? aiPromptContext.slice(0, 100).replace(/\n/g, " ") : ctx.topics[0]);
+    const cleanContext = aiPromptContext
+      ? aiPromptContext.replace(/^(En este (módulo|tema|nodo|apartado) (aprenderás|veremos|estudiaremos|conocerás|abordaremos) (sobre|acerca de)?\s*)/i, "").slice(0, 100).replace(/\n/g, " ")
+      : "";
+    const videoSearchQuery = topic || nodeTitle || cleanContext || ctx.topics[0];
 
     const studyMaterial = await getStudyMaterialForStudent(user.id, subject);
     const materialBlock = studyMaterial
@@ -208,8 +213,8 @@ REGLAS:
 - caption: maximo 6 palabras descriptivas.`
       : null;
 
-    const LESSON_TIMEOUT_MS = 55_000;
-    const DIAGRAM_TIMEOUT_MS = 25_000;
+    const LESSON_TIMEOUT_MS = 70_000;
+    const DIAGRAM_TIMEOUT_MS = 60_000;
     let lessonResult: z.infer<typeof practiceResponseSchema> | null = null;
     let diagram: z.infer<typeof diagramSchema> | null = null;
     let usedModel = resolved;
@@ -329,7 +334,8 @@ REGLAS:
         clearTimeout(lessonTimeoutId);
         clearTimeout(diagramTimeoutId);
         lastError = error;
-        if (!isRetryableModelError(error)) throw error;
+        const wasAborted = (error as any)?.name === "AbortError" || String((error as any)?.message || "").includes("abort");
+        if (!isRetryableModelError(error) && !wasAborted) throw error;
       }
     }
 
