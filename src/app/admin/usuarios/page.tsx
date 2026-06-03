@@ -81,7 +81,7 @@ export default function AdminUsersPage() {
     if (!newCedula || newCedula.length !== 10 || !newName) return;
     setSaving(true); setError("");
     try {
-      const res = await apiFetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cedula: newCedula, fullName: newName, email: newEmail || undefined }) });
+      const res = await apiFetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cedula: newCedula, fullName: newName, role: tab, email: newEmail || undefined }) });
       const d = await res.json();
       if (!res.ok) { setError(d.error || "Error al crear usuario"); }
       else {
