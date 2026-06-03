@@ -63,8 +63,17 @@ export async function POST(request: NextRequest) {
     const areaContext = SUBJECT_META[subjectSlug] || subject.name;
 
     const studyMaterial = await getStudyMaterialForStudent(user.id, subjectSlug);
+    if (studyMaterial) {
+      console.log(`[path] study material found: "${studyMaterial.title}" (${studyMaterial.content.length} chars)`);
+    }
+    const MAX_MATERIAL_CHARS = 3000;
+    const materialContent = studyMaterial
+      ? studyMaterial.content.length > MAX_MATERIAL_CHARS
+        ? studyMaterial.content.slice(0, MAX_MATERIAL_CHARS) + `\n\n[... contenido truncado de ${studyMaterial.content.length} caracteres. Solo se muestran los primeros ${MAX_MATERIAL_CHARS}.]`
+        : studyMaterial.content
+      : "";
     const materialBlock = studyMaterial
-      ? `\n\nMATERIAL DE ESTUDIO DEL CURSO (basa los nodos en este contenido):\n${studyMaterial.content}`
+      ? `\n\nMATERIAL DE ESTUDIO DEL CURSO (basa los nodos en este contenido):\n${materialContent}`
       : "";
 
     const systemPrompt = `Eres un disenador curricular experto en andragogia para adultos en bachillerato acelerado (PCEI).

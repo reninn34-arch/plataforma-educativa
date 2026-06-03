@@ -8,6 +8,7 @@ import { generateObject, generateText } from "ai";
 import { z } from "zod/v4";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
+import { getStudyMaterialForStudent } from "@/lib/study-material";
 
 const diagramSchema = z.object({
   mermaid: z.string(),
@@ -55,9 +56,23 @@ export async function POST(request: NextRequest) {
     const rl = rateLimit({ key: `diagram:${user.id}`, maxRequests: 10, windowMs: 60_000 });
     if (rl) return rl;
 
+    const studyMaterial = await getStudyMaterialForStudent(user.id, subject as string);
+    if (studyMaterial) {
+      console.log(`[diagram-regen] study material found: "${studyMaterial.title}" (${studyMaterial.content.length} chars)`);
+    }
+    const MAX_MATERIAL_CHARS = 3000;
+    const materialContent = studyMaterial
+      ? studyMaterial.content.length > MAX_MATERIAL_CHARS
+        ? studyMaterial.content.slice(0, MAX_MATERIAL_CHARS) + `\n\n[... contenido truncado de ${studyMaterial.content.length} caracteres. Solo se muestran los primeros ${MAX_MATERIAL_CHARS}.]`
+        : studyMaterial.content
+      : "";
+    const materialBlock = studyMaterial
+      ? `\n\nMATERIAL DE ESTUDIO DEL CURSO (basa el diagrama en este contenido):\n${materialContent}`
+      : "";
+
     const candidates = getChatModelCandidates(null);
-    const prompt = diagramPrompt(ctx.area, topicContext);
-    const jsonResponsePrompt = diagramJsonPrompt(ctx.area, topicContext);
+    const prompt = diagramPrompt(ctx.area, topicContext) + materialBlock;
+    const jsonResponsePrompt = diagramJsonPrompt(ctx.area, topicContext) + materialBlock;
 
     let diagram: z.infer<typeof diagramSchema> | null = null;
     let lastError: unknown;

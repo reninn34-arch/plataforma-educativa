@@ -157,8 +157,17 @@ export async function POST(request: NextRequest) {
     const videoSearchQuery = topic || nodeTitle || cleanContext || ctx.topics[0];
 
     const studyMaterial = await getStudyMaterialForStudent(user.id, subject);
+    if (studyMaterial) {
+      console.log(`[practice] study material found: "${studyMaterial.title}" (${studyMaterial.content.length} chars)`);
+    }
+    const MAX_MATERIAL_CHARS = 3000;
+    const materialContent = studyMaterial
+      ? studyMaterial.content.length > MAX_MATERIAL_CHARS
+        ? studyMaterial.content.slice(0, MAX_MATERIAL_CHARS) + `\n\n[... contenido truncado de ${studyMaterial.content.length} caracteres. Solo se muestran los primeros ${MAX_MATERIAL_CHARS}.]`
+        : studyMaterial.content
+      : "";
     const materialBlock = studyMaterial
-      ? `\n\nMATERIAL DE ESTUDIO DEL CURSO:\n${studyMaterial.content}`
+      ? `\n\nMATERIAL DE ESTUDIO DEL CURSO (basa los ejercicios en este contenido):\n${materialContent}`
       : "";
 
     const lessonPrompt = `Eres un tutor cercano, paciente y entusiasta. Ensenas a adultos en bachillerato acelerado (PCEI). Tu mision es explicar un tema de forma clara, visual y amigable.
@@ -203,7 +212,7 @@ REGLAS EJERCICIOS:
       ? `Genera un diagrama educativo visual en sintaxis Mermaid.js sobre el tema.
 
 AREA: ${ctx.area}
-Tema: ${topicContext}
+Tema: ${topicContext}${materialBlock}
 
 REGLAS:
 - Usa graph TD con nodos A, B, C, D conectados con flechas --> .
