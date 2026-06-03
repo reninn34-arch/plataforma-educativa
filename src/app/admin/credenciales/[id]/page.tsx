@@ -1,29 +1,70 @@
 "use client";
 
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Printer, Loader2 } from "lucide-react";
+import { ArrowLeft, Printer, Loader2, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { apiFetch } from "@/lib/fetch-utils";
 
-interface CredentialsData { curso: string; nivel: string; students: { fullName: string; email: string | null; cedula: string }[]; }
+interface CredentialsData {
+  curso: string;
+  nivel: string;
+  students: { fullName: string; email: string | null; cedula: string; pin?: string | null }[];
+}
 
 export default function CredencialesPage() {
   const params = useParams();
   const cursoId = params.id as string;
 
+  const [customData, setCustomData] = useState<CredentialsData | null>(null);
+  const [resetting, setResetting] = useState(false);
+
   const { data, isLoading } = useQuery<CredentialsData, Error>({
     queryKey: ["admin-credentials", cursoId],
-    queryFn: async () => { const res = await apiFetch(`/api/admin/courses/${cursoId}/credentials`); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
+    queryFn: async () => {
+      const res = await apiFetch(`/api/admin/courses/${cursoId}/credentials`);
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return res.json();
+    },
     staleTime: 2 * 60 * 1000,
   });
 
-  const curso = data?.curso || "";
-  const nivel = data?.nivel || "";
-  const students = data?.students || [];
+  const displayData = customData || data;
+  const curso = displayData?.curso || "";
+  const nivel = displayData?.nivel || "";
+  const students = displayData?.students || [];
 
   const handlePrint = () => window.print();
+
+  const handleResetAndPrint = async () => {
+    const confirmReset = window.confirm(
+      "¡ATENCIÓN!\nEsta acción generará nuevos PINs aleatorios para todos los estudiantes de este curso y reemplazará las contraseñas actuales.\n¿Deseas continuar?"
+    );
+    if (!confirmReset) return;
+
+    setResetting(true);
+    try {
+      const res = await apiFetch(`/api/admin/courses/${cursoId}/credentials`, {
+        method: "POST",
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        alert(d.error || "Error al regenerar PINs");
+        return;
+      }
+      setCustomData(d);
+      // Wait for React to render the PINs on screen, then open print dialog
+      setTimeout(() => {
+        window.print();
+      }, 500);
+    } catch {
+      alert("Error de conexión");
+    } finally {
+      setResetting(false);
+    }
+  };
 
   if (isLoading) return (
     <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
@@ -32,14 +73,23 @@ export default function CredencialesPage() {
   return (
     <div className="p-6 sm:p-8 w-full max-w-4xl mx-auto space-y-6 animate-fade-in-up">
       {/* Non-printable controls */}
-      <div className="print:hidden flex items-center gap-4">
+      <div className="print:hidden flex flex-wrap items-center gap-4 border-b pb-4">
         <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-2xl font-bold text-foreground">Credenciales</h1>
-        <Button onClick={handlePrint} className="gap-2 ml-auto">
-          <Printer className="h-4 w-4" /> Imprimir
-        </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Credenciales de Acceso</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">{curso} • {nivel}</p>
+        </div>
+        <div className="flex gap-2 ml-auto">
+          <Button onClick={handleResetAndPrint} variant="destructive" size="sm" className="gap-2" disabled={resetting}>
+            {resetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+            {resetting ? "Generando PINs..." : "Regenerar PINs de todos e Imprimir"}
+          </Button>
+          <Button onClick={handlePrint} size="sm" className="gap-2" disabled={resetting}>
+            <Printer className="h-4 w-4" /> Imprimir plantilla vacía
+          </Button>
+        </div>
       </div>
 
       {/* Printable content */}
@@ -49,7 +99,7 @@ export default function CredencialesPage() {
           <p className="text-lg font-bold text-muted-foreground mt-1">Credenciales de Acceso</p>
           <p className="text-sm text-muted-foreground mt-4">{curso} — {nivel}</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Fecha de emision: {new Date().toLocaleDateString("es-EC")}
+            Fecha de emisión: {new Date().toLocaleDateString("es-EC")}
           </p>
         </div>
 
@@ -65,7 +115,9 @@ export default function CredencialesPage() {
                   <div className="text-right shrink-0 space-y-1">
                     <div className="text-xs text-muted-foreground">Cedula / Usuario</div>
                     <p className="text-lg font-mono font-bold tracking-wide text-foreground">{s.cedula}</p>
-                    <p className="text-[10px] text-muted-foreground">PIN: entregado por el administrador</p>
+                    <p className="text-xs font-mono font-bold text-foreground">
+                      PIN: {s.pin ? <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 rounded px-2 py-0.5 text-sm">{s.pin}</span> : <span className="text-muted-foreground italic text-[11px]">entregado por el administrador</span>}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -75,7 +127,7 @@ export default function CredencialesPage() {
 
         <div className="text-center text-xs text-muted-foreground pt-4">
           <p>Estas credenciales son personales e intransferibles</p>
-          <p>En caso de perdida del PIN, contactar al administrador</p>
+          <p>En caso de pérdida del PIN, contactar al administrador</p>
         </div>
       </div>
 
