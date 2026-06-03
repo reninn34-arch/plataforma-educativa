@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { cn, formatNotation } from "@/lib/utils";
 import { subjectTheme } from "@/lib/subject-theme";
+import { sanitizeMermaid } from "@/lib/mermaid-validate";
 import {
   BookOpen, Lightbulb, AlertTriangle,
   Check, X, ArrowRight, ArrowLeft, Target, Image, Loader2, Maximize2,
@@ -69,17 +70,27 @@ function MermaidDiagram({ code, large, onRetry }: { code: string; large?: boolea
     let cancelled = false;
     setSvg(null);
     setError(false);
-    import("mermaid").then((mermaid) => {
+
+    async function renderDiagram(codeToRender: string) {
+      const mermaid = await import("mermaid");
       if (cancelled) return;
       mermaid.default.initialize({ startOnLoad: false, theme: "neutral" });
-      mermaid.default.render(id, code).then(({ svg: rendered }) => {
-        if (!cancelled) setSvg(rendered);
-      }).catch(() => {
+      const { svg: rendered } = await mermaid.default.render(id, codeToRender);
+      if (!cancelled) setSvg(rendered);
+    }
+
+    renderDiagram(code).catch(() => {
+      if (cancelled) return;
+      const sanitized = sanitizeMermaid(code);
+      if (sanitized === code) {
+        if (!cancelled) setError(true);
+        return;
+      }
+      renderDiagram(sanitized).catch(() => {
         if (!cancelled) setError(true);
       });
-    }).catch(() => {
-      if (!cancelled) setError(true);
     });
+
     return () => { cancelled = true; };
   }, [code, id]);
 

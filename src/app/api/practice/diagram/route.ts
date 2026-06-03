@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, tryParseJson } from "@/lib/ai";
-import { isValidMermaid } from "@/lib/mermaid-validate";
+import { isValidMermaid, sanitizeMermaid } from "@/lib/mermaid-validate";
 import { db } from "@/lib/db";
 import { studentExercises } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -28,8 +28,9 @@ Tema: ${topic}
 
 REGLAS:
 - Usa graph TD con nodos A, B, C, D conectados con flechas --> .
-- Texto de cada nodo: claro y descriptivo, en espanol.
-- Ejemplo: A[Suma] --> B[Resta]
+- Texto de cada nodo: solo letras, numeros y espacios. SIN parentesis (), corchetes [] ni comillas dentro del texto.
+- Si necesitas incluir caracteres especiales, usa comillas dobles: A["texto aqui"]
+- Ejemplo correcto: A[Suma de vectores] --> B[Resultante]
 - caption: maximo 6 palabras descriptivas.`;
 
 const diagramJsonPrompt = (area: string, topic: string) => diagramPrompt(area, topic) + "\n\nResponde SOLO con un JSON valido. Campos: \"mermaid\" (string) y \"caption\" (string).";
@@ -84,7 +85,10 @@ export async function POST(request: NextRequest) {
               totalTokens: (r.usage.inputTokens ?? 0) + (r.usage.outputTokens ?? 0),
             } : undefined,
           });
-          diagram = r.object;
+          diagram = {
+            mermaid: sanitizeMermaid(r.object.mermaid),
+            caption: r.object.caption,
+          };
         } catch (err) {
           const msg = String((err as any)?.message ?? err ?? "");
           if (msg.includes("response_format") || msg.includes("unavailable")) {
@@ -109,7 +113,7 @@ export async function POST(request: NextRequest) {
               const parsed = tryParseJson(r.text);
               let mermaidStr = parsed.mermaid || "";
               mermaidStr = mermaidStr.replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
-              diagram = { mermaid: mermaidStr, caption: parsed.caption || "" };
+              diagram = { mermaid: sanitizeMermaid(mermaidStr), caption: parsed.caption || "" };
             } catch {
               console.error("[diagram-regen] failed to parse JSON from generateText");
               diagram = null;

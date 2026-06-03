@@ -21,3 +21,12 @@ export function isValidMermaid(code: string): boolean {
 
   return true;
 }
+
+export function sanitizeMermaid(code: string): string {
+  return code.replace(/([A-Za-z]\w*)\[([^\[\]]+)\]/g, (match, id, text) => {
+    if (text.startsWith('"') && text.endsWith('"')) return match;
+    if (/^[\wáéíóúÁÉÍÓÚñÑ\s]+$/.test(text)) return match;
+    const escaped = text.replace(/"/g, '\\"');
+    return `${id}["${escaped}"]`;
+  });
+}
