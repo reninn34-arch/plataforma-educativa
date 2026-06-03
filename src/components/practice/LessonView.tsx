@@ -118,11 +118,12 @@ function VideoSlide({ videos, videoSearchUrl }: { videos: VideoData[]; videoSear
       {/* Reproductor embed */}
       <div className="rounded-2xl overflow-hidden shadow-sm bg-black aspect-video">
         <iframe
-          src={`https://www.youtube-nocookie.com/embed/${active.id}?autoplay=0&rel=0`}
+          src={`https://www.youtube.com/embed/${active.id}?autoplay=0&rel=0`}
           title={active.title}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
           className="w-full h-full"
+          referrerPolicy="strict-origin-when-cross-origin"
         />
       </div>
 
