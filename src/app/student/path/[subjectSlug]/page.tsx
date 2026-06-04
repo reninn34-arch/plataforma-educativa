@@ -57,7 +57,7 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
     <div className="flex min-h-screen flex-col bg-slate-50">
       <header className="sticky top-0 z-10 bg-gradient-to-r from-indigo-600 to-violet-600 shadow-lg">
         <div className="flex h-14 items-center gap-3 px-4 max-w-2xl mx-auto w-full">
-          <Link href="/student/dashboard" className="text-white/80 hover:bg-white/15 p-2 rounded-full transition-colors">
+          <Link href="/student/practice" className="text-white/80 hover:bg-white/15 p-2 rounded-full transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div className="flex items-center gap-2 flex-1 min-w-0">
