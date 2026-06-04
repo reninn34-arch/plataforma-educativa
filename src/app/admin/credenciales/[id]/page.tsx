@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Printer, Loader2, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { apiFetch } from "@/lib/fetch-utils";
 
 interface CredentialsData {
@@ -55,7 +54,6 @@ export default function CredencialesPage() {
         return;
       }
       setCustomData(d);
-      // Wait for React to render the PINs on screen, then open print dialog
       setTimeout(() => {
         window.print();
       }, 500);
@@ -67,71 +65,66 @@ export default function CredencialesPage() {
   };
 
   if (isLoading) return (
-    <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+    <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-indigo-500" /></div>
   );
 
   return (
     <div className="p-6 sm:p-8 w-full max-w-4xl mx-auto space-y-6 animate-fade-in-up">
-      {/* Non-printable controls */}
-      <div className="print:hidden flex flex-wrap items-center gap-4 border-b pb-4">
-        <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
+      <div className="print:hidden flex flex-wrap items-center gap-4 border-b border-slate-200 pb-4">
+        <button onClick={() => window.history.back()} className="text-slate-400 hover:bg-slate-100 p-2 rounded-full transition-colors">
           <ArrowLeft className="h-5 w-5" />
-        </Button>
+        </button>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Credenciales de Acceso</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">{curso} • {nivel}</p>
+          <h1 className="text-2xl font-bold text-slate-800">Credenciales de Acceso</h1>
+          <p className="text-xs text-slate-500 mt-0.5">{curso} • {nivel}</p>
         </div>
         <div className="flex gap-2 ml-auto">
-          <Button onClick={handleResetAndPrint} variant="destructive" size="sm" className="gap-2" disabled={resetting}>
+          <Button onClick={handleResetAndPrint} variant="destructive" size="sm" className="gap-2 rounded-xl" disabled={resetting}>
             {resetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
-            {resetting ? "Generando PINs..." : "Regenerar PINs de todos e Imprimir"}
+            {resetting ? "Generando PINs..." : "Regenerar PINs e Imprimir"}
           </Button>
-          <Button onClick={handlePrint} size="sm" className="gap-2" disabled={resetting}>
-            <Printer className="h-4 w-4" /> Imprimir plantilla vacía
+          <Button onClick={handlePrint} size="sm" className="gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200" disabled={resetting}>
+            <Printer className="h-4 w-4" /> Imprimir plantilla
           </Button>
         </div>
       </div>
 
-      {/* Printable content */}
       <div className="print:block space-y-6">
-        <div className="text-center border-b pb-6">
-          <h1 className="text-3xl font-black text-foreground">ATLAS EDU</h1>
-          <p className="text-lg font-bold text-muted-foreground mt-1">Credenciales de Acceso</p>
-          <p className="text-sm text-muted-foreground mt-4">{curso} — {nivel}</p>
-          <p className="text-xs text-muted-foreground mt-1">
+        <div className="text-center border-b border-slate-200 pb-6">
+          <h1 className="text-3xl font-black text-slate-800">ATLAS EDU</h1>
+          <p className="text-lg font-bold text-slate-500 mt-1">Credenciales de Acceso</p>
+          <p className="text-sm text-slate-500 mt-4">{curso} — {nivel}</p>
+          <p className="text-xs text-slate-400 mt-1">
             Fecha de emisión: {new Date().toLocaleDateString("es-EC")}
           </p>
         </div>
 
-        <Card className="shadow-sm border-2">
-          <CardContent className="p-0">
-            <div className="divide-y">
-              {students.map((s, i) => (
-                <div key={i} className="flex items-center justify-between p-4">
-                  <div className="min-w-0">
-                    <p className="text-lg font-bold text-foreground">{s.fullName}</p>
-                    <p className="text-sm text-muted-foreground">{s.email || "Sin correo"}</p>
-                  </div>
-                  <div className="text-right shrink-0 space-y-1">
-                    <div className="text-xs text-muted-foreground">Cedula / Usuario</div>
-                    <p className="text-lg font-mono font-bold tracking-wide text-foreground">{s.cedula}</p>
-                    <p className="text-xs font-mono font-bold text-foreground">
-                      PIN: {s.pin ? <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 rounded px-2 py-0.5 text-sm">{s.pin}</span> : <span className="text-muted-foreground italic text-[11px]">entregado por el administrador</span>}
-                    </p>
-                  </div>
+        <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-sm">
+          <div className="divide-y divide-slate-100">
+            {students.map((s, i) => (
+              <div key={i} className="flex items-center justify-between p-4">
+                <div className="min-w-0">
+                  <p className="text-lg font-bold text-slate-800">{s.fullName}</p>
+                  <p className="text-sm text-slate-500">{s.email || "Sin correo"}</p>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                <div className="text-right shrink-0 space-y-1">
+                  <div className="text-xs text-slate-400">Cédula / Usuario</div>
+                  <p className="text-lg font-mono font-bold tracking-wide text-slate-800">{s.cedula}</p>
+                  <p className="text-xs font-mono font-bold text-slate-800">
+                    PIN: {s.pin ? <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg px-2 py-0.5 text-sm">{s.pin}</span> : <span className="text-slate-400 italic text-[11px]">entregado por el administrador</span>}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
-        <div className="text-center text-xs text-muted-foreground pt-4">
+        <div className="text-center text-xs text-slate-400 pt-4">
           <p>Estas credenciales son personales e intransferibles</p>
           <p>En caso de pérdida del PIN, contactar al administrador</p>
         </div>
       </div>
 
-      {/* Print styles */}
       <style jsx global>{`
         @media print {
           body { background: white !important; }

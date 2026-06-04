@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Award, TrendingUp, BarChart3, CheckCircle, Clock, AlertCircle, MessageSquare } from "lucide-react";
+import { ArrowLeft, Award, TrendingUp, BarChart3, Clock, AlertCircle, MessageSquare, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StudentBottomNav } from "@/components/StudentBottomNav";
 import { apiFetch } from "@/lib/fetch-utils";
+import { subjectTheme } from "@/lib/subject-theme";
 
 interface GradeRow {
   id: number;
@@ -43,6 +44,20 @@ interface GradesData {
 
 const TRIMESTER_NAMES: Record<number, string> = { 1: "T1", 2: "T2", 3: "T3" };
 
+function GradeBadge({ value }: { value: number | null }) {
+  if (value === null) return <span className="text-slate-300">—</span>;
+  const isGood = value >= 7;
+  return (
+    <span className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl text-xl font-extrabold border-2 ${
+      isGood
+        ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+        : "bg-red-50 text-red-600 border-red-200"
+    }`}>
+      {value.toFixed(1)}
+    </span>
+  );
+}
+
 export default function StudentGradesPage() {
   const router = useRouter();
   const [tab, setTab] = useState<"tasks" | "summary">("tasks");
@@ -63,188 +78,224 @@ export default function StudentGradesPage() {
   const generalAvg = data?.generalAvg ?? null;
 
   if (isLoading) return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <p className="text-muted-foreground">Cargando...</p>
+    <div className="flex-1 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 rounded-full border-3 border-indigo-200 border-t-indigo-600 animate-spin" />
+        <p className="text-sm text-slate-400 font-medium">Cargando calificaciones...</p>
+      </div>
     </div>
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur shadow-sm">
-        <div className="flex h-14 items-center gap-3 px-4 max-w-3xl mx-auto w-full">
-          <Button variant="ghost" size="icon" onClick={() => router.push("/student/dashboard")}>
-            <ArrowLeft className="h-5 w-5" />
+    <div className="flex-1 w-full animate-fade-in-up">
+      <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8 space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push("/student/dashboard")}
+            className="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 shadow-sm"
+          >
+            <ArrowLeft size={18} />
           </Button>
-          <span className="text-base font-bold text-foreground flex items-center gap-2">
-            <Award className="h-5 w-5 text-yellow-500" /> Mis Calificaciones
-          </span>
-          {generalAvg !== null && (
-            <Badge variant={generalAvg >= 7 ? "default" : "destructive"} className="ml-auto">
-              {generalAvg.toFixed(1)} / 10
-            </Badge>
-          )}
+          <div>
+            <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <Award size={22} className="text-amber-500" />
+              Mis Calificaciones
+            </h1>
+            <p className="text-sm text-slate-400">Notas oficiales enviadas por tus docentes</p>
+          </div>
         </div>
-      </header>
 
-      <main className="flex-1 px-4 py-6 max-w-3xl mx-auto w-full space-y-4 animate-fade-in-up">
+        {/* General Average Hero */}
         {generalAvg !== null && (
-          <Card className="shadow-sm bg-gradient-to-br from-primary to-[#2B5F8E] text-primary-foreground">
-            <CardContent className="p-5 text-center">
-              <p className="text-sm text-white/70">Promedio General Anual</p>
-              <p className="text-5xl font-extrabold mt-1">{generalAvg.toFixed(1)}</p>
-              <p className="text-xs text-white/50 mt-0.5">/10</p>
-              <div className="mt-3 space-x-2">
-                <Badge variant={generalAvg >= 7 ? "default" : "destructive"} className={generalAvg >= 7 ? "bg-white/20 text-white" : ""}>
-                  {generalAvg >= 7 ? "Aprobado" : "En recuperacion"}
-                </Badge>
-                <Badge className="bg-white/10 text-white/80">
-                  {graded.length} calificaciones
-                </Badge>
+          <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl p-6 text-white shadow-xl shadow-indigo-200/50 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full blur-3xl" />
+            <div className="relative z-10 flex items-center justify-between">
+              <div>
+                <p className="text-indigo-200 text-sm font-medium">Promedio General Anual</p>
+                <p className="text-5xl font-extrabold mt-1">{generalAvg.toFixed(1)}</p>
+                <div className="flex items-center gap-3 mt-3">
+                  <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full ${
+                    generalAvg >= 7 ? "bg-emerald-400/20 text-emerald-200" : "bg-red-400/20 text-red-200"
+                  }`}>
+                    {generalAvg >= 7 ? <Star size={12} /> : <AlertCircle size={12} />}
+                    {generalAvg >= 7 ? "Aprobado" : "En recuperación"}
+                  </span>
+                  <span className="text-indigo-200 text-xs">
+                    {graded.length} calificaciones
+                  </span>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+              <div className="hidden sm:flex items-center justify-center w-24 h-24 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
+                <div className="text-center">
+                  <p className="text-3xl font-extrabold">{generalAvg.toFixed(0)}</p>
+                  <p className="text-[10px] text-indigo-200">/10</p>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
-        <div className="flex gap-1 bg-muted p-1 rounded-xl">
+        {/* Tabs */}
+        <div className="flex gap-1.5 bg-slate-100 p-1.5 rounded-xl">
           <button
             onClick={() => setTab("tasks")}
-            className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-all ${tab === "tasks" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}
+            className={`flex-1 rounded-lg py-2.5 text-xs font-semibold transition-all ${
+              tab === "tasks" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"
+            }`}
           >
             Por Tarea ({graded.length + pending.length})
           </button>
           <button
             onClick={() => setTab("summary")}
-            className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-all ${tab === "summary" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}
+            className={`flex-1 rounded-lg py-2.5 text-xs font-semibold transition-all ${
+              tab === "summary" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"
+            }`}
           >
             Por Trimestre
           </button>
         </div>
 
+        {/* Tasks View */}
         {tab === "tasks" && (
           <div className="space-y-3">
             {graded.length === 0 && pending.length === 0 ? (
-              <Card className="shadow-sm">
-                <CardContent className="py-12 text-center">
-                  <BarChart3 className="mx-auto h-10 w-10 text-muted-foreground/30" />
-                  <p className="mt-4 font-medium text-muted-foreground">Aun no tienes calificaciones</p>
-                  <p className="text-sm text-muted-foreground/60">Tus notas apareceran aqui cuando el docente califique tus tareas</p>
+              <Card className="shadow-sm border-slate-200">
+                <CardContent className="py-16 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
+                    <BarChart3 size={32} className="text-slate-300" />
+                  </div>
+                  <p className="font-semibold text-slate-600">Aún no tienes calificaciones</p>
+                  <p className="text-sm text-slate-400 mt-1">Tus notas aparecerán cuando el docente califique tus tareas</p>
                 </CardContent>
               </Card>
             ) : (
               <>
                 {graded.map((row, i) => (
-                  <Card key={`g-${i}`} className="shadow-sm">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0 space-y-1.5">
-                          <div className="flex items-center gap-2">
-                            <span>{row.subjectEmoji}</span>
-                            <span className="text-xs text-muted-foreground">{row.subjectName}</span>
-                            <Badge variant="secondary" className="text-[9px]">{TRIMESTER_NAMES[row.trimester]}</Badge>
-                          </div>
-                          <h4 className="text-sm font-bold text-foreground">{row.assignmentTitle}</h4>
-                          {row.submittedAt && (
-                            <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              Entregado: {new Date(row.submittedAt).toLocaleDateString("es-EC")}
-                            </p>
-                          )}
-                          {row.feedback && (
-                            <p className="text-xs text-muted-foreground flex items-start gap-1">
-                              <MessageSquare className="h-3 w-3 mt-0.5 shrink-0" />
+                  <div key={`g-${i}`} className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-lg">{row.subjectEmoji}</span>
+                          <span className="text-xs font-medium text-slate-500">{row.subjectName}</span>
+                          <Badge variant="secondary" className="text-[9px] bg-slate-100 text-slate-600">{TRIMESTER_NAMES[row.trimester]}</Badge>
+                        </div>
+                        <h4 className="text-sm font-bold text-slate-800">{row.assignmentTitle}</h4>
+                        {row.submittedAt && (
+                          <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                            <Clock size={12} />
+                            Entregado: {new Date(row.submittedAt).toLocaleDateString("es-EC")}
+                          </p>
+                        )}
+                        {row.feedback && (
+                          <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                            <p className="text-xs text-slate-500 flex items-start gap-1.5">
+                              <MessageSquare size={12} className="mt-0.5 shrink-0 text-indigo-400" />
                               {row.feedback}
                             </p>
-                          )}
-                        </div>
-                        <div className="text-center shrink-0">
-                          <div className={`flex h-14 w-14 items-center justify-center rounded-2xl text-xl font-extrabold ${
-                            (row.grade ?? 0) >= 7 ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-red-50 text-red-600 border border-red-200"
-                          }`}>
-                            {row.grade?.toFixed(1) || "—"}
                           </div>
-                          <p className="text-[9px] text-muted-foreground mt-0.5">/10</p>
-                        </div>
+                        )}
                       </div>
-                    </CardContent>
-                  </Card>
+                      <div className="text-center shrink-0">
+                        <GradeBadge value={row.grade} />
+                        <p className="text-[9px] text-slate-400 mt-0.5">/10</p>
+                      </div>
+                    </div>
+                  </div>
                 ))}
                 {pending.map((row, i) => (
-                  <Card key={`p-${i}`} className="shadow-sm opacity-60">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-2">
-                            <span>{row.subjectEmoji}</span>
-                            <span className="text-xs text-muted-foreground">{row.subjectName}</span>
-                            <Badge variant="secondary" className="text-[9px]">{TRIMESTER_NAMES[row.trimester]}</Badge>
-                          </div>
-                          <h4 className="text-sm font-bold text-foreground">{row.assignmentTitle}</h4>
-                          <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
-                            Entregado - Esperando calificacion
-                          </p>
+                  <div key={`p-${i}`} className="bg-white rounded-2xl border border-slate-200 p-5 opacity-70">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{row.subjectEmoji}</span>
+                          <span className="text-xs font-medium text-slate-500">{row.subjectName}</span>
+                          <Badge variant="secondary" className="text-[9px] bg-slate-100 text-slate-600">{TRIMESTER_NAMES[row.trimester]}</Badge>
                         </div>
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-muted border border-dashed">
-                          <span className="text-xs text-muted-foreground">—</span>
-                        </div>
+                        <h4 className="text-sm font-bold text-slate-800">{row.assignmentTitle}</h4>
+                        <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                          <AlertCircle size={12} />
+                          Entregado — Esperando calificación
+                        </p>
                       </div>
-                    </CardContent>
-                  </Card>
+                      <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200">
+                        <span className="text-xs text-slate-400 font-bold">—</span>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </>
             )}
           </div>
         )}
 
+        {/* Summary View */}
         {tab === "summary" && (
           <div className="space-y-4">
-            <div className="rounded-xl bg-blue-50 border border-blue-200 p-4 text-sm">
-              <p className="font-bold text-primary">Formula anual</p>
-              <p className="text-muted-foreground text-xs mt-1">(Promedio T1 + Promedio T2 + Promedio T3) / 3 = Nota final</p>
-              <p className="text-muted-foreground text-xs">Nota minima para aprobar: <strong>7/10</strong></p>
+            <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4">
+              <div className="flex items-start gap-3">
+                <TrendingUp size={20} className="text-indigo-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-bold text-indigo-800 text-sm">Fórmula anual</p>
+                  <p className="text-xs text-indigo-600 mt-0.5">(Promedio T1 + Promedio T2 + Promedio T3) / 3 = Nota final</p>
+                  <p className="text-xs text-indigo-500 mt-1">Nota mínima para aprobar: <strong>7/10</strong></p>
+                </div>
+              </div>
             </div>
             {summary.length === 0 ? (
-              <Card className="shadow-sm">
-                <CardContent className="py-12 text-center">
-                  <BarChart3 className="mx-auto h-10 w-10 text-muted-foreground/30" />
-                  <p className="mt-4 text-muted-foreground">Sin datos de calificaciones</p>
+              <Card className="shadow-sm border-slate-200">
+                <CardContent className="py-16 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
+                    <BarChart3 size={32} className="text-slate-300" />
+                  </div>
+                  <p className="font-semibold text-slate-600">Sin datos de calificaciones</p>
                 </CardContent>
               </Card>
             ) : (
-              summary.map((s, i) => (
-                <Card key={i} className="shadow-sm">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">{s.subjectEmoji} {s.subjectName}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="grid grid-cols-4 gap-3 text-center">
-                      <div className="bg-muted rounded-lg p-3">
-                        <p className="text-[10px] text-muted-foreground">T1</p>
-                        <p className="text-lg font-extrabold text-foreground tabular-nums">{s.t1Avg?.toFixed(1) || "—"}</p>
+              summary.map((s, i) => {
+                const theme = subjectTheme(s.subjectName.toLowerCase());
+                return (
+                  <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all">
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="text-xl">{s.subjectEmoji}</span>
+                      <h3 className={`font-bold text-sm ${theme.text}`}>{s.subjectName}</h3>
+                    </div>
+                    <div className="grid grid-cols-4 gap-3">
+                      <div className={`${theme.bgLight} rounded-xl p-3 text-center border ${theme.border}`}>
+                        <p className="text-[10px] text-slate-500 font-medium">T1</p>
+                        <p className={`text-lg font-extrabold ${s.t1Avg !== null && s.t1Avg >= 7 ? "text-emerald-600" : s.t1Avg !== null ? "text-red-600" : "text-slate-300"}`}>
+                          {s.t1Avg?.toFixed(1) || "—"}
+                        </p>
                       </div>
-                      <div className="bg-muted rounded-lg p-3">
-                        <p className="text-[10px] text-muted-foreground">T2</p>
-                        <p className="text-lg font-extrabold text-foreground tabular-nums">{s.t2Avg?.toFixed(1) || "—"}</p>
+                      <div className={`${theme.bgLight} rounded-xl p-3 text-center border ${theme.border}`}>
+                        <p className="text-[10px] text-slate-500 font-medium">T2</p>
+                        <p className={`text-lg font-extrabold ${s.t2Avg !== null && s.t2Avg >= 7 ? "text-emerald-600" : s.t2Avg !== null ? "text-red-600" : "text-slate-300"}`}>
+                          {s.t2Avg?.toFixed(1) || "—"}
+                        </p>
                       </div>
-                      <div className="bg-muted rounded-lg p-3">
-                        <p className="text-[10px] text-muted-foreground">T3</p>
-                        <p className="text-lg font-extrabold text-foreground tabular-nums">{s.t3Avg?.toFixed(1) || "—"}</p>
+                      <div className={`${theme.bgLight} rounded-xl p-3 text-center border ${theme.border}`}>
+                        <p className="text-[10px] text-slate-500 font-medium">T3</p>
+                        <p className={`text-lg font-extrabold ${s.t3Avg !== null && s.t3Avg >= 7 ? "text-emerald-600" : s.t3Avg !== null ? "text-red-600" : "text-slate-300"}`}>
+                          {s.t3Avg?.toFixed(1) || "—"}
+                        </p>
                       </div>
-                      <div className="bg-accent rounded-lg p-3">
-                        <p className="text-[10px] text-accent-foreground">Anual</p>
-                        <p className={`text-lg font-extrabold tabular-nums ${(s.yearlyAvg ?? 0) >= 7 ? "text-emerald-600" : "text-red-600"}`}>
+                      <div className="bg-indigo-50 rounded-xl p-3 text-center border border-indigo-100">
+                        <p className="text-[10px] text-indigo-500 font-medium">Anual</p>
+                        <p className={`text-lg font-extrabold ${(s.yearlyAvg ?? 0) >= 7 ? "text-emerald-600" : "text-red-600"}`}>
                           {s.yearlyAvg?.toFixed(1) || "—"}
                         </p>
                       </div>
                     </div>
-                    <p className="text-xs text-muted-foreground text-center">{s.totalGraded} tareas calificadas</p>
-                  </CardContent>
-                </Card>
-              ))
+                    <p className="text-xs text-slate-400 text-center mt-3">{s.totalGraded} tareas calificadas</p>
+                  </div>
+                );
+              })
             )}
           </div>
         )}
-      </main>
+      </div>
       <StudentBottomNav />
     </div>
   );

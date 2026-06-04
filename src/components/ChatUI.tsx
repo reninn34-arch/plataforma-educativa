@@ -19,9 +19,9 @@ function renderFormatted(text: string) {
 function TypingIndicator() {
   return (
     <div className="flex items-center gap-1 px-4 py-3">
-      <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "0ms" }} />
-      <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "150ms" }} />
-      <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "300ms" }} />
+      <span className="h-1.5 w-1.5 rounded-full bg-slate-400/40 animate-bounce" style={{ animationDelay: "0ms" }} />
+      <span className="h-1.5 w-1.5 rounded-full bg-slate-400/40 animate-bounce" style={{ animationDelay: "150ms" }} />
+      <span className="h-1.5 w-1.5 rounded-full bg-slate-400/40 animate-bounce" style={{ animationDelay: "300ms" }} />
     </div>
   );
 }
@@ -53,16 +53,16 @@ export function ChatUI({ subject }: { subject: string }) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-card">
+    <div className="flex flex-col h-full bg-white">
       <ScrollArea className="flex-1 min-h-0">
         <div role="log" aria-live="polite" className="px-4 py-4 space-y-4">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent mb-4 shadow-sm">
-                <Bot className="h-8 w-8 text-primary" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 mb-4 shadow-sm">
+                <Bot className="h-8 w-8 text-indigo-600" />
               </div>
               <p className="text-lg font-bold text-foreground">Tutor Socratico</p>
-              <p className="mt-1 text-sm text-muted-foreground max-w-xs">
+              <p className="mt-1 text-sm text-slate-500 max-w-xs">
                 Escribe &quot;hola&quot; o &quot;empecemos&quot; para comenzar un ejercicio practico de <strong>{subject}</strong>
               </p>
             </div>
@@ -81,8 +81,8 @@ export function ChatUI({ subject }: { subject: string }) {
             >
               <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full mt-0.5 ${
                 msg.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-accent text-accent-foreground"
+                  ? "bg-indigo-600 text-primary-foreground"
+                  : "bg-indigo-50 text-accent-foreground"
               }`}>
                 {msg.role === "user" ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
               </div>
@@ -90,7 +90,7 @@ export function ChatUI({ subject }: { subject: string }) {
               <div
                 className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
                   msg.role === "user"
-                    ? "bg-primary text-primary-foreground rounded-tr-md"
+                    ? "bg-indigo-600 text-primary-foreground rounded-tr-md"
                     : "bg-muted text-foreground border border-border rounded-tl-md"
                 }`}
               >
@@ -104,7 +104,7 @@ export function ChatUI({ subject }: { subject: string }) {
 
           {isLoading && (
             <div className="flex gap-3 flex-row">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground mt-0.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-accent-foreground mt-0.5">
                 <Bot className="h-4 w-4" />
               </div>
               <div className="rounded-2xl rounded-tl-md bg-muted border border-border shadow-sm">
@@ -116,7 +116,7 @@ export function ChatUI({ subject }: { subject: string }) {
         </div>
       </ScrollArea>
 
-      <form onSubmit={onSubmit} className="border-t bg-card p-4">
+      <form onSubmit={onSubmit} className="border-t bg-white p-4">
         <div className="flex gap-2">
           <input
             ref={inputRef}
@@ -124,7 +124,7 @@ export function ChatUI({ subject }: { subject: string }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Escribe tu respuesta..."
-            className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
+            className="flex-1 rounded-xl border border-slate-200 bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
             aria-label="Mensaje"
             disabled={isLoading}
             autoComplete="off"
@@ -139,7 +139,7 @@ export function ChatUI({ subject }: { subject: string }) {
             type="submit"
             disabled={!input.trim() || isLoading}
             aria-label="Enviar mensaje"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 shadow-sm"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-primary-foreground hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 shadow-sm"
           >
             <Send className="h-4 w-4" />
           </button>

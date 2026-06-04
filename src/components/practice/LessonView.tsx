@@ -581,64 +581,57 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
       {/* Carousel */}
       <div
         ref={carouselRef}
-        className="relative overflow-hidden rounded-2xl select-none h-[65dvh] min-h-[400px] sm:h-[60dvh] sm:min-h-[450px] w-full max-w-full"
+        className="relative overflow-hidden rounded-2xl select-none h-[55dvh] min-h-[260px] sm:h-[58dvh] sm:min-h-[420px] w-full max-w-full overflow-x-hidden"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div
-          className="flex h-full w-full transition-transform duration-300 ease-out"
-          style={{ transform: `translateX(-${currentSlide * 100}%)` }}
-        >
+        <div className="h-full w-full overflow-y-auto overflow-x-hidden">
           {/* Explanation slide */}
-          <div className="min-w-0 w-full basis-full shrink-0 px-0.5 h-full overflow-y-auto overflow-x-hidden">
-            <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
+          {slides[currentSlide]?.type === "explanation" && (
+            <div className="rounded-2xl border bg-white shadow-sm">
               <div className={cn("bg-gradient-to-r px-6 py-4", theme.header)}>
                 <h2 className="text-lg font-extrabold text-white">{lesson.title}</h2>
               </div>
               <div className="p-4 sm:p-6">
                 <p
-                  className="text-base text-slate-700 leading-relaxed"
+                  className="text-sm sm:text-base text-slate-700 leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: formatNotation(lesson.explanation) }}
                 />
               </div>
             </div>
-          </div>
+          )}
 
           {/* Video slide */}
-          {lesson.videos && lesson.videos.length > 0 && (
-            <div className="min-w-0 w-full basis-full shrink-0 px-0.5 h-full overflow-y-auto overflow-x-hidden">
-              <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
-                <div className="bg-gradient-to-r from-red-600 to-red-500 px-5 py-3">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <Play className="h-4 w-4" /> Video explicativo
-                  </h3>
-                </div>
-                <div className="p-4">
-                  <VideoSlide videos={lesson.videos || []} videoSearchUrl={lesson.videoSearchUrl} />
-                </div>
+          {slides[currentSlide]?.type === "video" && lesson.videos && lesson.videos.length > 0 && (
+            <div className="rounded-2xl border bg-white shadow-sm">
+              <div className="bg-gradient-to-r from-red-600 to-red-500 px-5 py-3">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Play className="h-4 w-4" /> Video explicativo
+                </h3>
+              </div>
+              <div className="p-4">
+                <VideoSlide videos={lesson.videos || []} videoSearchUrl={lesson.videoSearchUrl} />
               </div>
             </div>
           )}
 
           {/* Diagram slide */}
-          {lesson.diagram && (
-            <div className="min-w-0 w-full basis-full shrink-0 px-0.5 h-full overflow-y-auto overflow-x-hidden">
-              <DiagramView diagram={lesson.diagram} onRetry={onRegenerateDiagram} />
-            </div>
+          {slides[currentSlide]?.type === "diagram" && lesson.diagram && (
+            <DiagramView diagram={lesson.diagram} onRetry={onRegenerateDiagram} />
           )}
 
           {/* Example slide */}
-          <div className="min-w-0 w-full basis-full shrink-0 px-0.5 h-full overflow-y-auto overflow-x-hidden">
+          {slides[currentSlide]?.type === "example" && (
             <ExampleSlide
               key={exampleResetKey}
               lesson={lesson}
               onNextSlide={() => goTo(currentSlide + 1)}
             />
-          </div>
+          )}
 
           {/* Common Mistake slide */}
-          <div className="min-w-0 w-full basis-full shrink-0 px-0.5 h-full overflow-y-auto overflow-x-hidden">
+          {slides[currentSlide]?.type === "commonMistake" && (
             <div className="rounded-2xl border-2 border-red-200 bg-gradient-to-br from-red-50 to-white p-5 shadow-sm space-y-3">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-red-500" />
@@ -657,19 +650,19 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
                 />
               </div>
             </div>
-          </div>
+          )}
 
           {/* Quick Check slide */}
-          <div className="min-w-0 w-full basis-full shrink-0 px-0.5 h-full overflow-y-auto overflow-x-hidden">
+          {slides[currentSlide]?.type === "quickCheck" && (
             <QuickCheck
               data={lesson.quickCheck}
               onComplete={() => goTo(currentSlide + 1)}
             />
-          </div>
+          )}
 
           {/* Ready slide */}
-          <div className="min-w-0 w-full basis-full shrink-0 px-0.5 h-full overflow-y-auto overflow-x-hidden">
-            <div className="rounded-2xl border bg-gradient-to-br from-primary/5 to-white p-8 shadow-sm flex flex-col items-center justify-center text-center min-h-[300px] space-y-6">
+          {slides[currentSlide]?.type === "ready" && (
+            <div className="rounded-2xl border bg-gradient-to-br from-primary/5 to-white p-5 sm:p-8 shadow-sm flex flex-col items-center justify-center text-center min-h-[260px] sm:min-h-[300px] space-y-6">
               <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
                 <Play className="h-8 w-8 text-primary" />
               </div>
@@ -693,7 +686,7 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
                 Omitir e ir directo a practicar
               </button>
             </div>
-          </div>
+          )}
         </div>
       </div>
 

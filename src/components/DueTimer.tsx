@@ -24,7 +24,7 @@ function formatTimeLeft(ms: number): { label: string; dateTime: string; urgent: 
   if (days > 0) {
     return {
       label: `${dateStr}, ${timeStr}`,
-      dateTime: `(${days} ${days === 1 ? "dia" : "dias"})`,
+      dateTime: `(${days}d)`,
       urgent: "normal",
     };
   }
@@ -58,25 +58,29 @@ export function DueTimer({ dueDate, compact = false }: DueTimerProps) {
   const msLeft = new Date(dueDate).getTime() - Date.now();
   const { label, dateTime, urgent } = formatTimeLeft(msLeft);
 
-  const colors = {
+  const colors: Record<string, string> = {
     normal: "bg-blue-50 text-blue-700 border-blue-200",
     soon: "bg-amber-50 text-amber-700 border-amber-200",
     critical: "bg-red-50 text-red-700 border-red-200",
     expired: "bg-slate-100 text-slate-500 border-slate-200",
   };
 
-  const icons = {
-    normal: "⏳",
+  const icons: Record<string, string> = {
+    normal: "📅",
     soon: "⏰",
     critical: "🔴",
     expired: "❌",
   };
 
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${colors[urgent]}`}>
-      {compact ? "" : <Clock className="h-3 w-3" />}
-      {compact ? icons[urgent] : ""} {label}
-      {dateTime && <span className="opacity-70 ml-0.5">{dateTime}</span>}
+    <span className={`inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-[11px] font-semibold transition-all ${colors[urgent]} ${urgent === "critical" ? "animate-pulse-soft" : ""}`}>
+      {compact ? (
+        <span className="leading-none">{icons[urgent]}</span>
+      ) : (
+        <Clock size={12} className="shrink-0" />
+      )}
+      {label}
+      {dateTime && <span className="opacity-60 ml-0.5 font-normal">{dateTime}</span>}
     </span>
   );
 }

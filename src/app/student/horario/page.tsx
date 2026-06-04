@@ -2,10 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Clock } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Clock, Coffee } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { apiFetch } from "@/lib/fetch-utils";
+import { subjectTheme } from "@/lib/subject-theme";
 
 interface Bloque {
   id: number;
@@ -19,7 +19,7 @@ interface Bloque {
 
 const DIAS = ["lunes", "martes", "miercoles", "jueves", "viernes"];
 const DIAS_LABEL: Record<string, string> = {
-  lunes: "Lun", martes: "Mar", miercoles: "Mie", jueves: "Jue", viernes: "Vie",
+  lunes: "Lunes", martes: "Martes", miercoles: "Miércoles", jueves: "Jueves", viernes: "Viernes",
 };
 
 export default function StudentHorarioPage() {
@@ -37,77 +37,94 @@ export default function StudentHorarioPage() {
   const bloquesPorDia = (dia: string) => horarios.filter(h => h.dia === dia);
 
   if (isLoading) return (
-    <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin" /></div>
+    <div className="flex-1 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 rounded-full border-3 border-indigo-200 border-t-indigo-600 animate-spin" />
+        <p className="text-sm text-slate-400 font-medium">Cargando horario...</p>
+      </div>
+    </div>
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur shadow-sm">
-        <div className="flex h-14 items-center gap-3 px-4 max-w-6xl mx-auto w-full">
-          <Link href="/student/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-5 w-5" />
+    <div className="flex-1 w-full animate-fade-in-up">
+      <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-8">
+          <Link
+            href="/student/dashboard"
+            className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
+          >
+            <ArrowLeft size={18} />
           </Link>
-          <h1 className="text-base font-bold text-foreground">Mi Horario</h1>
+          <div>
+            <h1 className="text-xl font-bold text-slate-800">Mi Horario</h1>
+            <p className="text-sm text-slate-400">Plan de clases semanal</p>
+          </div>
         </div>
-      </header>
 
-      <main className="flex-1 px-4 py-6 max-w-5xl mx-auto w-full space-y-4 animate-fade-in-up">
         {horarios.length === 0 ? (
-          <Card className="shadow-sm">
+          <Card className="shadow-sm border-slate-200">
             <CardContent className="py-16 text-center">
-              <Clock className="mx-auto h-10 w-10 text-muted-foreground/30" />
-              <p className="mt-4 font-medium text-muted-foreground">Horario no disponible</p>
-              <p className="text-sm text-muted-foreground mt-1">El administrador aun no ha configurado el horario.</p>
+              <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
+                <Clock size={32} className="text-slate-300" />
+              </div>
+              <p className="font-semibold text-slate-600">Horario no disponible</p>
+              <p className="text-sm text-slate-400 mt-1">El administrador aún no ha configurado el horario.</p>
             </CardContent>
           </Card>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr>
-                  <th className="p-2 border bg-muted/50 text-left text-xs font-semibold text-muted-foreground">Hora</th>
-                  {DIAS.map(dia => (
-                    <th key={dia} className="p-2 border bg-muted/50 text-center text-xs font-semibold text-muted-foreground">
-                      {DIAS_LABEL[dia]}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {[...new Set(horarios.map(h => `${h.horaInicio}-${h.horaFin}`))].map(bloque => {
-                  const [inicio, fin] = bloque.split("-");
-                  return (
-                    <tr key={bloque}>
-                      <td className="p-2 border text-xs text-muted-foreground whitespace-nowrap font-medium">
-                        {inicio}<br/>{fin}
-                      </td>
-                      {DIAS.map(dia => {
-                        const b = horarios.find(h => h.dia === dia && `${h.horaInicio}-${h.horaFin}` === bloque);
-                        if (!b) return <td key={dia} className="p-2 border"></td>;
-                        if (b.tipo === "receso") {
-                          return (
-                            <td key={dia} className="p-2 border text-center">
-                              <Badge variant="secondary" className="text-[10px]">☕ Receso</Badge>
-                            </td>
-                          );
-                        }
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            {DIAS.map(dia => {
+              const bloques = bloquesPorDia(dia);
+              const horas = [...new Set(bloques.map(b => `${b.horaInicio}-${b.horaFin}`))];
+              return (
+                <div key={dia} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 px-4 py-3">
+                    <h3 className="font-bold text-white text-sm">{DIAS_LABEL[dia]}</h3>
+                    <p className="text-indigo-200 text-[11px]">{bloques.length} bloques</p>
+                  </div>
+                  <div className="p-3 space-y-2">
+                    {horas.map(bloque => {
+                      const [inicio, fin] = bloque.split("-");
+                      const b = bloques.find(h => `${h.horaInicio}-${h.horaFin}` === bloque);
+                      if (!b) return null;
+
+                      const theme = b.subjectName ? subjectTheme(b.subjectName.toLowerCase()) : null;
+
+                      if (b.tipo === "receso") {
                         return (
-                          <td key={dia} className="p-2 border text-center">
-                            <div className="flex flex-col items-center gap-0.5">
-                              <span className="text-lg">{b.subjectEmoji}</span>
-                              <span className="text-[10px] font-medium">{b.subjectName}</span>
+                          <div key={bloque} className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                            <div className="flex items-center gap-2">
+                              <Coffee size={16} className="text-amber-500" />
+                              <span className="text-xs font-semibold text-amber-700">Receso</span>
                             </div>
-                          </td>
+                            <p className="text-[10px] text-amber-500 mt-1">{inicio} - {fin}</p>
+                          </div>
                         );
-                      })}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      }
+
+                      return (
+                        <div key={bloque} className={`rounded-xl p-3 border ${theme?.border || "border-slate-200"} ${theme?.bgLight || "bg-slate-50"}`}>
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className="text-lg">{b.subjectEmoji || "📚"}</span>
+                            <span className={`text-xs font-bold ${theme?.text || "text-slate-700"}`}>
+                              {b.subjectName || "Materia"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Clock size={12} className="text-slate-400" />
+                            <span className="text-[10px] text-slate-400 font-medium">{inicio} - {fin}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

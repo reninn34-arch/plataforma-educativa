@@ -2,12 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Calendar as CalendarIcon, CheckCircle, Clock } from "lucide-react";
+import { ArrowLeft, Calendar as CalendarIcon, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StudentBottomNav } from "@/components/StudentBottomNav";
 import { apiFetch } from "@/lib/fetch-utils";
+import { subjectTheme } from "@/lib/subject-theme";
 
 interface Event {
   id: number;
@@ -47,70 +48,114 @@ export default function CalendarPage() {
 
   const today = new Date();
 
-  return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur shadow-sm">
-        <div className="flex h-14 items-center gap-3 px-4 max-w-2xl mx-auto w-full">
-          <Button variant="ghost" size="icon" onClick={() => router.push("/student/dashboard")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <span className="text-base font-bold text-foreground flex items-center gap-2">
-            <CalendarIcon className="h-5 w-5 text-primary" /> Calendario
-          </span>
-        </div>
-      </header>
+  if (isLoading) return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 rounded-full border-3 border-indigo-200 border-t-indigo-600 animate-spin" />
+        <p className="text-sm text-slate-400 font-medium">Cargando calendario...</p>
+      </div>
+    </div>
+  );
 
-      <main className="flex-1 px-4 py-6 max-w-2xl mx-auto w-full space-y-6 animate-fade-in-up">
-        {isLoading ? (
-          <p className="text-center text-muted-foreground py-12">Cargando...</p>
-        ) : events.length === 0 ? (
-          <Card className="shadow-sm">
-            <CardContent className="py-12 text-center">
-              <CalendarIcon className="mx-auto h-10 w-10 text-muted-foreground/30" />
-              <p className="mt-4 font-medium text-muted-foreground">No tienes tareas con fecha de entrega</p>
+  return (
+    <div className="flex-1 w-full animate-fade-in-up">
+      <div className="max-w-3xl mx-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8 space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push("/student/dashboard")}
+            className="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 shadow-sm"
+          >
+            <ArrowLeft size={18} />
+          </Button>
+          <div>
+            <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <CalendarIcon size={22} className="text-indigo-500" />
+              Calendario
+            </h1>
+            <p className="text-sm text-slate-400">Fechas de entrega de tareas</p>
+          </div>
+        </div>
+
+        {events.length === 0 ? (
+          <Card className="shadow-sm border-slate-200">
+            <CardContent className="py-16 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
+                <CalendarIcon size={32} className="text-slate-300" />
+              </div>
+              <p className="font-semibold text-slate-600">No tienes tareas con fecha de entrega</p>
+              <p className="text-sm text-slate-400 mt-1">Tu calendario está limpio</p>
             </CardContent>
           </Card>
         ) : (
           Object.entries(grouped).map(([month, items]) => (
             <div key={month} className="space-y-3">
-              <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">{month}</h3>
-              {items.map((ev, i) => {
-                const dueDate = new Date(ev.dueDate!);
-                const isPast = dueDate < today;
-                const isSubmitted = ev.status === "submitted" || ev.status === "graded";
-                return (
-                  <Card key={i} className={`shadow-sm ${isPast && !isSubmitted ? "border-amber-300 bg-amber-50/50" : isSubmitted ? "border-emerald-200 bg-emerald-50/30" : ""}`}>
-                    <CardContent className="p-4 flex items-center gap-4">
-                      <div className="text-center min-w-[50px]">
-                        <p className="text-xs font-semibold text-muted-foreground">
-                          {dueDate.toLocaleDateString("es-EC", { weekday: "short" })}
-                        </p>
-                        <p className="text-2xl font-extrabold text-foreground tabular-nums">{dueDate.getDate()}</p>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span>{ev.subjectEmoji}</span>
-                          <Badge variant="secondary" className="text-[10px]">{ev.subjectName}</Badge>
+              <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                <CalendarIcon size={14} />
+                {month.charAt(0).toUpperCase() + month.slice(1)}
+              </h3>
+              <div className="space-y-3">
+                {items.map((ev, i) => {
+                  const dueDate = new Date(ev.dueDate!);
+                  const isPast = dueDate < today;
+                  const isSubmitted = ev.status === "submitted" || ev.status === "graded";
+                  const theme = ev.subjectName ? subjectTheme(ev.subjectName.toLowerCase()) : null;
+
+                  return (
+                    <div
+                      key={i}
+                      className={`bg-white rounded-2xl border-2 p-4 transition-all ${
+                        isPast && !isSubmitted
+                          ? "border-red-200 bg-red-50/30"
+                          : isSubmitted
+                          ? "border-emerald-200 bg-emerald-50/30"
+                          : "border-slate-200 hover:shadow-md hover:-translate-y-0.5"
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="text-center min-w-[56px]">
+                          <p className="text-[10px] font-semibold text-slate-400 uppercase">
+                            {dueDate.toLocaleDateString("es-EC", { weekday: "short" })}
+                          </p>
+                          <p className="text-2xl font-extrabold text-slate-800 tabular-nums -mt-0.5">
+                            {dueDate.getDate()}
+                          </p>
                         </div>
-                        <p className="text-sm font-semibold text-foreground mt-0.5">{ev.title}</p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-lg">{ev.subjectEmoji}</span>
+                            <span className={`text-xs font-semibold ${theme?.text || "text-slate-600"}`}>
+                              {ev.subjectName}
+                            </span>
+                          </div>
+                          <p className="text-sm font-bold text-slate-700 mt-0.5">{ev.title}</p>
+                        </div>
+                        <div className="shrink-0">
+                          {isSubmitted ? (
+                            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 gap-1">
+                              <CheckCircle size={12} /> Entregado
+                            </Badge>
+                          ) : isPast ? (
+                            <Badge className="bg-red-100 text-red-700 border-red-200 gap-1">
+                              <AlertCircle size={12} /> Vencido
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="border-indigo-200 text-indigo-600 bg-indigo-50">
+                              Pendiente
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        {isSubmitted ? (
-                          <Badge variant="default" className="gap-1"><CheckCircle className="h-3 w-3" /> Entregado</Badge>
-                        ) : isPast ? (
-                          <Badge variant="outline" className="gap-1 border-amber-300 text-amber-700"><Clock className="h-3 w-3" /> Vencido</Badge>
-                        ) : (
-                          <Badge variant="outline">Pendiente</Badge>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ))
         )}
-      </main>
+      </div>
       <StudentBottomNav />
     </div>
   );

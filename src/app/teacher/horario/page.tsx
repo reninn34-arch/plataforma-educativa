@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Clock, Users } from "lucide-react";
+import { Clock, Coffee, Filter } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/fetch-utils";
+import { subjectTheme } from "@/lib/subject-theme";
 
 interface Bloque {
   id: number;
@@ -24,8 +23,9 @@ interface HorarioData { horarios: Bloque[]; }
 interface CoursesData { cursos: { id: number; nombre: string; nivel: string; mySubjects: { subjectEmoji: string; subjectName: string }[] }[]; }
 
 const DIAS = ["lunes", "martes", "miercoles", "jueves", "viernes"];
-const SUBJECT_COLORS: Record<string, string> = { matematicas: "bg-blue-100 text-blue-700", fisica: "bg-purple-100 text-purple-700", Quimica: "bg-green-100 text-green-700", biologia: "bg-red-100 text-red-700", historia: "bg-yellow-100 text-yellow-700", literatura: "bg-pink-100 text-pink-700", filosofia: "bg-indigo-100 text-indigo-700", arte: "bg-orange-100 text-orange-700", educacion_civica: "bg-teal-100 text-teal-700", ingles: "bg-cyan-100 text-cyan-700" };
-const DIAS_LABEL: Record<string, string> = { lunes: "Lun", martes: "Mar", miercoles: "Mie", jueves: "Jue", viernes: "Vie" };
+const DIAS_LABEL: Record<string, string> = {
+  lunes: "Lunes", martes: "Martes", miercoles: "Miércoles", jueves: "Jueves", viernes: "Viernes",
+};
 
 export default function TeacherHorarioPage() {
   const { data: horarioData, isLoading: horarioLoading } = useQuery<HorarioData, Error>({
@@ -57,67 +57,112 @@ export default function TeacherHorarioPage() {
   const filtered = selectedCurso === "todos" ? horarios : horarios.filter(h => h.cursoId.toString() === selectedCurso);
   const bloquesPorDia = (dia: string) => filtered.filter(h => h.dia === dia && (showRecesos || h.tipo !== "receso"));
 
-  if (isLoading) return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  if (isLoading) return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 rounded-full border-3 border-indigo-200 border-t-indigo-600 animate-spin" />
+        <p className="text-sm text-slate-400 font-medium">Cargando horario...</p>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="flex-1 p-4 sm:p-8 w-full max-w-6xl mx-auto space-y-6 animate-fade-in-up">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b pb-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Horario</h1>
-          <p className="text-sm text-muted-foreground mt-1">Horario semanal por curso</p>
+    <div className="flex-1 w-full animate-fade-in-up">
+      <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8 space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-md">
+                <Clock size={20} />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-slate-800">Horario</h1>
+                <p className="text-sm text-slate-400">Horario semanal por curso</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            {cursos.length > 1 && (
+              <select
+                value={selectedCurso}
+                onChange={e => setSelectedCurso(e.target.value)}
+                className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
+              >
+                <option value="todos">Todos los cursos</option>
+                {cursos.map(c => <option key={c.id} value={c.id}>{c.nombre} ({c.nivel})</option>)}
+              </select>
+            )}
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-500 bg-white border border-slate-200 rounded-xl px-3 py-2 cursor-pointer hover:bg-slate-50 transition-colors">
+              <input type="checkbox" checked={showRecesos} onChange={e => setShowRecesos(e.target.checked)} className="rounded text-indigo-600 focus:ring-indigo-500" />
+              <Filter size={14} />
+              Recreos
+            </label>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          {cursos.length > 1 && (
-            <select value={selectedCurso} onChange={e => setSelectedCurso(e.target.value)} className="h-9 rounded-lg border border-input bg-card px-3 text-sm">
-              <option value="todos">Todos los cursos</option>
-              {cursos.map(c => <option key={c.id} value={c.id}>{c.nombre} ({c.nivel})</option>)}
-            </select>
-          )}
-          <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            <input type="checkbox" checked={showRecesos} onChange={e => setShowRecesos(e.target.checked)} className="rounded" />
-            Mostrar recreos
-          </label>
-        </div>
-      </div>
 
-      {filtered.length === 0 ? (
-        <Card className="shadow-sm"><CardContent className="py-16 text-center"><Clock className="mx-auto h-10 w-10 text-muted-foreground/30" /><p className="mt-4 font-medium text-muted-foreground">Sin horario disponible</p></CardContent></Card>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr>
-                <th className="p-2 border bg-muted/50 text-left text-xs font-semibold text-muted-foreground">Hora</th>
-                {DIAS.map(dia => <th key={dia} className="p-2 border bg-muted/50 text-center text-xs font-semibold text-muted-foreground">{DIAS_LABEL[dia]}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {[...new Set(filtered.map(h => `${h.horaInicio}-${h.horaFin}`))].map(bloque => {
-                const [inicio, fin] = bloque.split("-");
-                return (
-                  <tr key={bloque}>
-                    <td className="p-2 border text-xs text-muted-foreground whitespace-nowrap font-medium">{inicio}<br/>{fin}</td>
-                    {DIAS.map(dia => {
-                      const b = filtered.find(h => h.dia === dia && `${h.horaInicio}-${h.horaFin}` === bloque);
-                      if (!b) return <td key={dia} className="p-2 border"></td>;
-                      if (b.tipo === "receso") return <td key={dia} className="p-2 border text-center"><Badge variant="secondary" className="text-[10px]">☕ Receso</Badge></td>;
-                      const colorClass = b.subjectName ? (SUBJECT_COLORS[b.subjectName.toLowerCase().replace(/ /g, "_")] || "bg-muted") : "bg-muted";
-                      return (
-                        <td key={dia} className="p-2 border text-center">
-                          <div className={`flex flex-col items-center gap-0.5 p-1.5 rounded-lg ${colorClass}`}>
-                            <span className="text-lg">{b.subjectEmoji}</span>
-                            <span className="text-[10px] font-medium">{b.subjectName}</span>
+        {filtered.length === 0 ? (
+          <Card className="shadow-sm border-slate-200">
+            <CardContent className="py-16 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
+                <Clock size={32} className="text-slate-300" />
+              </div>
+              <p className="font-semibold text-slate-600">Sin horario disponible</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            {DIAS.map(dia => {
+              const bloques = bloquesPorDia(dia);
+              const horas = [...new Set(bloques.map(b => `${b.horaInicio}-${b.horaFin}`))];
+              return (
+                <div key={dia} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 px-4 py-3">
+                    <h3 className="font-bold text-white text-sm">{DIAS_LABEL[dia]}</h3>
+                    <p className="text-indigo-200 text-[11px]">{bloques.length} bloques</p>
+                  </div>
+                  <div className="p-3 space-y-2">
+                    {horas.map(bloque => {
+                      const [inicio, fin] = bloque.split("-");
+                      const b = bloques.find(h => `${h.horaInicio}-${h.horaFin}` === bloque);
+                      if (!b) return null;
+
+                      const theme = b.subjectName ? subjectTheme(b.subjectName.toLowerCase()) : null;
+
+                      if (b.tipo === "receso") {
+                        return (
+                          <div key={bloque} className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                            <div className="flex items-center gap-2">
+                              <Coffee size={16} className="text-amber-500" />
+                              <span className="text-xs font-semibold text-amber-700">Receso</span>
+                            </div>
+                            <p className="text-[10px] text-amber-500 mt-1">{inicio} - {fin}</p>
                           </div>
-                        </td>
+                        );
+                      }
+
+                      return (
+                        <div key={bloque} className={`rounded-xl p-3 border ${theme?.border || "border-slate-200"} ${theme?.bgLight || "bg-slate-50"}`}>
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className="text-lg">{b.subjectEmoji || "📚"}</span>
+                            <span className={`text-xs font-bold ${theme?.text || "text-slate-700"}`}>
+                              {b.subjectName || "Materia"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Clock size={12} className="text-slate-400" />
+                            <span className="text-[10px] text-slate-400 font-medium">{inicio} - {fin}</span>
+                          </div>
+                        </div>
                       );
                     })}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

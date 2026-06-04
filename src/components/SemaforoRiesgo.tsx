@@ -28,15 +28,15 @@ export function SemaforoRiesgo({ daysInactive, consecutiveFailures }: SemaforoRi
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex gap-1 p-1 rounded-md bg-muted/60 border border-border">
+      <div className="flex gap-1 p-1 rounded-md bg-slate-100/60 border border-slate-200">
         {(["red", "yellow", "green"] as RiskLevel[]).map((color) => (
           <div
             key={color}
             className={cn(
               "h-2.5 w-2.5 rounded-full transition-all duration-300",
               color === "red" && (level === "red"
-                ? "bg-destructive shadow-sm shadow-destructive/40 scale-125 animate-pulse"
-                : "bg-destructive/25"),
+                ? "bg-red-500 shadow-sm shadow-destructive/40 scale-125 animate-pulse"
+                : "bg-red-200"),
               color === "yellow" && (level === "yellow"
                 ? "bg-[#D97706] shadow-sm shadow-amber-400/40 scale-125"
                 : "bg-amber-200"),
@@ -52,7 +52,7 @@ export function SemaforoRiesgo({ daysInactive, consecutiveFailures }: SemaforoRi
           "text-[11px] font-semibold px-2 py-0.5 rounded-full border",
           level === "green" && "bg-emerald-50 text-emerald-700 border-emerald-200",
           level === "yellow" && "bg-amber-50 text-amber-700 border-amber-200",
-          level === "red" && "bg-red-50 text-destructive border-red-200 animate-pulse",
+          level === "red" && "bg-red-50 text-red-600 border-red-200 animate-pulse",
         )}
       >
         {getRiskLabel(level)}

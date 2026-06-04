@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Search, Loader2, X, UserPlus, Trash2, Printer, Mail, Users as UsersIcon } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, Search, Loader2, X, UserPlus, Trash2, Printer, Mail, Users as UsersIcon, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/fetch-utils";
@@ -184,7 +183,7 @@ export default function CursoDetailPage() {
         setEmailFeedback(d.error || "Error al enviar");
       }
     } catch {
-      setEmailFeedback("Error de conexion");
+      setEmailFeedback("Error de conexión");
     }
     setSendingEmail(false);
   };
@@ -204,7 +203,7 @@ export default function CursoDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["admin-course-students", cursoId] });
       queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
     } catch {
-      alert("Error de conexion");
+      alert("Error de conexión");
     }
   };
 
@@ -223,7 +222,7 @@ export default function CursoDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["admin-course-students", cursoId] });
       queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
     } catch {
-      alert("Error de conexion");
+      alert("Error de conexión");
     }
   };
 
@@ -240,168 +239,156 @@ export default function CursoDetailPage() {
   return (
     <div className="p-6 sm:p-8 w-full max-w-4xl mx-auto space-y-6 animate-fade-in-up">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.push("/admin/cursos")}>
+        <button onClick={() => router.push("/admin/cursos")} className="text-slate-400 hover:bg-slate-100 p-2 rounded-full transition-colors">
           <ArrowLeft className="h-5 w-5" />
-        </Button>
+        </button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-foreground">{cursoInfo?.nombre || "Curso"}</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-2xl font-bold text-slate-800">{cursoInfo?.nombre || "Curso"}</h1>
+          <p className="text-sm text-slate-500">
             {cursoInfo?.nivel}
             {cursoInfo && <span className="mx-2">·</span>}
             {students.length} estudiantes matriculados
           </p>
         </div>
         <div className="flex gap-2 items-center">
-          <label className="flex items-center gap-1 cursor-pointer text-xs text-muted-foreground mr-2">
-            <input type="checkbox" checked={resetPins} onChange={e => setResetPins(e.target.checked)} className="h-3.5 w-3.5 rounded border-input" />
+          <label className="flex items-center gap-1 cursor-pointer text-xs text-slate-500 mr-2">
+            <input type="checkbox" checked={resetPins} onChange={e => setResetPins(e.target.checked)} className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-300" />
             Resetear PINs
           </label>
-          <Button variant="outline" size="sm" className="gap-2" onClick={handleSendEmails} disabled={sendingEmail}>
+          <Button variant="outline" size="sm" className="gap-2 rounded-xl border-slate-200" onClick={handleSendEmails} disabled={sendingEmail}>
             {sendingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
             Enviar por correo
           </Button>
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => router.push(`/admin/credenciales/${cursoId}`)}>
+          <Button variant="outline" size="sm" className="gap-2 rounded-xl border-slate-200" onClick={() => router.push(`/admin/credenciales/${cursoId}`)}>
             <Printer className="h-4 w-4" /> Imprimir
           </Button>
-          <Button size="sm" className="gap-2" onClick={() => setShowAdd(true)}>
+          <Button size="sm" className="gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200" onClick={() => setShowAdd(true)}>
             <UserPlus className="h-4 w-4" /> Agregar estudiante
           </Button>
         </div>
       </div>
 
-      {/* Course info card */}
       {cursoInfo && (
-        <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs flex items-center gap-1">
-                  <UsersIcon className="h-3 w-3" /> {cursoInfo.studentCount} estudiantes
-                </Badge>
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <Badge variant="secondary" className="text-xs flex items-center gap-1 rounded-lg">
+              <UsersIcon className="h-3 w-3" /> {cursoInfo.studentCount} estudiantes
+            </Badge>
+            {cursoInfo.profesorNombre && (
+              <div className="text-sm">
+                <span className="text-slate-500">Tutor:</span>{" "}
+                <span className="font-medium text-slate-700">{cursoInfo.profesorNombre}</span>
               </div>
-              {cursoInfo.profesorNombre && (
-                <div className="text-sm">
-                  <span className="text-muted-foreground">Tutor:</span>{" "}
-                  <span className="font-medium">{cursoInfo.profesorNombre}</span>
-                </div>
-              )}
-              {cursoInfo.teacherSubjects.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Profesores por materia:</span>
-                  {cursoInfo.teacherSubjects.map((ts, i) => (
-                    <Badge key={i} variant="outline" className="text-xs gap-1 py-1">
-                      <span>{ts.subjectEmoji}</span>
-                      <span>{ts.teacherName}</span>
-                      <span className="text-muted-foreground">· {ts.subjectName}</span>
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+            )}
+            {cursoInfo.teacherSubjects.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-slate-500">Profesores por materia:</span>
+                {cursoInfo.teacherSubjects.map((ts, i) => (
+                  <Badge key={i} variant="outline" className="text-xs gap-1 py-1 rounded-lg border-slate-200">
+                    <span>{ts.subjectEmoji}</span>
+                    <span>{ts.teacherName}</span>
+                    <span className="text-slate-400">· {ts.subjectName}</span>
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {emailFeedback && (
-        <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-sm font-medium text-blue-700">
+        <div className="rounded-xl bg-indigo-50 border border-indigo-200 px-4 py-3 text-sm font-medium text-indigo-700">
           {emailFeedback}
         </div>
       )}
 
-      {/* Add student panel */}
       {showAdd && (
-        <Card className="shadow-sm animate-scale-in">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Agregar estudiantes al curso</CardTitle>
-              <Button variant="ghost" size="icon-sm" onClick={() => setShowAdd(false)}><X className="h-4 w-4" /></Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm animate-scale-in">
+          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h2 className="text-base font-bold text-slate-800">Agregar estudiantes al curso</h2>
+            <Button variant="ghost" size="icon-sm" onClick={() => setShowAdd(false)} className="text-slate-400 hover:text-slate-600"><X className="h-4 w-4" /></Button>
+          </div>
+          <div className="p-4 space-y-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                type="text" value={addSearch} onChange={e => setAddSearch(e.target.value)}
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input type="text" value={addSearch} onChange={e => setAddSearch(e.target.value)}
                 placeholder="Buscar estudiante..."
-                className="w-full h-10 pl-10 rounded-lg border border-input bg-card px-3 text-sm"
-              />
+                className="w-full h-10 pl-10 rounded-xl border border-slate-200 bg-white px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" />
             </div>
             <div className="max-h-64 overflow-y-auto space-y-1">
               {availableFiltered.map(s => (
-                <div key={s.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50">
+                <div key={s.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-indigo-50/50 transition-colors">
                   <div>
-                    <p className="text-sm font-medium">{s.fullName}</p>
-                    <p className="text-xs text-muted-foreground">{s.cedula}</p>
+                    <p className="text-sm font-medium text-slate-700">{s.fullName}</p>
+                    <p className="text-xs text-slate-400">{s.cedula}</p>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => handleAddStudent(s.id)}>Agregar</Button>
+                  <Button size="sm" variant="outline" onClick={() => handleAddStudent(s.id)} className="rounded-xl border-slate-200">Agregar</Button>
                 </div>
               ))}
               {availableFiltered.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">No hay estudiantes disponibles</p>
+                <p className="text-sm text-slate-400 text-center py-4">No hay estudiantes disponibles</p>
               )}
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <input
-          type="text" value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar estudiante..."
-          className="w-full h-10 pl-10 rounded-lg border border-input bg-card px-3 text-sm"
-        />
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-      ) : (
-        <Card className="shadow-sm">
-          <CardContent className="p-0">
-            <div className="divide-y">
-              {filteredStudents.map(s => (
-                <div key={s.id} className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-9 w-9 shrink-0 rounded-full bg-accent flex items-center justify-center text-xs font-bold">
-                      {s.fullName.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{s.fullName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {s.cedula}
-                        {s.email && ` · ${s.email}`}
-                      </p>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="icon-sm" onClick={() => handleRemoveStudent(s.estudianteId)} className="text-muted-foreground hover:text-destructive">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              {filteredStudents.length === 0 && (
-                <div className="py-12 text-center">
-                  <p className="text-muted-foreground">No hay estudiantes en este curso</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {scheduleFeedback && (
-        <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-medium text-emerald-700 flex items-center justify-between">
-          <span>{scheduleFeedback}</span>
-          <Button variant="ghost" size="icon-sm" onClick={() => setScheduleFeedback("")}><X className="h-3 w-3" /></Button>
+          </div>
         </div>
       )}
 
-      <Card className="shadow-sm">
-        <CardHeader>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar estudiante..."
+          className="w-full h-10 pl-10 rounded-xl border border-slate-200 bg-white px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" />
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-indigo-500" /></div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+          <div className="divide-y divide-slate-100">
+            {filteredStudents.map(s => (
+              <div key={s.id} className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-10 w-10 shrink-0 rounded-xl bg-indigo-50 flex items-center justify-center text-xs font-bold text-indigo-600">
+                    {s.fullName.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-slate-700 truncate">{s.fullName}</p>
+                    <p className="text-xs text-slate-400">
+                      {s.cedula}
+                      {s.email && ` · ${s.email}`}
+                    </p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon-sm" onClick={() => handleRemoveStudent(s.estudianteId)} className="text-slate-400 hover:text-red-500">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            {filteredStudents.length === 0 && (
+              <div className="py-12 text-center">
+                <UsersIcon className="mx-auto h-8 w-8 text-slate-300" />
+                <p className="text-slate-400 mt-2">No hay estudiantes en este curso</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {scheduleFeedback && (
+        <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-medium text-emerald-700 flex items-center justify-between">
+          <span>{scheduleFeedback}</span>
+          <Button variant="ghost" size="icon-sm" onClick={() => setScheduleFeedback("")} className="text-emerald-500"><X className="h-3 w-3" /></Button>
+        </div>
+      )}
+
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+        <div className="p-4 border-b border-slate-100">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <CardTitle className="text-base">Horario Semanal</CardTitle>
-              <Button type="button" variant="outline" size="sm" onClick={addTimeBlock} className="gap-1 text-xs h-7">
+              <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-indigo-500" /> Horario Semanal
+              </h2>
+              <Button type="button" variant="outline" size="sm" onClick={addTimeBlock} className="gap-1 text-xs h-7 rounded-xl border-slate-200">
                 + Agregar hora
               </Button>
             </div>
@@ -411,11 +398,8 @@ export default function CursoDetailPage() {
                 setScheduleSaving(true);
                 try {
                   const bloques = schedule.map(b => ({
-                    dia: b.dia,
-                    horaInicio: b.horaInicio,
-                    horaFin: b.horaFin,
-                    subjectId: b.subjectId,
-                    tipo: b.tipo,
+                    dia: b.dia, horaInicio: b.horaInicio, horaFin: b.horaFin,
+                    subjectId: b.subjectId, tipo: b.tipo,
                   }));
                   await apiFetch(`/api/admin/courses/${cursoId}/horarios`, {
                     method: "PUT",
@@ -427,56 +411,48 @@ export default function CursoDetailPage() {
                 setScheduleSaving(false);
               }}
               disabled={scheduleSaving}
-              className="gap-2"
+              className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200 gap-2"
             >
               {scheduleSaving && <Loader2 className="h-3 w-3 animate-spin" />}
               Guardar horario
             </Button>
           </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="p-4">
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr>
-                  <th className="p-2 border bg-muted/50 text-center text-xs font-semibold text-muted-foreground w-24">Hora</th>
+                  <th className="p-2 border border-slate-200 bg-slate-50 text-center text-xs font-semibold text-slate-500 w-24">Hora</th>
                   {["lunes","martes","miercoles","jueves","viernes"].map(dia => (
-                    <th key={dia} className="p-2 border bg-muted/50 text-center text-xs font-semibold text-muted-foreground capitalize">{dia.slice(0,3)}</th>
+                    <th key={dia} className="p-2 border border-slate-200 bg-slate-50 text-center text-xs font-semibold text-slate-500 capitalize">{dia.slice(0,3)}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {timeBlocks.map((tb, tIdx) => (
                   <tr key={`${tb.horaInicio}-${tb.horaFin}-${tIdx}`}>
-                    <td className="p-1 border">
+                    <td className="p-1 border border-slate-200">
                       <div className="flex items-center gap-1">
-                        <input
-                          type="time"
-                          value={tb.horaInicio}
+                        <input type="time" value={tb.horaInicio}
                           onChange={e => updateTimeBlock(tIdx, "horaInicio", e.target.value)}
-                          className="w-full h-7 text-[10px] rounded border border-input bg-card px-1 text-center"
-                        />
-                        <span className="text-[10px] text-muted-foreground">—</span>
-                        <input
-                          type="time"
-                          value={tb.horaFin}
+                          className="w-full h-7 text-[10px] rounded-lg border border-slate-200 bg-white px-1 text-center focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" />
+                        <span className="text-[10px] text-slate-400">—</span>
+                        <input type="time" value={tb.horaFin}
                           onChange={e => updateTimeBlock(tIdx, "horaFin", e.target.value)}
-                          className="w-full h-7 text-[10px] rounded border border-input bg-card px-1 text-center"
-                        />
+                          className="w-full h-7 text-[10px] rounded-lg border border-slate-200 bg-white px-1 text-center focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" />
                         {timeBlocks.length > 1 && (
-                          <button onClick={() => removeTimeBlock(tIdx)} className="text-muted-foreground hover:text-destructive shrink-0 ml-1">
+                          <button onClick={() => removeTimeBlock(tIdx)} className="text-slate-400 hover:text-red-500 shrink-0 ml-1">
                             <Trash2 className="h-3 w-3" />
                           </button>
                         )}
                       </div>
                     </td>
                     {["lunes","martes","miercoles","jueves","viernes"].map(dia => (
-                      <td key={dia} className="p-1 border">
-                        <select
-                          value={getCellValue(dia, tb.horaInicio, tb.horaFin)}
+                      <td key={dia} className="p-1 border border-slate-200">
+                        <select value={getCellValue(dia, tb.horaInicio, tb.horaFin)}
                           onChange={e => handleCellChange(dia, tb.horaInicio, tb.horaFin, e.target.value)}
-                          className="w-full h-7 text-[10px] rounded border border-input bg-card px-1"
-                        >
+                          className="w-full h-7 text-[10px] rounded-lg border border-slate-200 bg-white px-1 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all">
                           <option value="">—</option>
                           <option value="receso">☕ Receso</option>
                           {cursoInfo?.teacherSubjects && [...new Map(cursoInfo.teacherSubjects.map(ts => [ts.subjectId, ts])).values()].map(ts => (
@@ -492,8 +468,8 @@ export default function CursoDetailPage() {
               </tbody>
             </table>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

@@ -2,10 +2,9 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, ArrowLeft, Printer } from "lucide-react";
+import { Loader2, ArrowLeft, Printer, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { apiFetch } from "@/lib/fetch-utils";
 
 interface GradeData {
@@ -71,59 +70,61 @@ export default function BoletinPage() {
   }));
 
   if (isLoading) return (
-    <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin" /></div>
+    <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-indigo-500" /></div>
   );
 
   return (
     <div className="p-4 sm:p-8 max-w-6xl mx-auto print:p-0">
       <div className="flex items-center justify-between mb-6 print:hidden">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push("/admin/cursos")}><ArrowLeft className="h-5 w-5" /></Button>
-          <h1 className="text-2xl font-bold">Boletin de Notas</h1>
+          <button onClick={() => router.push("/admin/cursos")} className="text-slate-400 hover:bg-slate-100 p-2 rounded-full transition-colors">
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h1 className="text-2xl font-bold text-slate-800">Boletín de Notas</h1>
         </div>
-        <Button onClick={() => window.print()} className="gap-2"><Printer className="h-4 w-4" /> Imprimir</Button>
+        <Button onClick={() => window.print()} className="gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200"><Printer className="h-4 w-4" /> Imprimir</Button>
       </div>
 
-      <Card className="shadow-sm print:shadow-none print:border-0">
-        <CardContent className="p-6 print:p-0">
-          <div className="text-center mb-8 border-b pb-6">
-            <h2 className="text-2xl font-bold">Atlas Edu - Boletin de Notas</h2>
-            <p className="text-lg mt-1">Curso: {cursoNombre}</p>
-            <p className="text-sm text-muted-foreground mt-2">{new Date().toLocaleDateString("es-EC", { year: "numeric", month: "long", day: "numeric" })}</p>
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm print:shadow-none print:border-0">
+        <div className="p-6 print:p-0">
+          <div className="text-center mb-8 border-b border-slate-100 pb-6">
+            <h2 className="text-2xl font-bold text-slate-800">Atlas Edu — Boletín de Notas</h2>
+            <p className="text-lg mt-1 text-slate-600">Curso: {cursoNombre}</p>
+            <p className="text-sm text-slate-400 mt-2">{new Date().toLocaleDateString("es-EC", { year: "numeric", month: "long", day: "numeric" })}</p>
           </div>
 
           {studentList.length === 0 ? (
-            <p className="text-center text-muted-foreground py-12">Sin calificaciones registradas.</p>
+            <p className="text-center text-slate-400 py-12">Sin calificaciones registradas.</p>
           ) : (
             <div className="space-y-8">
               {studentList.map((st, si) => (
                 <div key={st.id} className="page-break-inside-avoid">
-                  <div className="border-b pb-2 mb-3">
-                    <span className="text-sm font-bold text-muted-foreground">#{si + 1}</span>
-                    <h3 className="text-lg font-bold">{st.name}</h3>
-                    <p className="text-xs text-muted-foreground">Cedula: {st.cedula}</p>
+                  <div className="border-b border-slate-200 pb-2 mb-3">
+                    <span className="text-sm font-bold text-slate-400">#{si + 1}</span>
+                    <h3 className="text-lg font-bold text-slate-800">{st.name}</h3>
+                    <p className="text-xs text-slate-400">Cédula: {st.cedula}</p>
                   </div>
-                  <table className="w-full text-sm border">
+                  <table className="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
                     <thead>
-                      <tr className="bg-muted/50">
-                        <th className="text-left p-2 border">Materia</th>
-                        <th className="text-center p-2 border">T1</th>
-                        <th className="text-center p-2 border">T2</th>
-                        <th className="text-center p-2 border">T3</th>
-                        <th className="text-center p-2 border font-bold">Prom. Anual</th>
+                      <tr className="bg-slate-50">
+                        <th className="text-left p-2 border border-slate-200 text-slate-600 font-semibold">Materia</th>
+                        <th className="text-center p-2 border border-slate-200 text-slate-600 font-semibold">T1</th>
+                        <th className="text-center p-2 border border-slate-200 text-slate-600 font-semibold">T2</th>
+                        <th className="text-center p-2 border border-slate-200 text-slate-600 font-semibold">T3</th>
+                        <th className="text-center p-2 border border-slate-200 font-bold text-slate-700">Prom. Anual</th>
                       </tr>
                     </thead>
                     <tbody>
                       {st.subjectsList.map((subj, j) => (
-                        <tr key={j} className="border">
-                          <td className="p-2 border">{subj.emoji} {subj.name}</td>
-                          <td className="text-center p-2 border">{subj.t1?.toFixed(2) || "—"}</td>
-                          <td className="text-center p-2 border">{subj.t2?.toFixed(2) || "—"}</td>
-                          <td className="text-center p-2 border">{subj.t3?.toFixed(2) || "—"}</td>
-                          <td className="text-center p-2 border font-bold">
+                        <tr key={j} className="border-b border-slate-100 last:border-0">
+                          <td className="p-2 border-r border-slate-100 text-slate-700">{subj.emoji} {subj.name}</td>
+                          <td className="text-center p-2 border-r border-slate-100 text-slate-600">{subj.t1?.toFixed(2) || "—"}</td>
+                          <td className="text-center p-2 border-r border-slate-100 text-slate-600">{subj.t2?.toFixed(2) || "—"}</td>
+                          <td className="text-center p-2 border-r border-slate-100 text-slate-600">{subj.t3?.toFixed(2) || "—"}</td>
+                          <td className="text-center p-2 font-bold text-slate-800">
                             {subj.yearly?.toFixed(2) || "—"}
                             {subj.yearly !== null && (
-                              <Badge variant={subj.yearly >= 7 ? "default" : "destructive"} className="ml-2 text-[10px]">
+                              <Badge variant={subj.yearly >= 7 ? "default" : "destructive"} className="ml-2 text-[10px] rounded-lg">
                                 {subj.yearly >= 7 ? "APROBADO" : "REPROBADO"}
                               </Badge>
                             )}
@@ -132,7 +133,7 @@ export default function BoletinPage() {
                       ))}
                     </tbody>
                   </table>
-                  <div className="mt-8 text-xs text-muted-foreground">
+                  <div className="mt-8 text-xs text-slate-400">
                     <p>Firma del profesor tutor: _______________________</p>
                     <p className="mt-2">Firma del representante: _______________________</p>
                   </div>
@@ -140,8 +141,8 @@ export default function BoletinPage() {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

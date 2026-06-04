@@ -4,29 +4,17 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
   ChevronRight,
-  BookOpen,
   Flame,
-  Clock,
   CheckCircle2,
   ClipboardList,
-  Gamepad2,
-  ArrowRight,
+  Sparkles,
+  Zap,
+  Target,
+  Brain,
+  BookOpen,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { SUBJECTS } from "@/lib/utils";
 import { DueTimer } from "@/components/DueTimer";
 import { apiFetch } from "@/lib/fetch-utils";
-
-function ProgressBar({ percentage }: { percentage: number }) {
-  return (
-    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-      <div
-        className="h-full bg-primary transition-all duration-500 ease-out"
-        style={{ width: `${percentage}%` }}
-      />
-    </div>
-  );
-}
 
 interface DashboardData {
   profile: { id: number; fullName: string; cedula: string; role: string; email?: string } | null;
@@ -52,13 +40,22 @@ export default function StudentDashboard() {
 
   if (isLoading) return (
     <div className="flex-1 flex items-center justify-center">
-      <p className="text-muted-foreground">Cargando...</p>
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 rounded-full border-3 border-indigo-200 border-t-indigo-600 animate-spin" />
+        <p className="text-sm text-slate-400 font-medium">Cargando tu progreso...</p>
+      </div>
     </div>
   );
 
   if (!data) return (
     <div className="flex-1 flex items-center justify-center">
-      <p className="text-muted-foreground">Error al cargar dashboard</p>
+      <div className="text-center">
+        <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-3">
+          <span className="text-2xl">⚠️</span>
+        </div>
+        <p className="text-slate-600 font-medium">Error al cargar el dashboard</p>
+        <p className="text-sm text-slate-400 mt-1">Intenta recargar la página</p>
+      </div>
     </div>
   );
 
@@ -70,205 +67,197 @@ export default function StudentDashboard() {
     if (a.dueDate && new Date(a.dueDate).getTime() < Date.now()) return false;
     return true;
   });
-  const expiredAssignments = assignments.filter((a: any) => {
-    if (a.status === "graded" || a.status === "submitted") return false;
-    return a.dueDate && new Date(a.dueDate).getTime() < Date.now();
-  });
-  const submittedAssignments = assignments.filter((a: any) => a.status === "submitted" || a.status === "graded");
   const totalSessions = metrics?.totalSessions || 0;
   const accuracy = metrics?.accuracy || 0;
   const streakDays = metrics?.streakDays || 0;
+  const totalNodos = Object.values(progress).reduce((sum, p) => sum + (p.completedNodes ?? 0), 0);
+  const firstName = profile?.fullName?.split(" ")[0] || "Estudiante";
 
   return (
-    <div className="flex-1 p-4 sm:p-8 w-full max-w-5xl mx-auto space-y-10 animate-fade-in-up">
+    <div className="flex-1 w-full animate-fade-in-up">
+      <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8 pb-24 lg:pb-8">
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b pb-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Vision General</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Bienvenido de vuelta, {profile?.fullName || "Estudiante"}. Aqui tienes un resumen de tu actividad academica.
-          </p>
-        </div>
-      </div>
+        {/* Hero Banner */}
+        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-600 to-violet-600 p-6 sm:p-8 text-white shadow-xl shadow-indigo-200/50">
+          <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-400/10 rounded-full blur-3xl -translate-x-1/3 translate-y-1/3" />
 
-      {/* SECTION 1: TUS EVALUACIONES */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2">
-          <ClipboardList className="h-5 w-5 text-foreground" />
-          <h2 className="text-base font-bold tracking-tight">Tus Evaluaciones</h2>
-          <span className="text-[11px] text-muted-foreground font-normal ml-1">
-            — Estas son tus notas oficiales, enviadas por tus docentes
-          </span>
-        </div>
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <div>
+              <div className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider mb-3">
+                <Sparkles size={12} />
+                Panel del Estudiante
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                ¡Hola, {firstName}! 👋
+              </h1>
+              <p className="text-indigo-100 text-sm sm:text-base mt-2 max-w-lg leading-relaxed">
+                {streakDays > 0
+                  ? `Llevas una racha de ${streakDays} días. ¡Sigue así para mantener el ritmo!`
+                  : "Hoy es un gran día para empezar a practicar. ¡Ánimo!"}
+              </p>
+            </div>
 
-        {/* KPI row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Card className="shadow-sm border-l-4 border-l-blue-500">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground mb-1">Tareas asignadas</p>
-              <p className="text-2xl font-bold">{assignments.length}</p>
-            </CardContent>
-          </Card>
-          <Card className="shadow-sm border-l-4 border-l-amber-500">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground mb-1">Pendientes</p>
-              <p className="text-2xl font-bold">{pendingAssignments.length}</p>
-            </CardContent>
-          </Card>
-          <Card className="shadow-sm border-l-4 border-l-red-400">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground mb-1">Vencidas</p>
-              <p className="text-2xl font-bold">{expiredAssignments.length}</p>
-            </CardContent>
-          </Card>
-          <Card className="shadow-sm border-l-4 border-l-emerald-500">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground mb-1">Entregadas</p>
-              <p className="text-2xl font-bold">{submittedAssignments.length}</p>
-            </CardContent>
-          </Card>
-        </div>
+            <Link
+              href="/student/assignments"
+              className="inline-flex items-center gap-2 bg-white text-indigo-600 font-bold py-3 px-6 rounded-2xl hover:bg-slate-50 hover:scale-[1.02] transition-all duration-200 shadow-lg shadow-indigo-900/20 group shrink-0"
+            >
+              <div className="bg-indigo-100 text-indigo-600 p-1.5 rounded-full group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                <ClipboardList size={18} />
+              </div>
+              Ver tareas
+            </Link>
+          </div>
 
-        {/* Active pending assignments */}
-        <Card className="shadow-sm">
-          <CardContent className="p-0">
-            {pendingAssignments.length > 0 ? (
-              <div className="divide-y">
-                {pendingAssignments.slice(0, 5).map((a) => {
-                  return (
+
+        </section>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+          {/* Main Column */}
+          <div className="lg:col-span-2 space-y-6">
+
+            {/* Quick Access to Practice */}
+            <Link
+              href="/student/practice"
+              className="block group bg-gradient-to-r from-indigo-50 to-violet-50 rounded-2xl p-6 border border-indigo-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+            >
+              <div className="flex items-center gap-5">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
+                  <Brain size={32} className="text-white" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="font-bold text-slate-800 text-lg">Práctica con IA</h2>
+                  <p className="text-sm text-slate-500 mt-0.5">
+                    {Object.keys(progress).length} materias disponibles · {totalNodos} nodos completados
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {Object.entries(progress).slice(0, 4).map(([slug, p]) => (
+                      <span key={slug} className="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-600">
+                        {slug === "matematicas" && "🔢"}
+                        {slug === "fisica" && "⚡"}
+                        {slug === "quimica" && "🧪"}
+                        {slug === "ingles" && "🗣"}
+                        {p.percentage ?? 0}%
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-indigo-600 text-white p-3 rounded-xl group-hover:bg-indigo-700 transition-colors shrink-0">
+                  <ChevronRight size={22} />
+                </div>
+              </div>
+            </Link>
+
+            {/* Resumen académico */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+                <BookOpen size={18} className="text-indigo-500" />
+                Resumen académico
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-slate-50 rounded-xl p-3 text-center">
+                  <Flame size={18} className="text-orange-500 mx-auto mb-1" />
+                  <p className="text-lg font-bold text-slate-800">{streakDays}</p>
+                  <p className="text-[10px] text-slate-400 font-medium">Racha</p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3 text-center">
+                  <Zap size={18} className="text-indigo-500 mx-auto mb-1" />
+                  <p className="text-lg font-bold text-slate-800">{totalSessions}</p>
+                  <p className="text-[10px] text-slate-400 font-medium">Sesiones</p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3 text-center">
+                  <Target size={18} className="text-emerald-500 mx-auto mb-1" />
+                  <p className="text-lg font-bold text-slate-800">{accuracy}%</p>
+                  <p className="text-[10px] text-slate-400 font-medium">Precisión</p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3 text-center">
+                  <BookOpen size={18} className="text-violet-500 mx-auto mb-1" />
+                  <p className="text-lg font-bold text-slate-800">{Object.keys(progress).length}</p>
+                  <p className="text-[10px] text-slate-400 font-medium">Materias</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Sidebar */}
+          <div className="space-y-6">
+
+            {/* Pending Assignments */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-5 pt-5 pb-3 border-b border-slate-100">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm">
+                    <ClipboardList size={18} className="text-indigo-500" />
+                    Pendientes
+                  </h3>
+                  <span className="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-lg">
+                    {pendingAssignments.length}
+                  </span>
+                </div>
+              </div>
+              <div className="divide-y divide-slate-50">
+                {pendingAssignments.length > 0 ? (
+                  pendingAssignments.slice(0, 5).map((a: any) => (
                     <Link
                       key={a.id}
                       href={`/student/assignments/${a.id}`}
-                      className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors group"
+                      className="flex items-center gap-3 p-4 hover:bg-slate-50 transition-colors group"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="h-8 w-8 shrink-0 rounded-full flex items-center justify-center bg-amber-100 text-amber-600 text-sm">
-                          {a.subjectEmoji || "📋"}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{a.title}</p>
-                          <p className="text-xs text-muted-foreground">{a.subjectName}</p>
-                          {a.dueDate && (
-                            <div className="mt-0.5">
-                              <DueTimer dueDate={a.dueDate} compact />
-                            </div>
-                          )}
-                        </div>
+                      <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-base shrink-0">
+                        {a.subjectEmoji || "📋"}
                       </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-700 truncate">{a.title}</p>
+                        <p className="text-xs text-slate-400">{a.subjectName}</p>
+                        {a.dueDate && (
+                          <div className="mt-1">
+                            <DueTimer dueDate={a.dueDate} compact />
+                          </div>
+                        )}
+                      </div>
+                      <ChevronRight size={16} className="text-slate-300 group-hover:text-slate-500 transition-colors shrink-0" />
                     </Link>
-                  );
-                })}
+                  ))
+                ) : (
+                  <div className="p-6 text-center">
+                    <CheckCircle2 size={36} className="text-emerald-300 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-slate-600">¡Todo al día!</p>
+                    <p className="text-xs text-slate-400 mt-0.5">No tienes tareas pendientes</p>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="p-6 text-center">
-                <CheckCircle2 className="h-8 w-8 text-muted-foreground/30 mx-auto" />
-                <p className="text-sm text-muted-foreground mt-2">No tienes tareas pendientes</p>
+              {pendingAssignments.length > 0 && (
+                <Link
+                  href="/student/assignments"
+                  className="block text-center text-xs font-semibold text-indigo-600 py-3 hover:bg-indigo-50 transition-colors"
+                >
+                  Ver todas las tareas
+                </Link>
+              )}
+            </div>
+
+            {/* AI Assistant Card */}
+            <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl p-5 text-white relative overflow-hidden group cursor-pointer shadow-md">
+              <div className="absolute -right-6 -bottom-6 text-indigo-500/20 group-hover:scale-110 transition-transform duration-500">
+                <Brain size={120} />
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <div className="flex justify-between items-center">
-          <Link
-            href="/student/assignments"
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-medium transition-colors"
-          >
-            Ver todas mis tareas <ArrowRight className="h-3 w-3" />
-          </Link>
-          {expiredAssignments.length > 0 && (
-            <span className="text-xs text-muted-foreground">
-              {expiredAssignments.length} {expiredAssignments.length === 1 ? "tarea vencida" : "tareas vencidas"}
-            </span>
-          )}
-        </div>
-
-      </section>
-
-      {/* Divider */}
-      <div className="border-t border-dashed" />
-
-      {/* SECTION 2: PRACTICA CON IA */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Gamepad2 className="h-5 w-5 text-primary" />
-          <h2 className="text-base font-bold tracking-tight">Practica con IA</h2>
-          <span className="text-[11px] text-muted-foreground font-normal ml-1">
-            — Refuerzo voluntario. No afecta tu nota oficial.
-          </span>
-        </div>
-
-        {/* Practice stats */}
-        <div className="grid grid-cols-3 gap-3">
-          <Card className="shadow-sm">
-            <CardContent className="p-3 text-center">
-              <Flame className="h-4 w-4 text-orange-500 mx-auto mb-1" />
-              <p className="text-lg font-bold">{totalSessions}</p>
-              <p className="text-[10px] text-muted-foreground">Sesiones</p>
-            </CardContent>
-          </Card>
-          <Card className="shadow-sm">
-            <CardContent className="p-3 text-center">
-              <Clock className="h-4 w-4 text-blue-500 mx-auto mb-1" />
-              <p className="text-lg font-bold">{streakDays} dias</p>
-              <p className="text-[10px] text-muted-foreground">Racha</p>
-            </CardContent>
-          </Card>
-          <Card className="shadow-sm">
-            <CardContent className="p-3 text-center">
-              <BookOpen className="h-4 w-4 text-emerald-500 mx-auto mb-1" />
-              <p className="text-lg font-bold">{accuracy}%</p>
-              <p className="text-[10px] text-muted-foreground">Precision</p>
-              <p className="text-[9px] text-muted-foreground/60">Aciertos / Total</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Subject cards */}
-        <div className="grid sm:grid-cols-2 gap-3">
-          {Object.entries(progress).map(([slug, p]) => {
-            const subjDef = SUBJECTS.find(s => s.id === slug);
-            const name = subjDef?.name || slug;
-            const emoji = subjDef?.emoji || "📚";
-            const pct = p.percentage ?? 0;
-            const completed = p.completedNodes ?? 0;
-            const total = p.totalNodes ?? 0;
-            const stars = p.totalStars ?? 0;
-            return (
-              <Link
-                key={slug}
-                href={`/student/path/${slug}`}
-                className="flex items-center gap-4 p-4 bg-card border rounded-xl hover:border-primary/40 hover:shadow-md transition-all group"
-              >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted/50 text-2xl">
-                  {emoji}
+              <div className="relative z-10">
+                <div className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center mb-3 border border-white/20">
+                  <Brain size={22} className="text-indigo-200" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-sm">{name}</h3>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary transition-colors" />
-                  </div>
-                  <div className="mt-2">
-                    <ProgressBar percentage={pct} />
-                  </div>
-                  <div className="flex items-center gap-3 mt-1">
-                    <p className="text-[11px] text-muted-foreground">
-                      {total > 0 ? `${completed}/${total} nodos` : "Sin progreso"}
-                    </p>
-                    {stars > 0 && (
-                      <span className="text-[11px] text-yellow-600 font-medium flex items-center gap-0.5">
-                        ⭐ {stars}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
+                <h3 className="font-bold text-lg">Tutor IA</h3>
+                <p className="text-indigo-200 text-sm mt-1 leading-relaxed">
+                  ¿Atascado en un problema? Pregúntale al asistente.
+                </p>
+                <button className="mt-4 bg-white text-indigo-700 font-semibold py-2.5 px-5 rounded-xl text-sm hover:bg-indigo-50 transition-all shadow-md w-full text-center">
+                  Preguntar ahora
+                </button>
+              </div>
+            </div>
 
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

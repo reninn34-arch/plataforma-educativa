@@ -298,7 +298,7 @@ export function AiAssistant() {
             <Check className="h-7 w-7 text-emerald-600" />
           </div>
           <p className="text-sm font-semibold text-emerald-800 mb-1">Tarea creada exitosamente</p>
-          <p className="text-xs text-muted-foreground mb-4">{generatedData?.title} • {selectedSubject?.subjectName}</p>
+          <p className="text-xs text-slate-500 mb-4">{generatedData?.title} • {selectedSubject?.subjectName}</p>
           <button onClick={clearFlow} className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors">
             Volver al chat
           </button>
@@ -327,7 +327,7 @@ export function AiAssistant() {
                 </div>
               ))}
             </div>
-            <p className="text-[10px] text-muted-foreground text-center">{generatedData.questions.length} preguntas</p>
+            <p className="text-[10px] text-slate-500 text-center">{generatedData.questions.length} preguntas</p>
           </div>
           {flowError && <p className="text-xs text-red-600 text-center">{flowError}</p>}
           <div className="flex gap-2">
@@ -371,7 +371,7 @@ export function AiAssistant() {
                   className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left text-sm hover:border-violet-300 hover:bg-violet-50 transition-colors flex items-center justify-between"
                 >
                   <span className="font-medium">{c.nombre}</span>
-                  <span className="text-xs text-muted-foreground">{c.studentCount} estudiantes</span>
+                  <span className="text-xs text-slate-500">{c.studentCount} estudiantes</span>
                 </button>
               ))}
             </div>
@@ -478,7 +478,7 @@ export function AiAssistant() {
                   <div key={c.id} className="rounded-xl border border-gray-200 bg-white p-3">
                     <div className="flex items-center justify-between mb-1">
                       <p className="font-semibold text-sm">{c.nombre}</p>
-                      <span className="text-xs text-muted-foreground">{c.studentCount} estudiantes</span>
+                      <span className="text-xs text-slate-500">{c.studentCount} estudiantes</span>
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {c.mySubjects.map((s) => (
@@ -524,7 +524,7 @@ export function AiAssistant() {
                   <Check className="h-6 w-6 text-emerald-600" />
                 </div>
                 <p className="text-xs font-medium text-emerald-700">No hay estudiantes en riesgo</p>
-                <p className="text-[10px] text-muted-foreground mt-1">Todos están al día</p>
+                <p className="text-[10px] text-slate-500 mt-1">Todos están al día</p>
               </div>
             )}
             {flowError && <p className="text-xs text-red-600 text-center mt-2">{flowError}</p>}
@@ -540,7 +540,7 @@ export function AiAssistant() {
                   <Check className="h-7 w-7 text-emerald-600" />
                 </div>
                 <p className="text-sm font-semibold text-emerald-800 mb-1">Mensaje enviado</p>
-                <p className="text-xs text-muted-foreground mb-3">A los estudiantes de {messageCourse?.nombre}</p>
+                <p className="text-xs text-slate-500 mb-3">A los estudiantes de {messageCourse?.nombre}</p>
                 <button onClick={clearFlow} className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors">
                   Volver al chat
                 </button>
@@ -656,8 +656,8 @@ export function AiAssistant() {
                     <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-violet-100 mb-4">
                       <Sparkles className="h-7 w-7 text-violet-600" />
                     </div>
-                    <p className="text-base font-semibold text-foreground mb-1">Hola, soy Atlas IA</p>
-                    <p className="text-xs text-muted-foreground mb-6 text-center max-w-[260px]">
+                    <p className="text-base font-semibold text-slate-800 mb-1">Hola, soy Atlas IA</p>
+                    <p className="text-xs text-slate-500 mb-6 text-center max-w-[260px]">
                       Puedo ayudarte a consultar datos de la plataforma o crear contenido educativo.
                     </p>
                     <div className="flex flex-wrap justify-center gap-2 max-w-[300px]">
@@ -770,10 +770,10 @@ export function AiAssistant() {
             )}
             <form onSubmit={handleSubmit} className="flex gap-2 items-center">
               <input type="file" accept=".txt,.csv,.md" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
-              <button type="button" onClick={() => fileInputRef.current?.click()} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-gray-100 transition-colors">
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-gray-100 transition-colors">
                 <Paperclip className="h-4 w-4" />
               </button>
-              <button type="button" onClick={toggleRecording} className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors", isRecording ? "bg-red-100 text-red-600 animate-pulse" : "text-muted-foreground hover:bg-gray-100")}>
+              <button type="button" onClick={toggleRecording} className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors", isRecording ? "bg-red-100 text-red-600 animate-pulse" : "text-slate-500 hover:bg-gray-100")}>
                 <Mic className="h-4 w-4" />
               </button>
               <input

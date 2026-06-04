@@ -34,7 +34,6 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
     progressMap.set(p.nodeId, p);
   }
 
-  // Calculate stats
   const completedNodes = allNodes.filter(n => {
     const p = progressMap.get(n.id);
     return p?.status === "completed" || p?.status === "mastered";
@@ -43,7 +42,6 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
   const subjectProgress = totalNodes > 0 ? Math.round((completedNodes / totalNodes) * 100) : 0;
   const totalStars = progressRecords.reduce((sum, p) => sum + (p.starsEarned || 0), 0);
 
-  // Suggested topics from static nodes
   const staticModules = subjectModules.filter(m => !m.generated);
   const staticModuleIds = staticModules.map(m => m.id);
   const staticNodes = allNodes.filter(n => staticModuleIds.includes(n.moduleId));
@@ -56,28 +54,28 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F8FAFC]">
-      <header className="sticky top-0 z-10 border-b border-[#E2E8F0] bg-white/95 backdrop-blur shadow-sm">
+    <div className="flex min-h-screen flex-col bg-slate-50">
+      <header className="sticky top-0 z-10 bg-gradient-to-r from-indigo-600 to-violet-600 shadow-lg">
         <div className="flex h-14 items-center gap-3 px-4 max-w-2xl mx-auto w-full">
-          <Link href="/student/dashboard" className="text-[#475569] hover:bg-slate-100 p-2 rounded-full transition-colors">
+          <Link href="/student/dashboard" className="text-white/80 hover:bg-white/15 p-2 rounded-full transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <span className="text-xl shrink-0">{subject.emoji}</span>
             <div className="min-w-0">
-              <span className="text-base font-bold text-[#1A2332]">{subject.name}</span>
-              <p className="text-xs text-[#94A3B8]">Camino de Aprendizaje</p>
+              <span className="text-base font-bold text-white">{subject.name}</span>
+              <p className="text-xs text-indigo-200">Camino de Aprendizaje</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-3 shrink-0 bg-white/10 rounded-xl px-3 py-1.5">
             <div className="flex items-center gap-1">
-              <span className="text-sm font-bold text-yellow-600">{totalStars}</span>
-              <Star size={14} className="text-yellow-500 fill-yellow-500" />
+              <span className="text-sm font-bold text-yellow-300">{totalStars}</span>
+              <Star size={14} className="text-yellow-400 fill-yellow-400" />
             </div>
-            <div className="w-px h-6 bg-slate-200" />
+            <div className="w-px h-5 bg-white/20" />
             <div>
-              <p className="text-sm font-bold text-slate-700">{subjectProgress}%</p>
-              <p className="text-[10px] text-slate-400">{completedNodes}/{totalNodes}</p>
+              <p className="text-sm font-bold text-white">{subjectProgress}%</p>
+              <p className="text-[10px] text-indigo-200">{completedNodes}/{totalNodes}</p>
             </div>
           </div>
         </div>
@@ -102,24 +100,24 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
               return (
                 <div key={mod.id} className="relative">
                   <div className={`
-                    border-2 rounded-2xl p-5 mb-8 shadow-sm
+                    rounded-2xl p-5 mb-8 border shadow-md
                     ${isModLocked
                       ? 'bg-slate-50 border-slate-200 opacity-60'
                       : mod.generated
-                        ? 'bg-gradient-to-r from-purple-50 to-white border-purple-200'
-                        : 'bg-white border-slate-200'
+                        ? 'bg-gradient-to-r from-indigo-50 to-white border-indigo-200 shadow-indigo-100/50'
+                        : 'bg-white border-slate-200 shadow-slate-100'
                     }
                   `}>
                     <div className="flex justify-between items-center">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           {mod.generated ? (
-                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700">
+                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700">
                               <Sparkles className="h-3 w-3" />
                               IA
                             </span>
                           ) : (
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">
                               Unidad {modIndex + 1}
                             </span>
                           )}
@@ -132,12 +130,12 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                         </div>
                         <h2 className="text-xl font-bold text-slate-800 mt-1">{mod.title}</h2>
                         {mod.topic && (
-                          <p className="text-xs text-purple-600 mt-0.5">Tema: {mod.topic}</p>
+                          <p className="text-xs text-indigo-600 mt-0.5">Tema: {mod.topic}</p>
                         )}
-                        <div className="flex items-center gap-3 mt-2">
-                          <div className="flex-1 max-w-[200px] h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                        <div className="flex items-center gap-3 mt-3">
+                          <div className="flex-1 max-w-[200px] h-2 bg-slate-200 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-primary rounded-full transition-all duration-500"
+                              className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-500"
                               style={{ width: `${modPct}%` }}
                             />
                           </div>
@@ -155,36 +153,30 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                       const isCompleted = status === "completed" || status === "mastered";
                       const isCurrent = status === "unlocked";
 
-                      // Check if previous node is completed for golden line
-                      const prevNode = i > 0 ? modNodes[i - 1] : null;
-                      const prevProg = prevNode ? progressMap.get(prevNode.id) : null;
-                      const prevCompleted = prevProg?.status === "completed" || prevProg?.status === "mastered";
-                      const currentCompleted = isCompleted;
-
                       const offset = i % 2 !== 0 ? "translate-x-12" : "-translate-x-12";
 
                       return (
                         <div key={node.id} className={`relative flex flex-col items-center ${offset}`}>
                           {i > 0 && (
                             <div className={`
-                              absolute top-16 h-12 w-2 -z-10
-                              ${prevCompleted ? 'bg-yellow-400' : 'bg-slate-200'}
+                              absolute top-16 h-12 w-1 -z-10 rounded-full
+                              ${isCompleted ? 'bg-indigo-400' : 'bg-slate-200'}
                             `} />
                           )}
 
                           <div className="relative group">
                             {isCurrent && !isModLocked && (
-                              <div className="absolute -inset-4 bg-primary/20 rounded-full animate-ping -z-10" />
+                              <div className="absolute -inset-4 bg-indigo-400/20 rounded-full animate-ping -z-10" />
                             )}
 
                             <Link href={(isLocked || isModLocked) ? "#" : `/student/path/${subject.slug}/${node.id}`}>
                               <button
                                 disabled={isLocked || isModLocked}
                                 className={`
-                                  h-20 w-20 rounded-full flex items-center justify-center border-b-4 transition-all
-                                  ${(isLocked || isModLocked) ? 'bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed' :
-                                    isCompleted ? 'bg-yellow-400 border-yellow-500 text-white hover:-translate-y-1' :
-                                    'bg-primary border-primary/80 text-white hover:-translate-y-1 scale-110 shadow-lg'
+                                  h-20 w-20 rounded-full flex items-center justify-center transition-all shadow-md
+                                  ${(isLocked || isModLocked) ? 'bg-slate-200 border-2 border-slate-300 text-slate-400 cursor-not-allowed' :
+                                    isCompleted ? 'bg-emerald-400 border-2 border-emerald-500 text-white hover:-translate-y-1 hover:shadow-emerald-200' :
+                                    'bg-gradient-to-br from-indigo-500 to-violet-600 text-white hover:-translate-y-1 scale-110 shadow-lg shadow-indigo-200'
                                   }
                                 `}
                               >
@@ -193,9 +185,9 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                             </Link>
 
                             {(isCompleted || isCurrent) && prog?.starsEarned > 0 && (
-                              <div className="absolute -top-3 -right-3 bg-white rounded-full p-1 shadow border flex items-center">
-                                <span className="text-xs font-bold text-yellow-500">{prog.starsEarned}</span>
-                                <Star size={12} className="text-yellow-500 fill-yellow-500 ml-0.5" />
+                              <div className="absolute -top-3 -right-3 bg-white rounded-full px-2 py-0.5 shadow-md border border-slate-100 flex items-center gap-0.5">
+                                <span className="text-xs font-bold text-yellow-600">{prog.starsEarned}</span>
+                                <Star size={12} className="text-yellow-500 fill-yellow-500" />
                               </div>
                             )}
                           </div>
@@ -205,10 +197,10 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                               {node.title}
                             </span>
                             {node.type === "concept" && !isLocked && (
-                              <span className="block text-[10px] text-blue-500 mt-0.5">Enseñanza</span>
+                              <span className="block text-[10px] text-indigo-500 mt-0.5 font-medium">Enseñanza</span>
                             )}
                             {node.type === "challenge" && !isLocked && (
-                              <span className="block text-[10px] text-orange-500 mt-0.5">Desafio</span>
+                              <span className="block text-[10px] text-amber-500 mt-0.5 font-medium">Desafío</span>
                             )}
                           </div>
                         </div>
@@ -221,8 +213,8 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
 
             {orderedModules.length === 0 && (
               <div className="text-center py-16 text-slate-400">
-                <p className="text-lg font-medium">No hay caminos de aprendizaje todavia</p>
-                <p className="text-sm mt-1">Usa la barra de busqueda para generar tu primer camino con IA.</p>
+                <p className="text-lg font-medium">No hay caminos de aprendizaje todavía</p>
+                <p className="text-sm mt-1">Usa la barra de búsqueda para generar tu primer camino con IA.</p>
               </div>
             )}
           </div>

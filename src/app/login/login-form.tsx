@@ -4,9 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { GraduationCap, Loader2, Eye, EyeOff, Shield, ArrowLeft } from "lucide-react";
+import { Loader2, Eye, EyeOff, Shield, ArrowLeft, Sparkles, GraduationCap } from "lucide-react";
 import { apiFetch, clearCache } from "@/lib/fetch-utils";
 
 type Props = { redirect?: string };
@@ -39,7 +37,7 @@ export function LoginForm({ redirect }: Props) {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Error al iniciar sesion");
+        setError(data.error || "Error al iniciar sesión");
         setLoading(false);
         return;
       }
@@ -57,14 +55,14 @@ export function LoginForm({ redirect }: Props) {
         router.push(safeRedirect || "/student/dashboard");
       }
     } catch {
-      setError("Error de conexion. Intenta de nuevo.");
+      setError("Error de conexión. Intenta de nuevo.");
       setLoading(false);
     }
   };
 
   const handleForgotPin = async () => {
     if (forgotCedula.length !== 10) {
-      setForgotError("Ingresa una cedula valida de 10 digitos");
+      setForgotError("Ingresa una cédula válida de 10 dígitos");
       return;
     }
     setForgotLoading(true);
@@ -80,45 +78,42 @@ export function LoginForm({ redirect }: Props) {
       if (!res.ok) {
         setForgotError(d.error || "Error al enviar");
       } else {
-        setForgotMsg(d.message || "Si la cedula existe, recibiras un correo.");
+        setForgotMsg(d.message || "Si la cédula existe, recibirás un correo.");
       }
     } catch {
-      setForgotError("Error de conexion");
+      setForgotError("Error de conexión");
     }
     setForgotLoading(false);
   };
 
   if (showForgot) {
     return (
-      <div className="w-full max-w-md mx-auto space-y-6 animate-scale-in">
-        <div className="flex flex-col space-y-2 text-center mb-8">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-primary mb-4">
-            <GraduationCap className="h-6 w-6 text-primary-foreground" />
+      <div className="w-full max-w-md mx-auto space-y-6 animate-fade-in-up">
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-indigo-200/20 overflow-hidden">
+          <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center mx-auto mb-3 border border-white/20">
+              <GraduationCap size={28} className="text-white" />
+            </div>
+            <h1 className="text-xl font-bold text-white">Recuperar PIN</h1>
+            <p className="text-indigo-200 text-sm mt-1">Ingresa tu cédula y te enviaremos instrucciones</p>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Recuperar PIN
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Ingresa tu cedula y te enviaremos un enlace a tu correo.
-          </p>
-        </div>
 
-        <div className="bg-card border rounded-xl shadow-sm">
-          <div className="p-6 sm:p-8 space-y-4">
+          <div className="p-6 sm:p-8">
             {forgotMsg ? (
-              <div className="space-y-4">
-                <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700">
-                  {forgotMsg}
+              <div className="space-y-4 animate-fade-in-up">
+                <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-4 text-sm text-emerald-700 flex items-start gap-3">
+                  <span className="text-lg">📧</span>
+                  <span>{forgotMsg}</span>
                 </div>
-                <Button onClick={() => setShowForgot(false)} variant="outline" className="w-full gap-2">
-                  <ArrowLeft className="h-4 w-4" /> Volver al inicio de sesion
+                <Button onClick={() => setShowForgot(false)} variant="outline" className="w-full h-11 rounded-xl border-slate-200">
+                  <ArrowLeft className="h-4 w-4 mr-2" /> Volver al inicio
                 </Button>
               </div>
             ) : (
-              <>
+              <div className="space-y-4">
                 <div>
-                  <Label htmlFor="forgot-cedula" className="text-sm font-medium">Numero de Cedula</Label>
-                  <Input
+                  <label className="text-sm font-semibold text-slate-700 block mb-1.5">Número de Cédula</label>
+                  <input
                     id="forgot-cedula"
                     type="tel"
                     inputMode="numeric"
@@ -126,29 +121,30 @@ export function LoginForm({ redirect }: Props) {
                     placeholder="Ej. 0999999999"
                     value={forgotCedula}
                     onChange={(e) => setForgotCedula(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    className="h-11 mt-2"
+                    className="w-full h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all"
                     disabled={forgotLoading}
                   />
                 </div>
 
                 {forgotError && (
-                  <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                  <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 flex items-center gap-2">
+                    <Shield size={14} />
                     {forgotError}
                   </div>
                 )}
 
-                <Button onClick={handleForgotPin} disabled={forgotLoading || forgotCedula.length !== 10} className="w-full h-11">
-                  {forgotLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Enviar enlace de recuperacion"}
+                <Button onClick={handleForgotPin} disabled={forgotLoading || forgotCedula.length !== 10} className="w-full h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200">
+                  {forgotLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Enviar enlace de recuperación"}
                 </Button>
 
                 <button
                   type="button"
                   onClick={() => setShowForgot(false)}
-                  className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1 py-2"
+                  className="w-full text-sm text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center gap-1 py-2"
                 >
-                  <ArrowLeft className="h-3 w-3" /> Volver al inicio de sesion
+                  <ArrowLeft className="h-3 w-3" /> Volver al inicio
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>
@@ -157,29 +153,31 @@ export function LoginForm({ redirect }: Props) {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-6 animate-scale-in">
-      <div className="flex flex-col space-y-2 text-center mb-8">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-primary mb-4">
-          <GraduationCap className="h-6 w-6 text-primary-foreground" />
+    <div className="w-full max-w-md mx-auto space-y-6 animate-fade-in-up">
+      {/* Logo + Branding */}
+      <div className="text-center">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center mx-auto mb-4 shadow-xl shadow-indigo-200">
+          <GraduationCap size={32} className="text-white" />
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Bienvenido a Atlas Edu
+        <h1 className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
+          Atlas Edu
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Ingresa tus credenciales para acceder a la plataforma educativa.
+        <p className="text-slate-500 text-sm mt-1">
+          Plataforma Educativa PCEI
         </p>
       </div>
 
-      <div className="bg-card border rounded-xl shadow-sm">
+      {/* Login Card */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-indigo-200/20 overflow-hidden">
         <div className="p-6 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="cedula" className="text-sm font-medium">
-                Numero de Cedula
-              </Label>
-              <Input
+            <div className="space-y-1.5">
+              <label htmlFor="cedula" className="text-sm font-semibold text-slate-700">
+                Número de Cédula
+              </label>
+              <input
                 id="cedula"
-                aria-label="Cedula"
+                aria-label="Cédula"
                 type="tel"
                 inputMode="numeric"
                 maxLength={10}
@@ -189,30 +187,30 @@ export function LoginForm({ redirect }: Props) {
                   const v = e.target.value.replace(/\D/g, "").slice(0, 10);
                   setCedula(v);
                 }}
-                className="h-11"
+                className="w-full h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all"
                 autoComplete="username"
                 disabled={loading}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="pin" className="text-sm font-medium">
-                PIN de Seguridad (4 digitos)
-              </Label>
+            <div className="space-y-1.5">
+              <label htmlFor="pin" className="text-sm font-semibold text-slate-700">
+                PIN de Seguridad (4 dígitos)
+              </label>
               <div className="relative">
-                <Input
+                <input
                   id="pin"
                   aria-label="PIN"
                   type={showPin ? "text" : "password"}
                   inputMode="numeric"
                   maxLength={4}
-                  placeholder="••••"
+                  placeholder="····"
                   value={pin}
                   onChange={(e) => {
                     const v = e.target.value.replace(/\D/g, "").slice(0, 4);
                     setPin(v);
                   }}
-                  className="h-11 pr-10 tracking-widest"
+                  className="w-full h-11 rounded-xl border border-slate-200 bg-white px-4 pr-11 text-sm font-bold tracking-[0.3em] placeholder:tracking-normal focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all"
                   autoComplete="current-password"
                   disabled={loading}
                 />
@@ -220,24 +218,24 @@ export function LoginForm({ redirect }: Props) {
                   type="button"
                   onClick={() => setShowPin(!showPin)}
                   aria-label="Mostrar u ocultar PIN"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   tabIndex={-1}
                 >
-                  {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPin ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
 
             {error && (
-              <div className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive flex items-center gap-2">
-                <Shield className="h-4 w-4 shrink-0" />
+              <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 flex items-center gap-2">
+                <Shield size={14} className="shrink-0" />
                 {error}
               </div>
             )}
 
             <Button
               type="submit"
-              className="w-full h-11 font-medium"
+              className="w-full h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-md shadow-indigo-200 disabled:opacity-50"
               disabled={loading || cedula.length !== 10 || pin.length !== 4}
             >
               {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -247,14 +245,14 @@ export function LoginForm({ redirect }: Props) {
             <button
               type="button"
               onClick={() => { setShowForgot(true); setForgotCedula(cedula); setForgotError(""); setForgotMsg(""); }}
-              className="w-full text-sm text-primary hover:underline text-center pt-1"
+              className="w-full text-sm text-indigo-600 hover:text-indigo-700 font-medium text-center pt-1 hover:underline transition-colors"
             >
               ¿Olvidaste tu PIN?
             </button>
           </form>
         </div>
-        <div className="border-t bg-muted/30 p-4 text-center">
-          <p className="text-xs text-muted-foreground">
+        <div className="border-t border-slate-100 bg-slate-50/50 p-4 text-center">
+          <p className="text-xs text-slate-400">
             Acceso restringido a estudiantes y personal autorizado de PCEI.
           </p>
         </div>

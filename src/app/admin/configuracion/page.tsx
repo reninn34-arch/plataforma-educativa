@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Save, Loader2, CheckCircle, AlertCircle, Mail, Server } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/fetch-utils";
 
@@ -22,9 +21,9 @@ const PROVIDERS: Record<string, { host: string; port: string; label: string; ins
     host: "smtp-mail.outlook.com",
     port: "587",
     label: "Outlook / Hotmail / Office 365",
-    instructions: `1. Inicia sesion en tu cuenta de Outlook
-2. Ve a Configuracion > Correo > Sincronizar correo
-3. Asegurate de que SMTP esta habilitado
+    instructions: `1. Inicia sesión en tu cuenta de Outlook
+2. Ve a Configuración > Correo > Sincronizar correo
+3. Asegúrate de que SMTP está habilitado
 4. Usa tu correo completo como "Usuario SMTP"
 5. Usa tu contraseña normal de Outlook`,
   },
@@ -34,8 +33,8 @@ const PROVIDERS: Record<string, { host: string; port: string; label: string; ins
     label: "Servidor SMTP personalizado",
     instructions: `1. Solicita a tu proveedor de hosting los datos SMTP
 2. Necesitas: Host, Puerto, Usuario y Contraseña
-3. Puerto comun: 587 (TLS) o 465 (SSL)
-4. Si usas cPanel: los datos estan en "Configuracion de correo"`,
+3. Puerto común: 587 (TLS) o 465 (SSL)
+4. Si usas cPanel: los datos están en "Configuración de correo"`,
   },
 };
 
@@ -93,21 +92,15 @@ export default function ConfiguracionPage() {
       const res = await apiFetch("/api/admin/config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          smtp_host: host,
-          smtp_port: port,
-          smtp_user: user,
-          smtp_pass: pass,
-          smtp_from_name: fromName,
-        }),
+        body: JSON.stringify({ smtp_host: host, smtp_port: port, smtp_user: user, smtp_pass: pass, smtp_from_name: fromName }),
       });
       if (res.ok) {
-        setFeedback("Configuracion guardada correctamente.");
+        setFeedback("Configuración guardada correctamente.");
         setTimeout(() => setFeedback(""), 3000);
       } else {
         setError("Error al guardar");
       }
-    } catch { setError("Error de conexion"); }
+    } catch { setError("Error de conexión"); }
     setSaving(false);
   };
 
@@ -123,42 +116,44 @@ export default function ConfiguracionPage() {
       });
       const d = await res.json();
       setTestResult(d.success ? "Correo de prueba enviado. Revisa tu bandeja de entrada." : d.error || "Error al enviar");
-    } catch { setTestResult("Error de conexion"); }
+    } catch { setTestResult("Error de conexión"); }
     setTesting(false);
   };
 
-  if (isLoading) return <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  if (isLoading) return <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-indigo-500" /></div>;
 
   const currentInstructions = PROVIDERS[provider].instructions;
 
   return (
     <div className="p-6 sm:p-8 w-full max-w-5xl mx-auto space-y-6 animate-fade-in-up">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Configuracion</h1>
-        <p className="text-sm text-muted-foreground mt-1">Configura el envio de correos electronicos para credenciales</p>
+        <h1 className="text-2xl font-bold text-slate-800">Configuración</h1>
+        <p className="text-sm text-slate-500 mt-1">Configura el envío de correos electrónicos para credenciales</p>
       </div>
 
       {feedback && (
-        <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-medium text-emerald-700">
+        <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-medium text-emerald-700">
           <CheckCircle className="h-4 w-4" /> {feedback}
         </div>
       )}
       {error && (
-        <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm font-medium text-red-700">
+        <div className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm font-medium text-red-700">
           <AlertCircle className="h-4 w-4" /> {error}
         </div>
       )}
 
       <div className="grid lg:grid-cols-5 gap-6">
         {/* Form */}
-        <Card className="lg:col-span-3 shadow-sm">
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Mail className="h-4 w-4" /> Servidor SMTP</CardTitle></CardHeader>
-          <CardContent>
+        <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm">
+          <div className="p-5 border-b border-slate-100">
+            <h2 className="text-base font-bold text-slate-800 flex items-center gap-2"><Mail className="h-4 w-4 text-indigo-500" /> Servidor SMTP</h2>
+          </div>
+          <div className="p-5">
             <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="text-sm font-semibold mb-1.5 block">Proveedor</label>
+                <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Proveedor</label>
                 <select value={provider} onChange={e => onProviderChange(e.target.value)}
-                  className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm">
+                  className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all">
                   {Object.entries(PROVIDERS).map(([k, v]) => (
                     <option key={k} value={k}>{v.label}</option>
                   ))}
@@ -167,62 +162,64 @@ export default function ConfiguracionPage() {
 
               <div className="grid sm:grid-cols-3 gap-4">
                 <div className="sm:col-span-2">
-                  <label className="text-sm font-semibold mb-1.5 block">Host SMTP</label>
+                  <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Host SMTP</label>
                   <input type="text" value={host} onChange={e => setHost(e.target.value)}
-                    className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm" placeholder="smtp.gmail.com" />
+                    className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" placeholder="smtp.gmail.com" />
                 </div>
                 <div>
-                  <label className="text-sm font-semibold mb-1.5 block">Puerto</label>
+                  <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Puerto</label>
                   <input type="text" value={port} onChange={e => setPort(e.target.value)}
-                    className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm" placeholder="587" />
+                    className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" placeholder="587" />
                 </div>
               </div>
 
               <div>
-                <label className="text-sm font-semibold mb-1.5 block">Usuario SMTP (correo)</label>
+                <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Usuario SMTP (correo)</label>
                 <input type="text" value={user} onChange={e => setUser(e.target.value)}
-                  className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm" placeholder="institucion@gmail.com" />
+                  className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" placeholder="institucion@gmail.com" />
               </div>
 
               <div>
-                <label className="text-sm font-semibold mb-1.5 block">Contraseña SMTP</label>
+                <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Contraseña SMTP</label>
                 <input type="password" value={pass} onChange={e => setPass(e.target.value)}
-                  className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm" placeholder="Contraseña de aplicacion (Gmail) o contraseña del correo" />
+                  className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" placeholder="Contraseña de aplicación (Gmail) o contraseña del correo" />
               </div>
 
               <div>
-                <label className="text-sm font-semibold mb-1.5 block">Nombre del remitente</label>
+                <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Nombre del remitente</label>
                 <input type="text" value={fromName} onChange={e => setFromName(e.target.value)}
-                  className="w-full h-10 rounded-lg border border-input bg-card px-3 text-sm" placeholder="Atlas Edu" />
+                  className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" placeholder="Atlas Edu" />
               </div>
 
               {testResult && (
-                <div className={`rounded-lg px-4 py-3 text-sm font-medium ${testResult.includes("enviado") ? "bg-emerald-50 border border-emerald-200 text-emerald-700" : "bg-amber-50 border border-amber-200 text-amber-700"}`}>
+                <div className={`rounded-xl px-4 py-3 text-sm font-medium ${testResult.includes("enviado") ? "bg-emerald-50 border border-emerald-200 text-emerald-700" : "bg-amber-50 border border-amber-200 text-amber-700"}`}>
                   {testResult}
                 </div>
               )}
 
               <div className="flex gap-3">
-                <Button type="submit" disabled={saving} className="gap-2">
+                <Button type="submit" disabled={saving} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200 gap-2">
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Guardar configuracion
+                  Guardar configuración
                 </Button>
-                <Button type="button" variant="outline" disabled={testing} onClick={handleTest} className="gap-2">
+                <Button type="button" variant="outline" disabled={testing} onClick={handleTest} className="rounded-xl border-slate-200 gap-2">
                   {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Server className="h-4 w-4" />}
-                  Probar conexion
+                  Probar conexión
                 </Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Instructions */}
-        <Card className="lg:col-span-2 shadow-sm h-fit">
-          <CardHeader><CardTitle className="text-base">Como configurar {PROVIDERS[provider].label}</CardTitle></CardHeader>
-          <CardContent>
-            <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-sans leading-relaxed">{currentInstructions}</pre>
-          </CardContent>
-        </Card>
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm h-fit">
+          <div className="p-5 border-b border-slate-100">
+            <h2 className="text-base font-bold text-slate-800">Cómo configurar {PROVIDERS[provider].label}</h2>
+          </div>
+          <div className="p-5">
+            <pre className="text-sm text-slate-600 whitespace-pre-wrap font-sans leading-relaxed">{currentInstructions}</pre>
+          </div>
+        </div>
       </div>
     </div>
   );

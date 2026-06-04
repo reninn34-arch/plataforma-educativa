@@ -43,7 +43,7 @@ export function ImageCarousel({ subjectId }: ImageCarouselProps) {
   const prev = useCallback(() => setCurrent((c) => (c - 1 + images.length) % images.length), [images.length]);
 
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl bg-[#F1F5F9] border border-[#E2E8F0] shadow-sm">
+    <div className="relative w-full overflow-hidden rounded-2xl bg-slate-100 border border-slate-200 shadow-sm">
       <div className="aspect-[3/2] w-full">
         {images.map((src, i) => (
           <img
