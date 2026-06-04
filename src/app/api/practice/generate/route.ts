@@ -14,6 +14,55 @@ import { getStudyMaterialForStudent } from "@/lib/study-material";
 
 export const CACHED_EXERCISES_VERSION = 6;
 
+const SCHEMA_KEY_MAP: Record<string, string> = {
+  leccion: "lesson",
+  ejercicios: "exercises",
+  titulo: "title",
+  explicacion: "explanation",
+  ejemplo: "example",
+  problema: "problem",
+  pasos: "steps",
+  respuesta: "answer",
+  errorcomun: "commonMistake",
+  error: "commonMistake",
+  commonmistake: "commonMistake",
+  comprobacionrapida: "quickCheck",
+  comprobacion: "quickCheck",
+  quickcheck: "quickCheck",
+  pregunta: "question",
+  opciones: "options",
+  respuestacorrecta: "correctAnswer",
+  correctanswer: "correctAnswer",
+  indicecorrecto: "correctIndex",
+  correctindex: "correctIndex",
+  respuestasaceptadas: "acceptedAnswers",
+  acceptedanswers: "acceptedAnswers",
+  limitetiempo: "timeLimit",
+  timelimit: "timeLimit",
+  dificultad: "difficulty",
+  channelname: "channelName",
+  thumbnailurl: "thumbnailUrl",
+};
+
+function normalizeKeys(obj: any): any {
+  if (!obj || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(normalizeKeys);
+  }
+  const result: any = {};
+  for (const key of Object.keys(obj)) {
+    const cleanKey = key
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/_/g, "")
+      .replace(/\s+/g, "");
+    const targetKey = SCHEMA_KEY_MAP[cleanKey] || cleanKey;
+    result[targetKey] = normalizeKeys(obj[key]);
+  }
+  return result;
+}
+
 const diagramSchema = z.object({
   mermaid: z.string(),
   caption: z.string(),
@@ -24,37 +73,158 @@ const exampleStepSchema = z.object({
   svg: z.string().optional(),
 });
 
-const lessonSchema = z.object({
+const baseLessonSchema = z.object({
   title: z.string(),
   explanation: z.string(),
-  example: z.object({
+  example: z.preprocess((val: any) => {
+    if (val && typeof val === "object") {
+      const problemText = val.problem ?? val.problema ?? val.text ?? val.pregunta ?? "Ejemplo práctico";
+      const answerText = val.answer ?? val.respuesta ?? "Resultado del ejemplo";
+      let stepsArray = val.steps ?? val.pasos;
+
+      if (!stepsArray || !Array.isArray(stepsArray)) {
+        stepsArray = [{
+          text: typeof val.explanation === "string" ? val.explanation : (typeof val.text === "string" ? val.text : "Paso a paso de resolución:"),
+          svg: val.svg
+        }];
+      }
+      return {
+        problem: problemText,
+        steps: stepsArray,
+        answer: answerText,
+      };
+    }
+    return val;
+  }, z.object({
     problem: z.string(),
     steps: z.array(exampleStepSchema),
     answer: z.string(),
-  }),
-  commonMistake: z.object({
+  })),
+  commonMistake: z.preprocess((val: any) => {
+    if (typeof val === "string") {
+      const parts = val.split(/(?:la correccion es|la corrección es|correccion:|corrección:)/i);
+      if (parts.length >= 2) {
+        return {
+          description: parts[0].trim(),
+          correction: parts[1].trim(),
+        };
+      }
+      const sentencePeriod = val.indexOf(".");
+      if (sentencePeriod > 0 && sentencePeriod < val.length - 1) {
+        return {
+          description: val.slice(0, sentencePeriod + 1).trim(),
+          correction: val.slice(sentencePeriod + 1).trim(),
+        };
+      }
+      return {
+        description: val.trim(),
+        correction: "Recuerda aplicar el concepto correcto paso a paso.",
+      };
+    }
+    if (val && typeof val === "object") {
+      const desc = val.description ?? val.descripcion ?? val.error ?? "Error conceptual común.";
+      const corr = val.correction ?? val.correccion ?? val.explicacion ?? "Forma correcta de resolver.";
+      return {
+        description: desc,
+        correction: corr,
+      };
+    }
+    return val;
+  }, z.object({
     description: z.string(),
     correction: z.string(),
-  }),
-  quickCheck: z.object({
+  })),
+  quickCheck: z.preprocess((val: any) => {
+    if (val && typeof val === "object") {
+      if (val.pregunta && !val.question) val.question = val.pregunta;
+      if (val.opciones && !val.options) val.options = val.opciones;
+      if ((val.respuestacorrecta || val.indicecorrecto || val.correctindex) && val.correctIndex === undefined) {
+        val.correctIndex = val.respuestacorrecta ?? val.indicecorrecto ?? val.correctindex;
+      }
+    }
+    return val;
+  }, z.object({
     question: z.string(),
     options: z.array(z.string()).length(4),
     correctIndex: z.number().int().min(0).max(3),
     feedback: z.string(),
-  }),
+  })),
 });
 
-const exerciseItemSchema = z.object({
+const lessonSchema = z.preprocess((val: any) => {
+  if (val && typeof val === "object") {
+    if (val.titulo && !val.title) val.title = val.titulo;
+    if (val.explicacion && !val.explanation) val.explanation = val.explicacion;
+    if (val.ejemplo && !val.example) val.example = val.ejemplo;
+    if ((val.errorcomun || val.error) && !val.commonMistake) {
+      val.commonMistake = val.errorcomun || val.error;
+    }
+    if ((val.comprobacionrapida || val.comprobacion) && !val.quickCheck) {
+      val.quickCheck = val.comprobacionrapida || val.comprobacion;
+    }
+    if (!val.title) {
+      val.title = "Lección de Estudio";
+    }
+  }
+  return val;
+}, baseLessonSchema);
+
+const difficultySchema = z.preprocess((val) => {
+  const str = String(val ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+  if (str.includes("fac") || str.includes("eas") || str.includes("baj") || str.includes("senc") || str.includes("princ") || str.includes("simp") || str === "1") return "easy";
+  if (str.includes("med") || str.includes("int") || str.includes("mod") || str.includes("norm") || str === "2") return "medium";
+  if (str.includes("dif") || str.includes("har") || str.includes("alt") || str.includes("avanz") || str.includes("comp") || str === "3") return "hard";
+  return val;
+}, z.enum(["easy", "medium", "hard"]));
+
+const exerciseTypeSchema = z.preprocess((val) => {
+  const str = String(val ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/_/g, " ")
+    .replace(/-/g, " ")
+    .trim();
+  if (str === "mcq" || str.includes("opcion multiple") || str.includes("multiple choice") || str.includes("seleccion multiple")) return "mcq";
+  if (str === "fill blank" || str.includes("completar") || str.includes("rellenar espacios") || str.includes("completar espacio")) return "fill_blank";
+  if (str === "true false" || str.includes("verdadero falso") || str.includes("verdadero o falso")) return "true_false";
+  return val;
+}, z.enum(["mcq", "fill_blank", "true_false"]));
+
+const exerciseItemSchema = z.preprocess((val: any) => {
+  if (val && typeof val === "object") {
+    if (val.pregunta && !val.question) val.question = val.pregunta;
+    if (val.opciones && !val.options) val.options = val.opciones;
+    if ((val.respuestacorrecta || val.correctanswer) && val.correctAnswer === undefined) {
+      val.correctAnswer = val.respuestacorrecta ?? val.correctanswer;
+    }
+    if ((val.indicecorrecto || val.correctindex) && val.correctIndex === undefined) {
+      val.correctIndex = val.indicecorrecto ?? val.correctindex;
+    }
+    if ((val.respuestasaceptadas || val.acceptedanswers) && val.acceptedAnswers === undefined) {
+      val.acceptedAnswers = val.respuestasaceptadas ?? val.acceptedanswers;
+    }
+    if ((val.limitetiempo || val.timelimit) && val.timeLimit === undefined) {
+      val.timeLimit = val.limitetiempo ?? val.timelimit;
+    }
+    if (val.dificultad && !val.difficulty) val.difficulty = val.dificultad;
+  }
+  return val;
+}, z.object({
   id: z.number().optional().default(0),
-  type: z.enum(["mcq", "fill_blank", "true_false"]),
+  type: exerciseTypeSchema,
   question: z.string(),
   options: z.array(z.string()).optional(),
   correctIndex: z.number().optional(),
   acceptedAnswers: z.array(z.string()).optional(),
   correctAnswer: z.boolean().optional(),
   timeLimit: z.number().nullable(),
-  difficulty: z.enum(["easy", "medium", "hard"]),
-});
+  difficulty: difficultySchema,
+}));
 
 const videoSchema = z.object({
   id: z.string(),
@@ -64,15 +234,112 @@ const videoSchema = z.object({
   duration: z.string(),
 });
 
-const practiceResponseSchema = z.object({
+const practiceResponseSchema = z.preprocess((val: any) => {
+  if (val && typeof val === "object") {
+    // 1. If it's a flat structure (e.g. title/explanation/ejercicios at root level)
+    const hasLessonKeys = val.title || val.titulo || val.explanation || val.explicacion || val.teoria;
+    const outerLessonKey = Object.keys(val).find(k => {
+      const clean = k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/_/g, "");
+      return (clean === "leccion" || clean === "lesson" || clean === "teoria" || clean === "theory") && typeof val[k] === "object";
+    });
+
+    if (!outerLessonKey && hasLessonKeys) {
+      val.lesson = {
+        title: val.title ?? val.titulo,
+        explanation: val.explanation ?? val.explicacion ?? (typeof val.teoria === "string" ? val.teoria : undefined),
+        example: val.example ?? val.ejemplo,
+        commonMistake: val.commonMistake ?? val.errorcomun ?? val.error_comun ?? val.error,
+        quickCheck: val.quickCheck ?? val.comprobacionrapida ?? val.comprobacion_rapida ?? val.comprobacion,
+      };
+      
+      delete val.title;
+      delete val.titulo;
+      delete val.explanation;
+      delete val.explicacion;
+      if (typeof val.teoria === "string") delete val.teoria;
+      delete val.example;
+      delete val.ejemplo;
+      delete val.commonMistake;
+      delete val.errorcomun;
+      delete val.error_comun;
+      delete val.error;
+      delete val.quickCheck;
+      delete val.comprobacionrapida;
+      delete val.comprobacion_rapida;
+      delete val.comprobacion;
+    } else if (outerLessonKey) {
+      val.lesson = val[outerLessonKey];
+      if (outerLessonKey !== "lesson") {
+        delete val[outerLessonKey];
+      }
+    }
+  }
+
+  const normalized = normalizeKeys(val);
+
+  if (normalized && typeof normalized === "object") {
+    if (normalized.leccion && !normalized.lesson) normalized.lesson = normalized.leccion;
+    if (normalized.ejercicios && !normalized.exercises) normalized.exercises = normalized.ejercicios;
+    if (normalized.preguntas && !normalized.exercises) normalized.exercises = normalized.preguntas;
+    if (normalized.questions && !normalized.exercises) normalized.exercises = normalized.questions;
+
+    // Defensively ensure each exercise has a difficulty and MCQ options are array
+    if (Array.isArray(normalized.exercises)) {
+      const defaultDiffs = ["easy", "medium", "hard", "medium"];
+      normalized.exercises = normalized.exercises.map((ex: any, idx: number) => {
+        if (ex && typeof ex === "object") {
+          // Coerce empty strings or missing difficulty to varied default difficulties
+          if (!ex.difficulty && !ex.dificultad) {
+            ex.difficulty = defaultDiffs[idx % defaultDiffs.length];
+          }
+          // Defensively ensure MCQ questions have correct default settings if missing
+          if (ex.type === "mcq") {
+            if (!ex.options || !Array.isArray(ex.options)) {
+              ex.options = ["Opción A", "Opción B", "Opción C", "Opción D"];
+            }
+            if (typeof ex.correctIndex !== "number") {
+              ex.correctIndex = 0;
+            }
+          }
+          if (ex.type === "true_false") {
+            if (typeof ex.correctAnswer !== "boolean") {
+              ex.correctAnswer = true;
+            }
+          }
+          if (ex.type === "fill_blank") {
+            if (!ex.acceptedAnswers || !Array.isArray(ex.acceptedAnswers)) {
+              ex.acceptedAnswers = ["respuesta"];
+            }
+          }
+        }
+        return ex;
+      });
+    }
+  }
+  return normalized;
+}, z.object({
   lesson: lessonSchema,
   exercises: z.array(exerciseItemSchema).length(4),
   videos: z.array(videoSchema).default([]),
-});
+}));
 
-const cachedLessonSchema = lessonSchema.extend({
+const cachedLessonSchema = z.preprocess((val: any) => {
+  if (val && typeof val === "object") {
+    if (val.titulo && !val.title) val.title = val.titulo;
+    if (val.explicacion && !val.explanation) val.explanation = val.explicacion;
+    if (val.ejemplo && !val.example) val.example = val.ejemplo;
+    if ((val.errorComun || val.error_comun || val.error) && !val.commonMistake) {
+      val.commonMistake = val.errorComun || val.error_comun || val.error;
+    }
+    if ((val.comprobacionRapida || val.comprobacion_rapida || val.pregunta_rapida || val.comprobacion) && !val.quickCheck) {
+      val.quickCheck = val.comprobacionRapida || val.comprobacion_rapida || val.pregunta_rapida || val.comprobacion;
+    }
+    if (val.diagrama && !val.diagram) val.diagram = val.diagrama;
+  }
+  return val;
+}, baseLessonSchema.extend({
   diagram: diagramSchema.optional(),
-});
+}));
 
 const cachedPracticeResponseSchema = z.object({
   lesson: cachedLessonSchema,
@@ -237,33 +504,78 @@ REGLAS:
 
       try {
         const aiModel = getChatModel(candidate);
+        const isReasoning = candidate.model.toLowerCase().includes("gpt-5") || 
+                            candidate.model.toLowerCase().includes("o1") || 
+                            candidate.model.toLowerCase().includes("o3") || 
+                            candidate.model.toLowerCase().includes("reasoner");
 
         const startTime = performance.now();
 
-        const lessonPromise = generateObject({
-          model: aiModel,
-          schema: practiceResponseSchema,
-          prompt: lessonPrompt,
-          temperature: 0.6,
-          maxOutputTokens: 8000,
-          abortSignal: lessonAbort.signal,
-        });
+        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek";
+
+        const lessonPromise = (async () => {
+          if (isTextOnlyProvider) {
+            const r = await generateText({
+              model: aiModel,
+              prompt: lessonPrompt + "\n\nResponde UNICAMENTE con un objeto JSON valido estructurado de acuerdo al esquema esperado, sin usar bloques de markdown ni texto adicional.",
+              ...(isReasoning ? {} : { temperature: 0.6 }),
+              maxOutputTokens: 8000,
+              abortSignal: lessonAbort.signal,
+            });
+            const parsedJson = tryParseJson(r.text);
+            try {
+              return { object: practiceResponseSchema.parse(parsedJson), usage: r.usage };
+            } catch (zodErr) {
+              console.error("[practice-generate] Zod parsing error (fallback textOnly). Raw text:", r.text);
+              console.error("[practice-generate] parsedJson:", JSON.stringify(parsedJson, null, 2));
+              throw zodErr;
+            }
+          } else {
+            try {
+              const r = await generateObject({
+                model: aiModel,
+                schema: practiceResponseSchema,
+                prompt: lessonPrompt,
+                ...(isReasoning ? {} : { temperature: 0.6 }),
+                maxOutputTokens: 8000,
+                abortSignal: lessonAbort.signal,
+              });
+              return { object: r.object, usage: r.usage };
+            } catch (objError) {
+              console.warn(`[practice-generate] generateObject falló para ${candidate.modelId}, intentando fallback con generateText... Error:`, objError);
+              const r = await generateText({
+                model: aiModel,
+                prompt: lessonPrompt + "\n\nResponde UNICAMENTE con un objeto JSON valido estructurado de acuerdo al esquema esperado, sin usar bloques de markdown ni texto adicional.",
+                ...(isReasoning ? {} : { temperature: 0.6 }),
+                maxOutputTokens: 8000,
+                abortSignal: lessonAbort.signal,
+              });
+              const parsedJson = tryParseJson(r.text);
+              try {
+                return { object: practiceResponseSchema.parse(parsedJson), usage: r.usage };
+              } catch (zodErr) {
+                console.error("[practice-generate] Zod parsing error (generateObject catch block). Raw text:", r.text);
+                console.error("[practice-generate] parsedJson:", JSON.stringify(parsedJson, null, 2));
+                throw zodErr;
+              }
+            }
+          }
+        })();
 
         let diagramPromise: Promise<z.infer<typeof diagramSchema> | null> = Promise.resolve(null);
         if (diagramPrompt) {
           const diagramStart = performance.now();
           diagramPromise = (async () => {
-            try {
-              const r = await generateObject({
+            if (isTextOnlyProvider) {
+              const r = await generateText({
                 model: aiModel,
-                schema: diagramSchema,
-                prompt: diagramPrompt,
-                temperature: 0.3,
+                prompt: diagramPrompt + "\n\nResponde SOLO con un JSON valido con dos campos: \"mermaid\" (string con el diagrama) y \"caption\" (string corta).",
+                ...(isReasoning ? {} : { temperature: 0.3 }),
                 maxOutputTokens: 1500,
                 abortSignal: diagramAbort.signal,
               });
               logAiCall({
-                route: "practice-diagram",
+                route: "practice-diagram-text",
                 model: candidate.modelId,
                 durationMs: Math.round(performance.now() - diagramStart),
                 usage: r.usage ? {
@@ -272,23 +584,27 @@ REGLAS:
                   totalTokens: (r.usage.inputTokens ?? 0) + (r.usage.outputTokens ?? 0),
                 } : undefined,
               });
-              return {
-                mermaid: sanitizeMermaid(r.object.mermaid),
-                caption: r.object.caption,
-              };
-            } catch (err) {
-              const msg = String((err as any)?.message ?? err ?? "");
-              if (msg.includes("response_format") || msg.includes("unavailable")) {
-                console.log("[diagram] response_format not supported, falling back to generateText");
-                const r = await generateText({
+              try {
+                const parsed = tryParseJson(r.text);
+                let mermaidStr = parsed.mermaid || "";
+                mermaidStr = mermaidStr.replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
+                return { mermaid: sanitizeMermaid(mermaidStr), caption: parsed.caption || "" };
+              } catch {
+                console.error("[diagram] failed to parse JSON from generateText");
+                return null;
+              }
+            } else {
+              try {
+                const r = await generateObject({
                   model: aiModel,
-                  prompt: diagramPrompt + "\n\nResponde SOLO con un JSON valido con dos campos: \"mermaid\" (string con el diagrama) y \"caption\" (string corta).",
-                  temperature: 0.3,
+                  schema: diagramSchema,
+                  prompt: diagramPrompt,
+                  ...(isReasoning ? {} : { temperature: 0.3 }),
                   maxOutputTokens: 1500,
                   abortSignal: diagramAbort.signal,
                 });
                 logAiCall({
-                  route: "practice-diagram-text",
+                  route: "practice-diagram",
                   model: candidate.modelId,
                   durationMs: Math.round(performance.now() - diagramStart),
                   usage: r.usage ? {
@@ -297,24 +613,50 @@ REGLAS:
                     totalTokens: (r.usage.inputTokens ?? 0) + (r.usage.outputTokens ?? 0),
                   } : undefined,
                 });
-                try {
-                  const parsed = tryParseJson(r.text);
-                  let mermaidStr = parsed.mermaid || "";
-                  mermaidStr = mermaidStr.replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
-                  return { mermaid: sanitizeMermaid(mermaidStr), caption: parsed.caption || "" };
-                } catch {
-                  console.error("[diagram] failed to parse JSON from generateText");
-                  return null;
+                return {
+                  mermaid: sanitizeMermaid(r.object.mermaid),
+                  caption: r.object.caption,
+                };
+              } catch (err) {
+                const msg = String((err as any)?.message ?? err ?? "");
+                if (msg.includes("response_format") || msg.includes("unavailable")) {
+                  console.log("[diagram] response_format not supported, falling back to generateText");
+                  const r = await generateText({
+                    model: aiModel,
+                    prompt: diagramPrompt + "\n\nResponde SOLO con un JSON valido con dos campos: \"mermaid\" (string con el diagrama) y \"caption\" (string corta).",
+                    ...(isReasoning ? {} : { temperature: 0.3 }),
+                    maxOutputTokens: 1500,
+                    abortSignal: diagramAbort.signal,
+                  });
+                  logAiCall({
+                    route: "practice-diagram-text",
+                    model: candidate.modelId,
+                    durationMs: Math.round(performance.now() - diagramStart),
+                    usage: r.usage ? {
+                      inputTokens: r.usage.inputTokens,
+                      outputTokens: r.usage.outputTokens,
+                      totalTokens: (r.usage.inputTokens ?? 0) + (r.usage.outputTokens ?? 0),
+                    } : undefined,
+                  });
+                  try {
+                    const parsed = tryParseJson(r.text);
+                    let mermaidStr = parsed.mermaid || "";
+                    mermaidStr = mermaidStr.replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
+                    return { mermaid: sanitizeMermaid(mermaidStr), caption: parsed.caption || "" };
+                  } catch {
+                    console.error("[diagram] failed to parse JSON from generateText");
+                    return null;
+                  }
                 }
+                console.error("[diagram] failed:", (err as any)?.message || err);
+                logAiCall({
+                  route: "practice-diagram",
+                  model: candidate.modelId,
+                  durationMs: Math.round(performance.now() - diagramStart),
+                  error: (err as any)?.message || "unknown",
+                });
+                return null;
               }
-              console.error("[diagram] failed:", (err as any)?.message || err);
-              logAiCall({
-                route: "practice-diagram",
-                model: candidate.modelId,
-                durationMs: Math.round(performance.now() - diagramStart),
-                error: (err as any)?.message || "unknown",
-              });
-              return null;
             }
           })();
         }

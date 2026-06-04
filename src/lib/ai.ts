@@ -6,9 +6,9 @@ import { getEnv } from "@/lib/env";
 
 const env = getEnv();
 
-export type AiProvider = "opencode" | "openai" | "anthropic" | "google";
+export type AiProvider = "opencode" | "openai" | "anthropic" | "google" | "deepseek" | "groq";
 
-const SUPPORTED_PROVIDERS: AiProvider[] = ["opencode", "openai", "anthropic", "google"];
+const SUPPORTED_PROVIDERS: AiProvider[] = ["opencode", "openai", "anthropic", "google", "deepseek", "groq"];
 
 export const DEFAULT_PROVIDER = env.AI_DEFAULT_PROVIDER;
 export const DEFAULT_MODEL = env.AI_DEFAULT_MODEL;
@@ -100,10 +100,10 @@ function uniqueResolved(models: Array<ResolvedModel | null>): ResolvedModel[] {
   return out;
 }
 
-export const opencodeGo = env.OPENCODE_GO_API_KEY
+export const opencodeGo = (env.OPENCODE_GO_API_KEY || env.AI_API_KEY)
   ? createOpenAI({
-      baseURL: env.OPENCODE_GO_BASE_URL || "https://opencode.ai/zen/go/v1",
-      apiKey: env.OPENCODE_GO_API_KEY,
+      baseURL: env.OPENCODE_GO_BASE_URL || env.AI_BASE_URL || "https://opencode.ai/zen/go/v1",
+      apiKey: env.OPENCODE_GO_API_KEY || env.AI_API_KEY,
     })
   : null;
 
@@ -122,6 +122,20 @@ export const anthropic = env.ANTHROPIC_API_KEY
 export const google = env.GOOGLE_GENERATIVE_AI_API_KEY
   ? createGoogleGenerativeAI({
       apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY,
+    })
+  : null;
+
+export const deepseek = (env.DEEPSEEK_API_KEY || env.AI_API_KEY)
+  ? createOpenAI({
+      baseURL: env.DEEPSEEK_BASE_URL || env.AI_BASE_URL || "https://api.deepseek.com/v1",
+      apiKey: env.DEEPSEEK_API_KEY || env.AI_API_KEY,
+    })
+  : null;
+
+export const groq = (env.GROQ_API_KEY || env.AI_API_KEY)
+  ? createOpenAI({
+      baseURL: env.GROQ_BASE_URL || env.AI_BASE_URL || "https://api.groq.com/openai/v1",
+      apiKey: env.GROQ_API_KEY || env.AI_API_KEY,
     })
   : null;
 
@@ -147,6 +161,16 @@ function getProviderClient(provider: AiProvider) {
         throw new Error("Proveedor google no configurado. Falta GOOGLE_GENERATIVE_AI_API_KEY");
       }
       return google;
+    case "deepseek":
+      if (!deepseek) {
+        throw new Error("Proveedor deepseek no configurado. Falta DEEPSEEK_API_KEY o AI_API_KEY");
+      }
+      return deepseek;
+    case "groq":
+      if (!groq) {
+        throw new Error("Proveedor groq no configurado. Falta GROQ_API_KEY o AI_API_KEY");
+      }
+      return groq;
     default:
       throw new Error(`Proveedor no soportado: ${provider as string}`);
   }
@@ -309,25 +333,57 @@ export function repairJson(text: string): string {
   let openBrackets = 0;
   let inString = false;
   let prevChar = "";
+  let repaired = "";
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
     if (inString) {
-      if (c === "\\" && prevChar !== "\\") { prevChar = c; continue; }
-      if (c === '"' && prevChar !== "\\") { inString = false; prevChar = c; continue; }
+      if (c === "\n") {
+        repaired += "\\n";
+        prevChar = c;
+        continue;
+      }
+      if (c === "\r") {
+        repaired += "\\r";
+        prevChar = c;
+        continue;
+      }
+      if (c === "\t") {
+        repaired += "\\t";
+        prevChar = c;
+        continue;
+      }
+      if (c === "\\" && prevChar !== "\\") {
+        repaired += c;
+        prevChar = c;
+        continue;
+      }
+      if (c === '"' && prevChar !== "\\") {
+        inString = false;
+        repaired += c;
+        prevChar = c;
+        continue;
+      }
+      repaired += c;
       prevChar = c;
       continue;
     }
-    if (c === '"') { inString = true; prevChar = c; continue; }
+    if (c === '"') {
+      inString = true;
+      repaired += c;
+      prevChar = c;
+      continue;
+    }
     if (c === "{") openBraces++;
     if (c === "}") openBraces--;
     if (c === "[") openBrackets++;
     if (c === "]") openBrackets--;
+    repaired += c;
     prevChar = c;
   }
-  if (inString) text += '"';
-  text += "]".repeat(Math.max(0, openBrackets));
-  text += "}".repeat(Math.max(0, openBraces));
-  return text;
+  if (inString) repaired += '"';
+  repaired += "]".repeat(Math.max(0, openBrackets));
+  repaired += "}".repeat(Math.max(0, openBraces));
+  return repaired;
 }
 
 export function tryParseJson(text: string): any {
@@ -419,8 +475,10 @@ interface AiCallLog {
 }
 
 export function logAiCall(log: AiCallLog) {
+  const provider = log.model.includes(":") ? log.model.split(":")[0] : DEFAULT_PROVIDER;
   const parts = [
     `[AI] ${log.route}`,
+    `provider=${provider}`,
     `model=${log.model}`,
     `duration=${log.durationMs}ms`,
   ];
@@ -431,3 +489,4 @@ export function logAiCall(log: AiCallLog) {
   if (log.error) parts.push(`ERROR=${log.error}`);
   console.log(parts.join(" "));
 }
+

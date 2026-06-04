@@ -148,10 +148,23 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                   <div className="flex flex-col items-center gap-6 py-4">
                     {modNodes.map((node, i) => {
                       const prog = progressMap.get(node.id);
-                      const status = isModLocked ? "locked" : (prog?.status || "unlocked");
+                      const prevNode = i > 0 ? modNodes[i - 1] : null;
+                      const prevProg = prevNode ? progressMap.get(prevNode.id) : null;
+                      const prevCompleted = prevProg?.status === "completed" || prevProg?.status === "mastered";
+
+                      let status = "locked";
+                      if (!isModLocked) {
+                        if (prog?.status) {
+                          status = prog.status;
+                        } else if (i === 0 || prevCompleted) {
+                          status = "unlocked";
+                        }
+                      }
+
                       const isLocked = status === "locked";
                       const isCompleted = status === "completed" || status === "mastered";
                       const isCurrent = status === "unlocked";
+                      const currentCompleted = isCompleted;
 
                       const offset = i % 2 !== 0 ? "translate-x-12" : "-translate-x-12";
 

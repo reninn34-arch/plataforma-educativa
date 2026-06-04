@@ -37,34 +37,24 @@ function DashboardContent() {
   return (
     <div className="flex-1 w-full animate-fade-in-up">
       <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8 space-y-6">
-        {/* Hero Banner */}
-        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-600 to-violet-600 p-6 sm:p-8 text-white shadow-xl shadow-indigo-200/50">
-          <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-400/10 rounded-full blur-3xl -translate-x-1/3 translate-y-1/3" />
-
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
-            <div>
-              <div className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider mb-3">
-                <Sparkles size={12} />
-                Panel del Profesor
-              </div>
-
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3 flex-wrap">
               {selectedCurso ? (
                 <>
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <button
-                      onClick={() => router.push("/teacher/dashboard")}
-                      className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/25 transition-all"
-                    >
-                      <ArrowLeft size={18} />
-                    </button>
-                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">{selectedCurso.nombre}</h1>
-                    <span className="text-xs font-medium bg-white/15 backdrop-blur-sm px-2.5 py-1 rounded-lg">{selectedCurso.nivel}</span>
-                  </div>
+                  <button
+                    onClick={() => router.push("/teacher/dashboard")}
+                    className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                  <h1 className="text-xl font-bold text-slate-800">{selectedCurso.nombre}</h1>
+                  <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">{selectedCurso.nivel}</span>
                   {selectedCurso.mySubjects?.length > 0 && (
-                    <div className="flex gap-1.5 mt-3">
+                    <div className="flex gap-1">
                       {selectedCurso.mySubjects.map((s: any, i: number) => (
-                        <span key={i} className="text-[10px] font-medium bg-white/15 backdrop-blur-sm text-indigo-100 px-2 py-0.5 rounded-lg">
+                        <span key={i} className="text-[10px] font-medium bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-lg border border-indigo-100">
                           {s.subjectEmoji} {s.subjectName}
                         </span>
                       ))}
@@ -72,53 +62,53 @@ function DashboardContent() {
                   )}
                 </>
               ) : (
-                <>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                    Panel Principal
-                  </h1>
-                  <p className="text-indigo-100 text-sm sm:text-base mt-2 max-w-lg leading-relaxed">
-                    Monitorea el progreso de tus estudiantes
-                  </p>
-                </>
-              )}
-
-              {activePeriod && (
-                <div className="flex items-center gap-1.5 mt-3">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  <span className="text-xs font-medium bg-white/15 backdrop-blur-sm text-indigo-100 px-2.5 py-1 rounded-lg border border-white/20">
-                    📅 {activePeriod.nombre}
-                  </span>
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-md">
+                    <Sparkles size={20} />
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold text-slate-800">Panel Principal</h1>
+                    <p className="text-sm text-slate-500">Monitorea el progreso de tus estudiantes</p>
+                  </div>
                 </div>
               )}
             </div>
-
-            <div className="flex items-center gap-3 shrink-0">
-              {cursos.length > 1 && (
-                <select
-                  value={cursoId || ""}
-                  onChange={e => {
-                    if (e.target.value) router.push(`/teacher/dashboard?cursoId=${e.target.value}`);
-                    else router.push("/teacher/dashboard");
-                  }}
-                  className="h-10 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20 px-3 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-white/30"
-                >
-                  <option value="" className="text-slate-800">Todos los cursos</option>
-                  {cursos.map((c: any) => (
-                    <option key={c.id} value={c.id} className="text-slate-800">{c.nombre} ({c.nivel})</option>
-                  ))}
-                </select>
-              )}
-              <a
-                href="/api/analytics/export"
-                download
-                className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-white text-indigo-600 text-sm font-semibold hover:bg-indigo-50 transition-colors shadow-sm"
-              >
-                <Download size={16} />
-                Exportar
-              </a>
-            </div>
+            {activePeriod && (
+              <div className="flex items-center gap-1.5 mt-3">
+                <span className="w-2 h-2 rounded-full bg-indigo-400" />
+                <span className="text-xs font-medium text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">
+                  📅 {activePeriod.nombre}
+                </span>
+              </div>
+            )}
           </div>
-        </section>
+
+          <div className="flex items-center gap-3">
+            {cursos.length > 1 && (
+              <select
+                value={cursoId || ""}
+                onChange={e => {
+                  if (e.target.value) router.push(`/teacher/dashboard?cursoId=${e.target.value}`);
+                  else router.push("/teacher/dashboard");
+                }}
+                className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
+              >
+                <option value="">Todos los cursos</option>
+                {cursos.map((c: any) => (
+                  <option key={c.id} value={c.id}>{c.nombre} ({c.nivel})</option>
+                ))}
+              </select>
+            )}
+            <a
+              href="/api/analytics/export"
+              download
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm"
+            >
+              <Download size={16} />
+              Exportar
+            </a>
+          </div>
+        </div>
 
         {/* Course pills — quick course selector when on "all" view */}
         {!cursoId && cursos.length > 0 && (

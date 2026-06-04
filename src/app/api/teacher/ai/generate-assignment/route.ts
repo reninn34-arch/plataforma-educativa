@@ -19,13 +19,85 @@ const fileUploadQuestionSchema = z.object({
   points: z.number().int().min(1).max(10).default(1),
 });
 
-const generateResponseSchema = z.object({
+const ASSIGNMENT_KEY_MAP: Record<string, string> = {
+  titulo: "title",
+  title: "title",
+  descripcion: "description",
+  description: "description",
+  preguntas: "questions",
+  questions: "questions",
+  tipo: "type",
+  type: "type",
+  pregunta: "question",
+  question: "question",
+  opciones: "options",
+  options: "options",
+  indicecorrecto: "correctIndex",
+  correctindex: "correctIndex",
+  puntos: "points",
+  points: "points",
+};
+
+function normalizeAssignmentKeys(obj: any): any {
+  if (!obj || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(normalizeAssignmentKeys);
+  }
+  const result: any = {};
+  for (const key of Object.keys(obj)) {
+    const cleanKey = key
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/_/g, "")
+      .replace(/\s+/g, "");
+    const targetKey = ASSIGNMENT_KEY_MAP[cleanKey] || cleanKey;
+    result[targetKey] = normalizeAssignmentKeys(obj[key]);
+  }
+  return result;
+}
+
+const questionItemSchema = z.preprocess((val: any) => {
+  if (val && typeof val === "object") {
+    let typeVal = String(val.type ?? "").toLowerCase();
+    if (typeVal.includes("opcion") || typeVal.includes("multiple") || typeVal.includes("mcq")) {
+      val.type = "mcq";
+    } else if (typeVal.includes("upload") || typeVal.includes("archivo") || typeVal.includes("subir")) {
+      val.type = "file_upload";
+    }
+    
+    // Normalization of common keys
+    if (val.pregunta && !val.question) val.question = val.pregunta;
+    if (val.opciones && !val.options) val.options = val.opciones;
+    if ((val.indicecorrecto || val.correctindex) && val.correctIndex === undefined) {
+      val.correctIndex = val.indicecorrecto ?? val.correctindex;
+    }
+    if ((val.puntos || val.points) && val.points === undefined) {
+      val.points = val.puntos ?? val.points;
+    }
+    if (val.points !== undefined && val.points !== null) {
+      val.points = Number(val.points);
+    }
+    if (val.correctIndex !== undefined && val.correctIndex !== null) {
+      val.correctIndex = Number(val.correctIndex);
+    }
+  }
+  return val;
+}, z.discriminatedUnion("type", [mcqQuestionSchema, fileUploadQuestionSchema]));
+
+const generateResponseSchema = z.preprocess((val: any) => {
+  const normalized = normalizeAssignmentKeys(val);
+  if (normalized && typeof normalized === "object") {
+    if (normalized.titulo && !normalized.title) normalized.title = normalized.titulo;
+    if (normalized.descripcion && !normalized.description) normalized.description = normalized.descripcion;
+    if (normalized.preguntas && !normalized.questions) normalized.questions = normalized.preguntas;
+  }
+  return normalized;
+}, z.object({
   title: z.string().min(1).max(200),
   description: z.string().min(10),
-  questions: z.array(z.discriminatedUnion("type", [mcqQuestionSchema, fileUploadQuestionSchema]))
-    .min(1)
-    .max(15),
-});
+  questions: z.array(questionItemSchema).min(1).max(15),
+}));
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
@@ -100,35 +172,82 @@ Debes responder UNICAMENTE con un objeto JSON valido que coincida exactamente co
 
       try {
         const start = Date.now();
-        const response = await generateObject({
-          model: getChatModel(candidate),
-          schema: generateResponseSchema,
-          prompt,
-          temperature: 0.6,
-          maxOutputTokens: 4000,
-          abortSignal: abortController.signal,
-        });
-        clearTimeout(timeoutId);
+        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek";
 
-        logAiCall({
-          route: "teacher/ai/generate-assignment",
-          model: candidate.modelId,
-          durationMs: Date.now() - start,
-          usage: response.usage ? {
-            inputTokens: response.usage.inputTokens,
-            outputTokens: response.usage.outputTokens,
-            totalTokens: (response.usage.inputTokens ?? 0) + (response.usage.outputTokens ?? 0),
-          } : undefined,
-        });
+        if (isTextOnlyProvider) {
+          const textResponse = await generateText({
+            model: getChatModel(candidate),
+            prompt: prompt + `\n\nResponde SOLO con un JSON valido. No incluyas texto adicional, solo el JSON.`,
+            temperature: 0.6,
+            maxOutputTokens: 4000,
+            abortSignal: abortController.signal,
+          });
 
-        return NextResponse.json({
-          success: true,
-          data: response.object,
-          modelUsed: candidate.modelId,
-        });
+          let parsed;
+          try {
+            parsed = tryParseJson(textResponse.text);
+          } catch (parseErr) {
+            console.error("[generate-assignment] tryParseJson failed. Raw text was:", textResponse.text);
+            throw parseErr;
+          }
+
+          let validated;
+          try {
+            validated = generateResponseSchema.parse(parsed);
+          } catch (zodErr) {
+            console.error("[generate-assignment] Zod parsing error (isTextOnlyProvider block). Raw text:", textResponse.text);
+            console.error("[generate-assignment] parsed JSON:", JSON.stringify(parsed, null, 2));
+            throw zodErr;
+          }
+
+          clearTimeout(timeoutId);
+
+          logAiCall({
+            route: "teacher/ai/generate-assignment-text",
+            model: candidate.modelId,
+            durationMs: Date.now() - start,
+            usage: textResponse.usage ? {
+              inputTokens: textResponse.usage.inputTokens,
+              outputTokens: textResponse.usage.outputTokens,
+              totalTokens: (textResponse.usage.inputTokens ?? 0) + (textResponse.usage.outputTokens ?? 0),
+            } : undefined,
+          });
+
+          return NextResponse.json({
+            success: true,
+            data: validated,
+            modelUsed: candidate.modelId,
+          });
+        } else {
+          const response = await generateObject({
+            model: getChatModel(candidate),
+            schema: generateResponseSchema,
+            prompt,
+            temperature: 0.6,
+            maxOutputTokens: 4000,
+            abortSignal: abortController.signal,
+          });
+          clearTimeout(timeoutId);
+
+          logAiCall({
+            route: "teacher/ai/generate-assignment",
+            model: candidate.modelId,
+            durationMs: Date.now() - start,
+            usage: response.usage ? {
+              inputTokens: response.usage.inputTokens,
+              outputTokens: response.usage.outputTokens,
+              totalTokens: (response.usage.inputTokens ?? 0) + (response.usage.outputTokens ?? 0),
+            } : undefined,
+          });
+
+          return NextResponse.json({
+            success: true,
+            data: response.object,
+            modelUsed: candidate.modelId,
+          });
+        }
       } catch (aiError: any) {
         clearTimeout(timeoutId);
-
         const msg = String(aiError?.message || aiError || "");
         const wasAborted = aiError?.name === "AbortError" || msg.includes("abort");
 
@@ -144,8 +263,22 @@ Debes responder UNICAMENTE con un objeto JSON valido que coincida exactamente co
             });
 
             try {
-              const parsed = tryParseJson(textResponse.text);
-              const validated = generateResponseSchema.parse(parsed);
+              let parsed;
+              try {
+                parsed = tryParseJson(textResponse.text);
+              } catch (parseErr) {
+                console.error("[generate-assignment] tryParseJson failed in catch fallback. Raw text was:", textResponse.text);
+                throw parseErr;
+              }
+
+              let validated;
+              try {
+                validated = generateResponseSchema.parse(parsed);
+              } catch (zodErr) {
+                console.error("[generate-assignment] Zod parsing error (catch fallback block). Raw text:", textResponse.text);
+                console.error("[generate-assignment] parsed JSON:", JSON.stringify(parsed, null, 2));
+                throw zodErr;
+              }
 
               logAiCall({
                 route: "teacher/ai/generate-assignment",

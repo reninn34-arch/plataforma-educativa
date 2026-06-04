@@ -9,12 +9,76 @@ import {
   periodosLectivos, directMessages, modules,
 } from "@/lib/db/schema";
 import { eq, and, sql, desc, inArray } from "drizzle-orm";
-import { opencodeGoModel, logAiCall, DEFAULT_MODEL_ID } from "@/lib/ai";
+import { opencodeGoModel, logAiCall, DEFAULT_MODEL_ID, tryParseJson } from "@/lib/ai";
 import { generateText } from "ai";
 import { getSmtpConfig } from "@/lib/smtp-config";
 
 function generatePin(): string {
   return String(Math.floor(1000 + Math.random() * 9000));
+}
+
+const ASSIGNMENT_KEY_MAP: Record<string, string> = {
+  titulo: "title",
+  title: "title",
+  descripcion: "description",
+  description: "description",
+  preguntas: "questions",
+  questions: "questions",
+  tipo: "type",
+  type: "type",
+  pregunta: "question",
+  question: "question",
+  opciones: "options",
+  options: "options",
+  indicecorrecto: "correctIndex",
+  correctindex: "correctIndex",
+  puntos: "points",
+  points: "points",
+};
+
+function normalizeAssignmentKeys(obj: any): any {
+  if (!obj || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(normalizeAssignmentKeys);
+  }
+  const result: any = {};
+  for (const key of Object.keys(obj)) {
+    const cleanKey = key
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/_/g, "")
+      .replace(/\s+/g, "");
+    const targetKey = ASSIGNMENT_KEY_MAP[cleanKey] || cleanKey;
+    result[targetKey] = normalizeAssignmentKeys(obj[key]);
+  }
+  return result;
+}
+
+function normalizeQuestionItem(val: any): any {
+  if (!val || typeof val !== "object") return val;
+  let typeVal = String(val.type ?? "").toLowerCase();
+  if (typeVal.includes("opcion") || typeVal.includes("multiple") || typeVal.includes("mcq")) {
+    val.type = "mcq";
+  } else if (typeVal.includes("upload") || typeVal.includes("archivo") || typeVal.includes("subir")) {
+    val.type = "file_upload";
+  }
+  
+  if (val.pregunta && !val.question) val.question = val.pregunta;
+  if (val.opciones && !val.options) val.options = val.opciones;
+  if ((val.indicecorrecto || val.correctindex) && val.correctIndex === undefined) {
+    val.correctIndex = val.indicecorrecto ?? val.correctindex;
+  }
+  if ((val.puntos || val.points) && val.points === undefined) {
+    val.points = val.puntos ?? val.points;
+  }
+  if (val.points !== undefined && val.points !== null) {
+    val.points = Number(val.points);
+  }
+  if (val.correctIndex !== undefined && val.correctIndex !== null) {
+    val.correctIndex = Number(val.correctIndex);
+  }
+  return val;
 }
 
 // ═══════════════════ TEACHER TOOLS ═══════════════════
@@ -692,8 +756,12 @@ FORMATO:
       logAiCall({ route: "ai-tool/generate-assignment", model: DEFAULT_MODEL_ID, durationMs: Date.now() - start, usage: aiResult.usage ? { inputTokens: aiResult.usage.inputTokens, outputTokens: aiResult.usage.outputTokens, totalTokens: (aiResult.usage.inputTokens ?? 0) + (aiResult.usage.outputTokens ?? 0) } : undefined });
 
       let text = aiResult.text || "";
-      text = text.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
-      const data = JSON.parse(text);
+      let data = tryParseJson(text);
+      data = normalizeAssignmentKeys(data);
+
+      if (!data || typeof data !== "object") {
+        data = { title: topic, description: `Tarea sobre ${topic}`, questions: [] };
+      }
 
       const [assignment] = await db.insert(assignments).values({
         teacherId: userId,
@@ -706,9 +774,11 @@ FORMATO:
         dueDate: dueDate ? new Date(dueDate) : undefined,
       } as any).returning();
 
-      const questions = (data.questions || []).slice(0, 15);
-      for (let i = 0; i < questions.length; i++) {
-        const q = questions[i];
+      const rawQuestions = (data.questions || []).slice(0, 15);
+      const questions = [];
+      for (let i = 0; i < rawQuestions.length; i++) {
+        const q = normalizeQuestionItem(rawQuestions[i]);
+        if (!q || !q.question) continue;
         await db.insert(assignmentQuestions).values({
           assignmentId: assignment.id,
           type: q.type === "file_upload" ? "file_upload" : "mcq",
@@ -718,14 +788,15 @@ FORMATO:
           points: q.points || 1,
           orderIndex: i,
         } as any);
+        questions.push(q);
       }
 
       return {
         creada: true,
         tarea_id: assignment.id,
-        titulo: data.title,
+        titulo: data.title || assignment.title,
         preguntas: questions.length,
-        mensaje: `Tarea "${data.title}" creada exitosamente con ${questions.length} preguntas para ${subjectName}.`,
+        mensaje: `Tarea "${data.title || assignment.title}" creada exitosamente con ${questions.length} preguntas para ${subjectName}.`,
       };
     },
   });
@@ -1467,11 +1538,15 @@ FORMATO JSON:
       logAiCall({ route: "ai-tool/generate-exam-template", model: DEFAULT_MODEL_ID, durationMs: Date.now() - start, usage: aiResult.usage ? { inputTokens: aiResult.usage.inputTokens, outputTokens: aiResult.usage.outputTokens, totalTokens: (aiResult.usage.inputTokens ?? 0) + (aiResult.usage.outputTokens ?? 0) } : undefined });
 
       let text = aiResult.text || "";
-      text = text.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
       let data: any;
       try {
-        data = JSON.parse(text);
+        data = tryParseJson(text);
+        data = normalizeAssignmentKeys(data);
       } catch {
+        return { error: "La IA no pudo generar el examen en formato valido. Intenta nuevamente o ajusta los parametros." };
+      }
+
+      if (!data || typeof data !== "object") {
         return { error: "La IA no pudo generar el examen en formato valido. Intenta nuevamente o ajusta los parametros." };
       }
 
@@ -1514,9 +1589,11 @@ FORMATO JSON:
           periodoLectivoId: activePeriodId,
         } as any).returning();
 
-        const questions = (data.questions || []).slice(0, 20);
-        for (let i = 0; i < questions.length; i++) {
-          const q = questions[i];
+        const rawQuestions = (data.questions || []).slice(0, 20);
+        const questions = [];
+        for (let i = 0; i < rawQuestions.length; i++) {
+          const q = normalizeQuestionItem(rawQuestions[i]);
+          if (!q || !q.question) continue;
           await db.insert(assignmentQuestions).values({
             assignmentId: assignment.id,
             type: q.type === "file_upload" ? "file_upload" : "mcq",
@@ -1526,6 +1603,7 @@ FORMATO JSON:
             points: q.points || 1,
             orderIndex: i,
           } as any);
+          questions.push(q);
         }
 
         createdAssignments.push({
@@ -1539,7 +1617,7 @@ FORMATO JSON:
         creado: true,
         totalCursos: createdAssignments.length,
         detalles: createdAssignments,
-        mensaje: `Plantilla de examen "${data.title}" creada y guardada como borrador para ${createdAssignments.length} paralelos del nivel "${nivel}".`,
+        mensaje: `Plantilla de examen "${data.title || "Examen"}" creada y guardada como borrador para ${createdAssignments.length} paralelos del nivel "${nivel}".`,
       };
     },
   });

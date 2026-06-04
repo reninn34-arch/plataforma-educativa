@@ -10,9 +10,19 @@ import { rateLimit } from "@/lib/rate-limit";
 import { pathGenerateSchema } from "@/lib/api-helpers";
 import { getStudyMaterialForStudent } from "@/lib/study-material";
 
+const nodeTypeSchema = z.preprocess((val) => {
+  if (typeof val === "string") {
+    const clean = val.toLowerCase().trim();
+    if (clean === "concept" || clean === "concepto" || clean === "teoria" || clean === "teoría") return "concept";
+    if (clean === "quiz" || clean === "cuestionario" || clean === "evaluacion" || clean === "evaluación") return "quiz";
+    if (clean === "challenge" || clean === "desafio" || clean === "desafío" || clean === "practica" || clean === "práctica") return "challenge";
+  }
+  return val;
+}, z.enum(["concept", "quiz", "challenge"]));
+
 const nodeSchema = z.object({
   title: z.string(),
-  type: z.enum(["concept", "quiz", "challenge"]),
+  type: nodeTypeSchema,
   aiPromptContext: z.string(),
 });
 
@@ -100,20 +110,54 @@ REGLAS:
       const timeoutId = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MS);
 
       try {
-        const response = await generateObject({
-          model: getChatModel(candidate),
-          schema: pathSchema,
-          system: systemPrompt,
-          prompt: `AREA: ${areaContext}
-TEMA SOLICITADO POR EL ESTUDIANTE: "${topic}"${materialBlock}
+        const isReasoning = candidate.model.toLowerCase().includes("gpt-5") || 
+                            candidate.model.toLowerCase().includes("o1") || 
+                            candidate.model.toLowerCase().includes("o3") || 
+                            candidate.model.toLowerCase().includes("reasoner");
 
-Genera un Learning Path de 6-8 nodos para este tema, basandote en el MATERIAL DE ESTUDIO DEL CURSO proporcionado. Los primeros nodos deben ser de tipo "concept" (ensenanza) y los ultimos de tipo "quiz" o "challenge" (practica).`,
-          temperature: 0.8,
-          maxOutputTokens: 4000,
-          abortSignal: abortController.signal,
-        });
+        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek";
+
+        const promptText = isReasoning
+          ? `${systemPrompt}\n\nAREA: ${areaContext}\nTEMA SOLICITADO POR EL ESTUDIANTE: "${topic}"${materialBlock}\n\nGenera un Learning Path de 6-8 nodos para este tema, basandote en el MATERIAL DE ESTUDIO DEL CURSO proporcionado. Los primeros nodos deben ser de tipo "concept" (ensenanza) y los ultimos de tipo "quiz" o "challenge" (practica).`
+          : `AREA: ${areaContext}\nTEMA SOLICITADO POR EL ESTUDIANTE: "${topic}"${materialBlock}\n\nGenera un Learning Path de 6-8 nodos para este tema, basandote en el MATERIAL DE ESTUDIO DEL CURSO proporcionado. Los primeros nodos deben ser de tipo "concept" (ensenanza) y los ultimos de tipo "quiz" o "challenge" (practica).`;
+
+        if (isTextOnlyProvider) {
+          const fallbackPrompt = promptText + "\n\nResponde UNICAMENTE con un objeto JSON valido que coincida con el esquema esperado:\n{\"moduleTitle\": string, \"nodes\": [{\"title\": string, \"type\": \"concept\"|\"quiz\"|\"challenge\", \"aiPromptContext\": string}]}. No uses bloques de markdown ni texto adicional.";
+          const responseText = await generateText({
+            model: getChatModel(candidate),
+            prompt: fallbackPrompt,
+            ...(isReasoning ? {} : { system: systemPrompt, temperature: 0.8 }),
+            maxOutputTokens: 4000,
+            abortSignal: abortController.signal,
+          });
+          const parsed = tryParseJson(responseText.text);
+          outputParsed = pathSchema.parse(parsed);
+        } else {
+          try {
+            const response = await generateObject({
+              model: getChatModel(candidate),
+              schema: pathSchema,
+              prompt: promptText,
+              ...(isReasoning ? {} : { system: systemPrompt, temperature: 0.8 }),
+              maxOutputTokens: 4000,
+              abortSignal: abortController.signal,
+            });
+            outputParsed = response.object;
+          } catch (objError) {
+            console.warn(`[path-generate] generateObject falló para ${candidate.modelId}, intentando fallback con generateText... Error:`, objError);
+            const fallbackPrompt = promptText + "\n\nResponde UNICAMENTE con un objeto JSON valido que coincida con el esquema esperado:\n{\"moduleTitle\": string, \"nodes\": [{\"title\": string, \"type\": \"concept\"|\"quiz\"|\"challenge\", \"aiPromptContext\": string}]}. No uses bloques de markdown ni texto adicional.";
+            const responseText = await generateText({
+              model: getChatModel(candidate),
+              prompt: fallbackPrompt,
+              ...(isReasoning ? {} : { system: systemPrompt, temperature: 0.8 }),
+              maxOutputTokens: 4000,
+              abortSignal: abortController.signal,
+            });
+            const parsed = tryParseJson(responseText.text);
+            outputParsed = pathSchema.parse(parsed);
+          }
+        }
         clearTimeout(timeoutId);
-        outputParsed = response.object;
         usedModel = candidate;
         break;
       } catch (error) {
@@ -172,6 +216,7 @@ Responde SOLO con un JSON valido con la siguiente estructura:
       durationMs: Math.round(performance.now() - startTime),
       usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
     });
+
 
     const { moduleTitle, nodes: aiNodes } = outputParsed;
 

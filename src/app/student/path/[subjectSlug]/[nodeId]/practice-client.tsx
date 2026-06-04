@@ -219,6 +219,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
       setTimerSeconds((prev) => {
         if (prev <= 1) {
           if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          handleTimeout();
           return 0;
         }
         return prev - 1;
@@ -230,13 +231,8 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     };
   }, [currentIndex, gameState, feedback]);
 
-  useEffect(() => {
-    if (timerSeconds === 0 && gameState === "playing" && !feedback && currentExercise?.timeLimit) {
-      handleTimeout();
-    }
-  }, [timerSeconds]);
 
-  const triggerCoach = async (question: string, studentAnswer: string, wasTimeout: boolean) => {
+  async function triggerCoach(question: string, studentAnswer: string, wasTimeout: boolean) {
     setShowCoach(true);
     setCoachLoading(true);
     setCoachMessage("Analizando tu respuesta...");
@@ -259,9 +255,9 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     } finally {
       setCoachLoading(false);
     }
-  };
+  }
 
-  const handleTimeout = () => {
+  function handleTimeout() {
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     setLives((l) => {
       const newLives = l - 1;
@@ -274,7 +270,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
       feedback: "Se acabo el tiempo. No te preocupes, en la siguiente pregunta lo haras mejor.",
     });
     triggerCoach(currentExercise.question, "", true);
-  };
+  }
 
   const handleAnswer = async (answer: string | number | boolean) => {
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);

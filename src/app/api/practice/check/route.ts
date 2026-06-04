@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
-import { getChatModel, getChatModelCandidates, isRetryableModelError, resolveModel } from "@/lib/ai";
-import { generateObject } from "ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, resolveModel, tryParseJson } from "@/lib/ai";
+import { generateObject, generateText } from "ai";
 import { practiceCheckSchema } from "@/lib/api-helpers";
 import { z } from "zod/v4";
 
@@ -40,22 +40,47 @@ Respuestas aceptadas: ${JSON.stringify(acceptedAnswers)}
 
 Evalua si la respuesta del estudiante es semanticamente equivalente a alguna de las aceptadas.`;
 
-      // Race with timeout
-      const result = await Promise.race([
-        generateObject({
-          model,
-          schema: semanticCheckResponseSchema,
-          system: SEMANTIC_CHECK_PROMPT,
-          prompt,
-          maxOutputTokens: 30,
-          temperature: 0,
-        }),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
-      ]);
+      const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek";
 
-      if (!result) continue;
+      if (isTextOnlyProvider) {
+        const textPrompt = prompt + "\n\nResponde SOLO con un JSON valido: {\"isCorrect\": true} o {\"isCorrect\": false}. No uses bloques de markdown ni texto adicional.";
+        const resultText = await Promise.race([
+          generateText({
+            model,
+            system: SEMANTIC_CHECK_PROMPT,
+            prompt: textPrompt,
+            maxOutputTokens: 30,
+            temperature: 0,
+          }),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
+        ]);
 
-      return result.object.isCorrect;
+        if (!resultText) continue;
+
+        try {
+          const parsed = tryParseJson(resultText.text);
+          return semanticCheckResponseSchema.parse(parsed).isCorrect;
+        } catch {
+          continue;
+        }
+      } else {
+        // Race with timeout
+        const result = await Promise.race([
+          generateObject({
+            model,
+            schema: semanticCheckResponseSchema,
+            system: SEMANTIC_CHECK_PROMPT,
+            prompt,
+            maxOutputTokens: 30,
+            temperature: 0,
+          }),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
+        ]);
+
+        if (!result) continue;
+
+        return result.object.isCorrect;
+      }
     } catch (error) {
       if (!isRetryableModelError(error)) return null;
     }

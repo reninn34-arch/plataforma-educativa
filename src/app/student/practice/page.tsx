@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, Brain, Play, Target } from "lucide-react";
+import { BookOpen, Brain, Target, Play } from "lucide-react";
 import { SUBJECTS } from "@/lib/utils";
 import { apiFetch } from "@/lib/fetch-utils";
 import { subjectTheme } from "@/lib/subject-theme";
@@ -73,8 +73,6 @@ export default function PracticePage() {
           </div>
         </section>
 
-
-
         {/* Subject Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Object.keys(progress).length === 0 ? (
@@ -91,8 +89,8 @@ export default function PracticePage() {
               const name = subjDef?.name || slug;
               const emoji = subjDef?.emoji || "📚";
               const theme = subjectTheme(slug);
-              const pct = p.percentage ?? 0;
-              const completed = p.completedNodes ?? 0;
+              const pct = Number(p.percentage) || 0;
+              const completed = Number(p.completedNodes) || 0;
               const total = p.totalNodes ?? 0;
               const stars = p.totalStars ?? 0;
 

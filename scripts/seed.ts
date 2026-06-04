@@ -23,6 +23,7 @@ async function seed() {
   await db.delete(schema.assignments);
   await db.delete(schema.practiceAnswers);
   await db.delete(schema.practiceSessions);
+  await db.delete(schema.studentExercises);
   await db.delete(schema.cursoEstudiantes);
   await db.delete(schema.cursos);
   await db.delete(schema.chatMessages);

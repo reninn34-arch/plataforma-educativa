@@ -32,7 +32,18 @@ export default async function middleware(request: NextRequest) {
   const method = request.method;
 
   if (publicPaths.some((p) => pathname.startsWith(p))) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    if (method === "GET" && !request.cookies.get(CSRF_COOKIE)) {
+      const csrfToken = crypto.randomUUID();
+      response.cookies.set(CSRF_COOKIE, csrfToken, {
+        httpOnly: false,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: 86400,
+      });
+    }
+    return response;
   }
 
   if (pathname.startsWith("/api/chat")) {
@@ -89,7 +100,7 @@ export default async function middleware(request: NextRequest) {
     const csrfToken = crypto.randomUUID();
     response.cookies.set(CSRF_COOKIE, csrfToken, {
       httpOnly: false,
-      sameSite: "strict",
+      sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
       maxAge: 86400,

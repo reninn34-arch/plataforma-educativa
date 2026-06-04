@@ -123,14 +123,14 @@ export default function StudentDashboard() {
             >
               <div className="flex items-center gap-3 sm:gap-5">
                 <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
-                  <Brain size={24} className="sm:size-8 text-white" />
+                  <Brain size={24} className="text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="font-bold text-slate-800 text-base sm:text-lg">Práctica con IA</h2>
+                  <h2 className="font-bold text-slate-800 text-sm sm:text-lg">Práctica con IA</h2>
                   <p className="text-xs sm:text-sm text-slate-500 mt-0.5 truncate">
                     {Object.keys(progress).length} materias · {totalNodos} nodos
                   </p>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
+                  <div className="flex flex-wrap gap-1.5 mt-2 sm:mt-3">
                     {Object.entries(progress).slice(0, 4).map(([slug, p]) => (
                       <span key={slug} className="text-[10px] bg-white border border-slate-200 rounded-lg px-1.5 py-0.5 text-slate-600">
                         {slug === "matematicas" && "🔢"}
@@ -143,7 +143,7 @@ export default function StudentDashboard() {
                   </div>
                 </div>
                 <div className="bg-indigo-600 text-white p-2 sm:p-3 rounded-xl group-hover:bg-indigo-700 transition-colors shrink-0">
-                  <ChevronRight size={18} className="sm:size-[22px]" />
+                  <ChevronRight size={18} />
                 </div>
               </div>
             </Link>

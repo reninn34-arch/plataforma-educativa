@@ -17,8 +17,20 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().min(1).optional(),
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1).optional(),
-  AI_DEFAULT_PROVIDER: z.enum(["opencode", "openai", "anthropic", "google"]).default("opencode"),
-  AI_DEFAULT_MODEL: z.string().min(1).default("kimi-k2.5"),
+  AI_API_KEY: z.string().optional(),
+  AI_BASE_URL: z.string().optional(),
+  DEEPSEEK_API_KEY: z.string().optional(),
+  DEEPSEEK_BASE_URL: z.string().optional(),
+  GROQ_API_KEY: z.string().optional(),
+  GROQ_BASE_URL: z.string().optional(),
+  AI_DEFAULT_PROVIDER: z.preprocess(
+    (val) => val ?? process.env.AI_PROVIDER,
+    z.enum(["opencode", "openai", "anthropic", "google", "deepseek", "groq"]).default("opencode")
+  ),
+  AI_DEFAULT_MODEL: z.preprocess(
+    (val) => val ?? process.env.AI_MODEL,
+    z.string().min(1).default("kimi-k2.5")
+  ),
   AI_ALLOWED_MODELS: z.string().default("opencode:kimi-k2.5"),
   AI_ENFORCE_ALLOWLIST: booleanFromEnv.default(false),
   AI_FALLBACK_MODELS: z.string().default(""),

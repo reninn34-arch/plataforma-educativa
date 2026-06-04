@@ -81,17 +81,17 @@ export async function POST(request: NextRequest) {
       try {
         const aiModel = getChatModel(candidate);
         const diagramStart = performance.now();
+        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek";
 
-        try {
-          const r = await generateObject({
+        if (isTextOnlyProvider) {
+          const r = await generateText({
             model: aiModel,
-            schema: diagramSchema,
-            prompt,
+            prompt: jsonResponsePrompt,
             temperature: 0.3,
             maxOutputTokens: 1500,
           });
           logAiCall({
-            route: "practice-diagram-regen",
+            route: "practice-diagram-regen-text",
             model: candidate.modelId,
             durationMs: Math.round(performance.now() - diagramStart),
             usage: r.usage ? {
@@ -100,22 +100,26 @@ export async function POST(request: NextRequest) {
               totalTokens: (r.usage.inputTokens ?? 0) + (r.usage.outputTokens ?? 0),
             } : undefined,
           });
-          diagram = {
-            mermaid: sanitizeMermaid(r.object.mermaid),
-            caption: r.object.caption,
-          };
-        } catch (err) {
-          const msg = String((err as any)?.message ?? err ?? "");
-          if (msg.includes("response_format") || msg.includes("unavailable")) {
-            console.log("[diagram-regen] response_format not supported, falling back to generateText");
-            const r = await generateText({
+          try {
+            const parsed = tryParseJson(r.text);
+            let mermaidStr = parsed.mermaid || "";
+            mermaidStr = mermaidStr.replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
+            diagram = { mermaid: sanitizeMermaid(mermaidStr), caption: parsed.caption || "" };
+          } catch {
+            console.error("[diagram-regen] failed to parse JSON from generateText");
+            diagram = null;
+          }
+        } else {
+          try {
+            const r = await generateObject({
               model: aiModel,
-              prompt: jsonResponsePrompt,
+              schema: diagramSchema,
+              prompt,
               temperature: 0.3,
               maxOutputTokens: 1500,
             });
             logAiCall({
-              route: "practice-diagram-regen-text",
+              route: "practice-diagram-regen",
               model: candidate.modelId,
               durationMs: Math.round(performance.now() - diagramStart),
               usage: r.usage ? {
@@ -124,17 +128,42 @@ export async function POST(request: NextRequest) {
                 totalTokens: (r.usage.inputTokens ?? 0) + (r.usage.outputTokens ?? 0),
               } : undefined,
             });
-            try {
-              const parsed = tryParseJson(r.text);
-              let mermaidStr = parsed.mermaid || "";
-              mermaidStr = mermaidStr.replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
-              diagram = { mermaid: sanitizeMermaid(mermaidStr), caption: parsed.caption || "" };
-            } catch {
-              console.error("[diagram-regen] failed to parse JSON from generateText");
-              diagram = null;
+            diagram = {
+              mermaid: sanitizeMermaid(r.object.mermaid),
+              caption: r.object.caption,
+            };
+          } catch (err) {
+            const msg = String((err as any)?.message ?? err ?? "");
+            if (msg.includes("response_format") || msg.includes("unavailable")) {
+              console.log("[diagram-regen] response_format not supported, falling back to generateText");
+              const r = await generateText({
+                model: aiModel,
+                prompt: jsonResponsePrompt,
+                temperature: 0.3,
+                maxOutputTokens: 1500,
+              });
+              logAiCall({
+                route: "practice-diagram-regen-text",
+                model: candidate.modelId,
+                durationMs: Math.round(performance.now() - diagramStart),
+                usage: r.usage ? {
+                  inputTokens: r.usage.inputTokens,
+                  outputTokens: r.usage.outputTokens,
+                  totalTokens: (r.usage.inputTokens ?? 0) + (r.usage.outputTokens ?? 0),
+                } : undefined,
+              });
+              try {
+                const parsed = tryParseJson(r.text);
+                let mermaidStr = parsed.mermaid || "";
+                mermaidStr = mermaidStr.replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
+                diagram = { mermaid: sanitizeMermaid(mermaidStr), caption: parsed.caption || "" };
+              } catch {
+                console.error("[diagram-regen] failed to parse JSON from generateText");
+                diagram = null;
+              }
+            } else {
+              throw err;
             }
-          } else {
-            throw err;
           }
         }
 
