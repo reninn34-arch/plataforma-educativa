@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Clock, Coffee, Filter } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+
 import { apiFetch } from "@/lib/fetch-utils";
 import { subjectTheme } from "@/lib/subject-theme";
 
@@ -102,14 +102,14 @@ export default function TeacherHorarioPage() {
         </div>
 
         {filtered.length === 0 ? (
-          <Card className="shadow-sm border-slate-200">
-            <CardContent className="py-16 text-center">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+            <div className="py-16 text-center">
               <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
                 <Clock size={32} className="text-slate-300" />
               </div>
               <p className="font-semibold text-slate-600">Sin horario disponible</p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             {DIAS.map(dia => {

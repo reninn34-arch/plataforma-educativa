@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Loader2, Users as UsersIcon, BookOpen, Upload, FileText, Trash2, Check, CheckCircle2 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -215,14 +215,14 @@ export default function TeacherCursosPage() {
         </div>
 
         {cursos.length === 0 ? (
-          <Card className="shadow-sm border-slate-200">
-            <CardContent className="py-16 text-center space-y-3">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+            <div className="py-16 text-center space-y-3">
               <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto">
                 <BookOpen size={32} className="text-slate-300" />
               </div>
               <p className="font-semibold text-slate-600">No tienes cursos asignados</p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ) : (
           <div className="grid sm:grid-cols-2 gap-4">
             {cursos.map(c => (

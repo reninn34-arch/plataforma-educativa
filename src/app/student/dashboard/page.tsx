@@ -70,7 +70,7 @@ export default function StudentDashboard() {
   const totalSessions = metrics?.totalSessions || 0;
   const accuracy = metrics?.accuracy || 0;
   const streakDays = metrics?.streakDays || 0;
-  const totalNodos = Object.values(progress).reduce((sum, p) => sum + (p.completedNodes ?? 0), 0);
+  const totalNodos = Object.values(progress).reduce((sum, p) => sum + (Number(p.completedNodes) || 0), 0);
   const firstName = profile?.fullName?.split(" ")[0] || "Estudiante";
 
   return (
@@ -119,31 +119,31 @@ export default function StudentDashboard() {
             {/* Quick Access to Practice */}
             <Link
               href="/student/practice"
-              className="block group bg-gradient-to-r from-indigo-50 to-violet-50 rounded-2xl p-6 border border-indigo-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+              className="block group bg-gradient-to-r from-indigo-50 to-violet-50 rounded-2xl p-4 sm:p-6 border border-indigo-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
             >
-              <div className="flex items-center gap-5">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
-                  <Brain size={32} className="text-white" />
+              <div className="flex items-center gap-3 sm:gap-5">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
+                  <Brain size={24} className="sm:size-8 text-white" />
                 </div>
-                <div className="flex-1">
-                  <h2 className="font-bold text-slate-800 text-lg">Práctica con IA</h2>
-                  <p className="text-sm text-slate-500 mt-0.5">
-                    {Object.keys(progress).length} materias disponibles · {totalNodos} nodos completados
+                <div className="flex-1 min-w-0">
+                  <h2 className="font-bold text-slate-800 text-base sm:text-lg">Práctica con IA</h2>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-0.5 truncate">
+                    {Object.keys(progress).length} materias · {totalNodos} nodos
                   </p>
-                  <div className="flex flex-wrap gap-2 mt-3">
+                  <div className="flex flex-wrap gap-1.5 mt-2">
                     {Object.entries(progress).slice(0, 4).map(([slug, p]) => (
-                      <span key={slug} className="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-600">
+                      <span key={slug} className="text-[10px] bg-white border border-slate-200 rounded-lg px-1.5 py-0.5 text-slate-600">
                         {slug === "matematicas" && "🔢"}
                         {slug === "fisica" && "⚡"}
                         {slug === "quimica" && "🧪"}
                         {slug === "ingles" && "🗣"}
-                        {p.percentage ?? 0}%
+                        {Number(p.percentage) || 0}%
                       </span>
                     ))}
                   </div>
                 </div>
-                <div className="bg-indigo-600 text-white p-3 rounded-xl group-hover:bg-indigo-700 transition-colors shrink-0">
-                  <ChevronRight size={22} />
+                <div className="bg-indigo-600 text-white p-2 sm:p-3 rounded-xl group-hover:bg-indigo-700 transition-colors shrink-0">
+                  <ChevronRight size={18} className="sm:size-[22px]" />
                 </div>
               </div>
             </Link>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, BookOpen, Brain, Sparkles, Target, Play } from "lucide-react";
+import { BookOpen, Brain, Play, Target } from "lucide-react";
 import { SUBJECTS } from "@/lib/utils";
 import { apiFetch } from "@/lib/fetch-utils";
 import { subjectTheme } from "@/lib/subject-theme";
@@ -73,44 +73,7 @@ export default function PracticePage() {
           </div>
         </section>
 
-        {/* Stats row */}
-        {Object.keys(progress).length > 0 && (
-          <div className="flex flex-wrap gap-3">
-            {(() => {
-              const total = Object.values(progress).reduce((sum, p) => sum + (p.percentage ?? 0), 0);
-              const count = Object.keys(progress).length;
-              const avg = count > 0 ? Math.round(total / count) : 0;
-              const totalCompleted = Object.values(progress).reduce((sum, p) => sum + (p.completedNodes ?? 0), 0);
-              const totalStars = Object.values(progress).reduce((sum, p) => sum + (p.totalStars ?? 0), 0);
-              return (
-                <>
-                  <div className="bg-white rounded-xl border border-slate-200 px-4 py-2.5 flex items-center gap-2.5 shadow-sm">
-                    <BookOpen size={16} className="text-indigo-500" />
-                    <span className="text-sm font-bold text-slate-700">{count}</span>
-                    <span className="text-xs text-slate-400">materias</span>
-                  </div>
-                  <div className="bg-white rounded-xl border border-slate-200 px-4 py-2.5 flex items-center gap-2.5 shadow-sm">
-                    <Sparkles size={16} className="text-amber-500" />
-                    <span className="text-sm font-bold text-slate-700">{avg}%</span>
-                    <span className="text-xs text-slate-400">progreso promedio</span>
-                  </div>
-                  <div className="bg-white rounded-xl border border-slate-200 px-4 py-2.5 flex items-center gap-2.5 shadow-sm">
-                    <Target size={16} className="text-emerald-500" />
-                    <span className="text-sm font-bold text-slate-700">{totalCompleted}</span>
-                    <span className="text-xs text-slate-400">nodos completados</span>
-                  </div>
-                  {totalStars > 0 && (
-                    <div className="bg-white rounded-xl border border-slate-200 px-4 py-2.5 flex items-center gap-2.5 shadow-sm">
-                      <span className="text-sm">⭐</span>
-                      <span className="text-sm font-bold text-slate-700">{totalStars}</span>
-                      <span className="text-xs text-slate-400">estrellas</span>
-                    </div>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-        )}
+
 
         {/* Subject Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
