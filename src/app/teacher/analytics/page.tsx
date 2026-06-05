@@ -10,16 +10,16 @@ function AnalyticsContent() {
   const cursoId = searchParams.get("cursoId") ? parseInt(searchParams.get("cursoId")!) : null;
 
   return (
-    <div className="flex-1 w-full animate-fade-in-up">
-      <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8 space-y-6">
+    <div className="flex-1 w-full min-w-0 animate-fade-in-up overflow-x-hidden">
+      <div className="w-full max-w-6xl mx-auto px-3 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 pb-20 lg:pb-8 space-y-6">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-md">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-md shrink-0">
               <BarChart3 size={20} />
             </div>
             <div>
               <h1 className="text-xl font-bold text-slate-800">Analíticas con IA</h1>
-              <p className="text-sm text-slate-400">Métricas de riesgo predictivo y desempeño estudiantil</p>
+              <p className="text-xs sm:text-sm text-slate-400">Métricas de riesgo predictivo y desempeño estudiantil</p>
             </div>
           </div>
         </div>

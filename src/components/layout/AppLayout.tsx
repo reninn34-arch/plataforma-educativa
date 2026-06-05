@@ -41,7 +41,7 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-800">
+    <div className="flex min-h-screen bg-slate-50 text-slate-800 overflow-x-hidden">
       {/* Mobile Overlay */}
       {mobileMenuOpen && (
         <div
@@ -175,7 +175,7 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-screen lg:pl-64 pt-16 lg:pt-0">
+      <div className="flex-1 flex flex-col min-h-screen lg:pl-64 pt-16 lg:pt-0 w-full min-w-0 overflow-x-hidden">
         {children}
       </div>
     </div>

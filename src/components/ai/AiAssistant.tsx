@@ -604,57 +604,90 @@ export function AiAssistant() {
 
   return (
     <>
+      {/* ── FAB ── */}
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-violet-600 text-white shadow-lg hover:bg-violet-700 hover:shadow-xl transition-all hover:scale-105 active:scale-95"
+          className="fixed bottom-6 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-violet-600 text-white shadow-lg hover:bg-violet-700 transition-all hover:scale-105 active:scale-95"
           aria-label="Abrir asistente IA"
         >
           <Sparkles className="h-6 w-6" />
         </button>
       )}
 
+      {/* ── Backdrop (mobile only) ── */}
       {open && (
-        <div className="fixed bottom-6 right-4 sm:right-6 z-50 flex h-[560px] w-[calc(100vw-2rem)] sm:w-[380px] flex-col rounded-2xl border border-violet-200 bg-white shadow-2xl animate-scale-in overflow-hidden">
+        <div
+          className="fixed inset-0 z-40 bg-black/40 sm:hidden"
+          onClick={() => { clearFlow(); setMessages([]); setOpen(false); }}
+        />
+      )}
+
+      {/* ── Panel ── */}
+      {open && (
+        <div
+          className={cn(
+            // base
+            "fixed z-50 flex flex-col bg-white shadow-2xl overflow-hidden",
+            // mobile: full-width bottom sheet
+            "inset-x-0 bottom-0 rounded-t-3xl",
+            "h-[90dvh]",
+            // desktop: floating card
+            "sm:inset-x-auto sm:bottom-6 sm:right-6",
+            "sm:w-[380px] sm:h-[560px]",
+            "sm:rounded-2xl sm:border sm:border-violet-200",
+            "animate-fade-in-up"
+          )}
+        >
+          {/* Drag handle — mobile only */}
+          <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0 bg-white rounded-t-3xl">
+            <div className="w-10 h-1 rounded-full bg-slate-200" />
+          </div>
+
+          {/* Header */}
           <div className="flex items-center justify-between bg-violet-600 px-4 py-3 text-white shrink-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               {flow !== "none" ? (
-                <button onClick={clearFlow} className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 transition-colors">
-                  <ArrowLeft className="h-4 w-4" />
+                <button
+                  onClick={clearFlow}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 transition-colors"
+                >
+                  <ArrowLeft className="h-5 w-5" />
                 </button>
               ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20">
                   <Bot className="h-5 w-5" />
                 </div>
               )}
               <div>
-                <h3 className="text-sm font-bold">{flow !== "none" ? "Atlas IA" : "Atlas IA"}</h3>
-                <p className="text-[10px] text-violet-200">
-                  {flow === "create-assignment" ? "Crear tarea" :
-                   flow === "my-courses" ? "Mis cursos" :
-                   flow === "risk" ? "Estudiantes en riesgo" :
-                   flow === "message" ? "Enviar mensaje" :
-                   "Asistente virtual"}
+                <h3 className="text-sm font-bold leading-none">Atlas IA</h3>
+                <p className="text-[11px] text-violet-200 mt-0.5">
+                  {flow === "create-assignment" ? "Crear tarea"
+                    : flow === "my-courses" ? "Mis cursos"
+                    : flow === "risk" ? "Estudiantes en riesgo"
+                    : flow === "message" ? "Enviar mensaje"
+                    : "Asistente virtual"}
                 </p>
               </div>
             </div>
             <button
               onClick={() => { clearFlow(); setMessages([]); setOpen(false); }}
-              className="rounded-lg p-1.5 text-violet-200 hover:bg-white/10 hover:text-white transition-colors"
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-violet-200 hover:bg-white/10 hover:text-white transition-colors"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
             </button>
           </div>
 
+          {/* Scrollable content */}
           <div className="flex flex-col flex-1 min-h-0">
             <ScrollArea className="flex-1">
               <div ref={scrollRef} className="space-y-3 p-4">
                 {flow !== "none" ? (
                   renderFlowContent()
                 ) : messages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center min-h-[320px]">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-violet-100 mb-4">
-                      <Sparkles className="h-7 w-7 text-violet-600" />
+                  <div className="flex flex-col items-center justify-center min-h-[260px] py-6">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-violet-100 mb-4">
+                      <Sparkles className="h-8 w-8 text-violet-600" />
                     </div>
                     <p className="text-base font-semibold text-slate-800 mb-1">Hola, soy Atlas IA</p>
                     <p className="text-xs text-slate-500 mb-6 text-center max-w-[260px]">
@@ -665,7 +698,7 @@ export function AiAssistant() {
                         <button
                           key={i}
                           onClick={btn.action}
-                          className="rounded-full border border-violet-200 bg-violet-50/60 px-3.5 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-100 hover:border-violet-300 transition-colors flex items-center gap-1.5"
+                          className="rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-xs font-medium text-violet-700 hover:bg-violet-100 transition-colors flex items-center gap-1.5"
                         >
                           <span>{btn.icon}</span>
                           <span>{btn.label}</span>
@@ -679,15 +712,13 @@ export function AiAssistant() {
                       <div key={i}>
                         <div className={cn("flex gap-2", m.role === "user" ? "justify-end" : "justify-start")}>
                           <div className={cn(
-                            "rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed max-w-[88%]",
+                            "rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed max-w-[85%]",
                             m.role === "user"
-                              ? "bg-violet-600 text-white rounded-br-md"
-                              : "bg-gray-100 text-gray-800 rounded-bl-md"
+                              ? "bg-violet-600 text-white rounded-br-sm"
+                              : "bg-slate-100 text-slate-800 rounded-bl-sm"
                           )}>
                             {m.parts?.map((part: any, j: number) => {
-                              if (part.type === "text") {
-                                return <span key={j}>{stripMarkdown(part.text)}</span>;
-                              }
+                              if (part.type === "text") return <span key={j}>{stripMarkdown(part.text)}</span>;
                               if (part.type === "tool-call" || part.type === "tool-result") {
                                 return (
                                   <div key={j} className={cn(
@@ -716,18 +747,18 @@ export function AiAssistant() {
                     ))}
 
                     {error && (
-                      <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700 text-center">
-                        Error de conexion. Intenta de nuevo.
+                      <div className="rounded-xl bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700 text-center">
+                        Error de conexión. Intenta de nuevo.
                       </div>
                     )}
 
                     {loading && messages[messages.length - 1]?.role === "user" && (
                       <div className="flex gap-2 justify-start">
-                        <div className="rounded-2xl rounded-bl-md bg-gray-100 px-4 py-3">
-                          <div className="flex gap-1">
-                            <span className="h-2 w-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "0ms" }} />
-                            <span className="h-2 w-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "150ms" }} />
-                            <span className="h-2 w-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+                        <div className="rounded-2xl rounded-bl-sm bg-slate-100 px-4 py-3">
+                          <div className="flex gap-1.5 items-center">
+                            <span className="h-2 w-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                            <span className="h-2 w-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                            <span className="h-2 w-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "300ms" }} />
                           </div>
                         </div>
                       </div>
@@ -737,15 +768,16 @@ export function AiAssistant() {
               </div>
             </ScrollArea>
 
+            {/* Quick action chips after AI response */}
             {flow === "none" && !loading && lastMsgIsAi && messages.length > 0 && (
-              <div className="shrink-0 px-4 pb-1">
+              <div className="shrink-0 px-4 pb-2">
                 <div className="flex flex-wrap gap-1.5">
                   {quickActions.map((btn, i) => (
                     <button
                       key={i}
                       type="button"
                       onClick={btn.action}
-                      className="rounded-full border border-violet-200 bg-violet-50/60 px-3 py-1 text-[11px] font-medium text-violet-700 hover:bg-violet-100 hover:border-violet-300 transition-colors whitespace-nowrap flex items-center gap-1"
+                      className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-[11px] font-medium text-violet-700 hover:bg-violet-100 transition-colors whitespace-nowrap flex items-center gap-1"
                     >
                       <span>{btn.icon}</span>
                       <span>{btn.label}</span>
@@ -756,44 +788,105 @@ export function AiAssistant() {
             )}
           </div>
 
-          <div className="border-t bg-white px-3 py-2.5 shrink-0">
+          {/* ── Input bar ── */}
+          <div
+            className="border-t border-slate-100 bg-white shrink-0 px-3 pt-3 pb-3"
+            style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}
+          >
+            {/* Attached file pill */}
             {attachedFile && (
-              <div className="flex items-center justify-between rounded-lg bg-violet-50 px-3 py-2 text-xs border border-violet-100 mb-2">
-                <div className="flex items-center gap-2 overflow-hidden">
+              <div className="flex items-center justify-between rounded-xl bg-violet-50 border border-violet-100 px-3 py-2 text-xs mb-2">
+                <div className="flex items-center gap-2 min-w-0">
                   <FileText className="h-4 w-4 text-violet-600 shrink-0" />
                   <span className="truncate text-violet-800 font-medium">{attachedFile.name}</span>
                 </div>
-                <button onClick={() => setAttachedFile(null)} className="text-violet-400 hover:text-red-500 transition-colors">
+                <button
+                  onClick={() => setAttachedFile(null)}
+                  className="ml-2 shrink-0 text-violet-400 hover:text-red-500 transition-colors"
+                >
                   <X className="h-4 w-4" />
                 </button>
               </div>
             )}
-            <form onSubmit={handleSubmit} className="flex gap-2 items-center">
-              <input type="file" accept=".txt,.csv,.md" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
-              <button type="button" onClick={() => fileInputRef.current?.click()} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-gray-100 transition-colors">
+
+            {/* Row: [input………]  [send] */}
+            <form onSubmit={handleSubmit} className="flex items-center gap-2">
+              <input
+                type="file"
+                accept=".txt,.csv,.md"
+                className="hidden"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+              />
+
+              {/* Paperclip — desktop only */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="hidden sm:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 transition-colors"
+              >
                 <Paperclip className="h-4 w-4" />
               </button>
-              <button type="button" onClick={toggleRecording} className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors", isRecording ? "bg-red-100 text-red-600 animate-pulse" : "text-slate-500 hover:bg-gray-100")}>
+
+              {/* Mic — desktop only */}
+              <button
+                type="button"
+                onClick={toggleRecording}
+                className={cn(
+                  "hidden sm:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors",
+                  isRecording ? "bg-red-100 text-red-600 animate-pulse" : "text-slate-400 hover:bg-slate-100"
+                )}
+              >
                 <Mic className="h-4 w-4" />
               </button>
+
+              {/* Text input — flex-1 takes remaining space */}
               <input
                 name="message"
                 type="text"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder="Escribe un mensaje..."
-                className="flex-1 h-9 rounded-xl border border-gray-200 bg-gray-50/60 px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
+                className="flex-1 min-w-0 h-11 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400/30 focus:border-violet-400 transition-colors"
                 disabled={loading}
                 autoComplete="off"
               />
+
+              {/* Send — always visible */}
               <button
                 type="submit"
-                disabled={loading || (!inputText.trim() && !attachedFile) || sendingRef.current}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                disabled={loading || (!inputText.trim() && !attachedFile)}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-violet-600 text-white shadow-sm hover:bg-violet-700 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {loading
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Send className="h-4 w-4" />
+                }
               </button>
             </form>
+
+            {/* Mobile-only: attach + mic as text links below the input */}
+            <div className="sm:hidden flex items-center gap-4 mt-2 px-1">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-violet-600 transition-colors"
+              >
+                <Paperclip className="h-3.5 w-3.5" />
+                <span>Adjuntar</span>
+              </button>
+              <button
+                type="button"
+                onClick={toggleRecording}
+                className={cn(
+                  "flex items-center gap-1.5 text-xs transition-colors",
+                  isRecording ? "text-red-500 animate-pulse" : "text-slate-400 hover:text-violet-600"
+                )}
+              >
+                <Mic className="h-3.5 w-3.5" />
+                <span>{isRecording ? "Grabando..." : "Voz"}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

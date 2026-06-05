@@ -669,7 +669,7 @@ export function CreateAssignmentForm() {
         </div>
       ) : (
         <>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-bold text-slate-800">Tareas asignadas</h2>
             {!showForm && (
               <Button onClick={() => { setShowForm(true); setSaving(false); setFeedback(""); setEditId(null); setTitle(""); setDescription(""); setDueDate(""); setQuestions([]); setCursoId(null); setSubjectId(subjectsList[0]?.id ?? null); setErrorMsg(""); }} size="sm" className="gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200">
@@ -943,25 +943,26 @@ export function CreateAssignmentForm() {
               {assignments.map((a) => (
                 <div key={a.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                   <div className="p-5 space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1 flex-1 cursor-pointer" onClick={() => viewSubmissions(a.id)}>
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{a.subjectEmoji}</span>
-                          <Badge variant="secondary" className="text-xs rounded-lg">{a.subjectName}</Badge>
-                          {a.cursoNombre && (
-                            <Badge variant="outline" className="text-xs rounded-lg border-slate-200">{a.cursoNombre}</Badge>
-                          )}
-                          {a.periodoNombre && (
-                            <Badge variant="outline" className="text-xs rounded-lg border-slate-200 bg-blue-50 text-blue-700 border-blue-200">{a.periodoNombre}</Badge>
-                          )}
-                        </div>
-                        <h3 className="font-bold text-slate-800">{a.title}</h3>
-                        <p className="text-sm text-slate-500 line-clamp-2">{a.description}</p>
+                    <div className="space-y-1 cursor-pointer" onClick={() => viewSubmissions(a.id)}>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-lg">{a.subjectEmoji}</span>
+                        <Badge variant="secondary" className="text-xs rounded-lg">{a.subjectName}</Badge>
+                        {a.cursoNombre && (
+                          <Badge variant="outline" className="text-xs rounded-lg border-slate-200">{a.cursoNombre}</Badge>
+                        )}
+                        {a.periodoNombre && (
+                          <Badge variant="outline" className="text-xs rounded-lg border-slate-200 bg-blue-50 text-blue-700 border-blue-200">{a.periodoNombre}</Badge>
+                        )}
                       </div>
-                      <div className="flex gap-1 ml-2 shrink-0 items-center">
+                      <h3 className="font-bold text-slate-800">{a.title}</h3>
+                      <p className="text-sm text-slate-500 line-clamp-2">{a.description}</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 cursor-pointer" onClick={() => viewSubmissions(a.id)}>
+                      {a.dueDate && <DueTimer dueDate={a.dueDate} compact />}
+                      <span className="flex items-center gap-1"><FileText className="h-3 w-3" />{a.submissionCount ?? 0} entregas</span>
+                      <div className="flex items-center gap-1 ml-auto" onClick={(e) => e.stopPropagation()}>
                         <a href={`/api/assignments/${a.id}/export`} download
-                          className="flex h-9 w-9 items-center justify-center rounded-md text-slate-500 hover:text-indigo-600 hover:bg-slate-100 transition-colors" title="Exportar a Word/Impresión"
-                          onClick={(e) => e.stopPropagation()}>
+                          className="flex h-9 w-9 items-center justify-center rounded-md text-slate-500 hover:text-indigo-600 hover:bg-slate-100 transition-colors" title="Exportar a Word/Impresión">
                           <Download className="h-4 w-4" />
                         </a>
                         <Button variant="ghost" size="icon-sm" onClick={(e) => { e.stopPropagation(); startEdit(a); }}
@@ -973,10 +974,6 @@ export function CreateAssignmentForm() {
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-slate-500 cursor-pointer" onClick={() => viewSubmissions(a.id)}>
-                      {a.dueDate && <DueTimer dueDate={a.dueDate} compact />}
-                      <span className="flex items-center gap-1"><FileText className="h-3 w-3" />{a.submissionCount ?? 0} entregas</span>
                     </div>
                   </div>
                 </div>
