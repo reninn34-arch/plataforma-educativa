@@ -398,6 +398,24 @@ export const studyMaterials = pgTable("study_materials", {
   subjectIdIdx: index("idx_study_materials_subject_id").on(table.subjectId),
 }));
 
+export const notificaciones = pgTable("notificaciones", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  type: varchar("type", { length: 20 }).notNull().default("system"),
+  title: varchar("title", { length: 200 }).notNull(),
+  message: text("message"),
+  link: varchar("link", { length: 500 }),
+  read: boolean("read").notNull().default(false),
+  relatedId: integer("related_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("idx_notificaciones_user_id").on(table.userId),
+  readIdx: index("idx_notificaciones_read").on(table.read),
+  userReadIdx: index("idx_notificaciones_user_read").on(table.userId, table.read),
+}));
+
 export const horarios = pgTable("horarios", {
   id: serial("id").primaryKey(),
   cursoId: integer("curso_id")

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { directMessages, users } from "@/lib/db/schema";
-import { eq, and, desc, or } from "drizzle-orm";
+import { eq, or, and, desc } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { messageSchema } from "@/lib/api-helpers";
+import { notifyUser } from "@/lib/notifications";
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
@@ -81,6 +82,14 @@ export async function POST(request: NextRequest) {
     receiverId,
     content,
   } as any).returning();
+
+  await notifyUser({
+    userId: receiverId,
+    type: "message",
+    title: `Nuevo mensaje de ${user.role === "teacher" ? "tu profesor" : "un estudiante"}`,
+    message: content.slice(0, 120),
+    link: `/messages?contact=${user.id}`,
+  });
 
   return NextResponse.json({ message: msg });
   } catch {

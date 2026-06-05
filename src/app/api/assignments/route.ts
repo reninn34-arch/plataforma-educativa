@@ -64,6 +64,7 @@ import { eq, and, desc, inArray, sql } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { teacherHasCourseAccess } from "@/lib/course-helpers";
 import { assignmentSchema } from "@/lib/api-helpers";
+import { notifyStudentsInCourse } from "@/lib/notifications";
 
 export async function GET(request: NextRequest) {
   try {
@@ -280,6 +281,17 @@ export async function POST(request: NextRequest) {
           orderIndex: i,
         } as any))
       );
+    }
+
+    if (cursoId) {
+      await notifyStudentsInCourse({
+        cursoId,
+        type: "assignment",
+        title: `Nueva tarea: ${assignment.title}`,
+        message: description?.slice(0, 120) || "Tienes una nueva tarea asignada",
+        link: `/student/assignments/${assignment.id}`,
+        relatedId: assignment.id,
+      });
     }
 
     return NextResponse.json({ assignment, questionsCount: questions?.length || 0 });

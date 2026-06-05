@@ -6,6 +6,7 @@ import { LogOut, Menu, X, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiFetch, clearCache } from "@/lib/fetch-utils";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -112,8 +113,11 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
           <Menu size={22} />
         </button>
         <span className="text-sm font-semibold text-slate-700 truncate mx-2">{title}</span>
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
-          A
+        <div className="flex items-center gap-1">
+          <NotificationBell />
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
+            A
+          </div>
         </div>
       </div>
 
@@ -176,6 +180,10 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-screen lg:pl-64 pt-16 lg:pt-0 w-full min-w-0 overflow-x-hidden">
+        {/* Desktop Top Bar */}
+        <div className="hidden lg:flex items-center justify-end px-6 py-3 border-b border-slate-100 bg-white/80 backdrop-blur-sm sticky top-0 z-30">
+          <NotificationBell />
+        </div>
         {children}
       </div>
     </div>
