@@ -52,7 +52,7 @@ function DashboardContent() {
                   <h1 className="text-xl font-bold text-slate-800">{selectedCurso.nombre}</h1>
                   <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">{selectedCurso.nivel}</span>
                   {selectedCurso.mySubjects?.length > 0 && (
-                    <div className="flex gap-1">
+                    <div className="flex flex-wrap gap-1">
                       {selectedCurso.mySubjects.map((s: any, i: number) => (
                         <span key={i} className="text-[10px] font-medium bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-lg border border-indigo-100">
                           {s.subjectEmoji} {s.subjectName}
@@ -83,7 +83,7 @@ function DashboardContent() {
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {cursos.length > 1 && (
               <select
                 value={cursoId || ""}

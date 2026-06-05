@@ -40,7 +40,7 @@ export function StudentBottomNav() {
               }`}>
                 <Icon className={`h-5 w-5 ${active ? "stroke-[2.5]" : "stroke-[1.8]"}`} />
               </div>
-              <span className={`text-[10px] font-semibold ${
+              <span className={`text-xs font-semibold ${
                 active ? "text-indigo-600" : "text-slate-400"
               }`}>{label}</span>
               {active && (

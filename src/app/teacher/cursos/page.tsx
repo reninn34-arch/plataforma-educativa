@@ -264,7 +264,7 @@ export default function TeacherCursosPage() {
                                         {bloques.map((b: Bloque, i: number) => (
                                           <div key={i} className="text-center leading-tight">
                                             <span>{b.subjectEmoji}</span>
-                                            <div className="text-[8px] text-slate-400">{b.horaInicio}</div>
+                                            <div className="text-[10px] text-slate-400">{b.horaInicio}</div>
                                           </div>
                                         ))}
                                       </div>

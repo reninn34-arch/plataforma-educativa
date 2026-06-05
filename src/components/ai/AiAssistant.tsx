@@ -615,7 +615,7 @@ export function AiAssistant() {
       )}
 
       {open && (
-        <div className="fixed bottom-6 right-6 z-50 flex h-[560px] w-[380px] flex-col rounded-2xl border border-violet-200 bg-white shadow-2xl animate-scale-in overflow-hidden">
+        <div className="fixed bottom-6 right-4 sm:right-6 z-50 flex h-[560px] w-[calc(100vw-2rem)] sm:w-[380px] flex-col rounded-2xl border border-violet-200 bg-white shadow-2xl animate-scale-in overflow-hidden">
           <div className="flex items-center justify-between bg-violet-600 px-4 py-3 text-white shrink-0">
             <div className="flex items-center gap-2">
               {flow !== "none" ? (

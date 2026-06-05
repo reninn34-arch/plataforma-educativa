@@ -164,7 +164,7 @@ export function GradebookPanel({ cursoId: initialCursoId }: { cursoId?: number |
                 <p className="text-lg font-extrabold text-slate-800 tabular-nums mt-0.5">
                   {s.yearlyAvg?.toFixed(2) || "—"}
                 </p>
-                <p className="text-[10px] text-slate-500">{s.name}</p>
+                <p className="text-xs text-slate-500">{s.name}</p>
               </div>
             </div>
           ))}
@@ -241,21 +241,21 @@ export function GradebookPanel({ cursoId: initialCursoId }: { cursoId?: number |
                       <tr key={student.studentId} className={`border-b border-border/50 last:border-0 ${si % 2 === 0 ? "bg-slate-100/20" : ""}`}>
                         <td className="py-2.5 sticky left-0 bg-white">
                           <div className="flex items-center gap-2">
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-[10px] font-bold text-indigo-600">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-xs font-bold text-indigo-600">
                               {student.studentName.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()}
                             </div>
                             <span className="font-medium text-slate-800 text-xs">{student.studentName}</span>
                           </div>
                         </td>
                         {!cursoId && (
-                          <td className="py-2.5"><Badge variant="outline" className="text-[10px] rounded-lg border-slate-200">{student.studentCursoNombre || "—"}</Badge></td>
+                          <td className="py-2.5"><Badge variant="outline" className="text-xs rounded-lg border-slate-200">{student.studentCursoNombre || "—"}</Badge></td>
                         )}
                         {student.subjects.map(subj => (
                           <td key={subj.subjectId} className="text-center">
                             <div className="flex flex-col items-center">
                               <GradeStat value={subj.yearlyAvg} isYearly />
                               {subj.totalGrades > 0 && (
-                                <span className="text-[9px] text-slate-500">{subj.totalGrades} notas</span>
+                                <span className="text-[10px] text-slate-500">{subj.totalGrades} notas</span>
                               )}
                             </div>
                           </td>

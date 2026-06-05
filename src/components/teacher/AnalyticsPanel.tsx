@@ -58,7 +58,7 @@ export function AnalyticsPanel({ cursoId: initialCursoId }: { cursoId?: number |
 
   return (
     <div className="space-y-6 animate-fade-in-up">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <h2 className="text-lg font-bold text-slate-800">Analiticas de Practica IA</h2>
         <div className="flex items-center gap-3">
           {cursos.length > 1 && (
@@ -139,10 +139,10 @@ export function AnalyticsPanel({ cursoId: initialCursoId }: { cursoId?: number |
               {data.errorTopics.slice(0, 8).map((t, i) => (
                 <div key={i} className="flex items-center justify-between rounded-lg bg-slate-100/20 px-3 py-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <Badge variant="outline" className="text-[10px] shrink-0 rounded-lg border-slate-200">{t.subjectEmoji}</Badge>
+                    <Badge variant="outline" className="text-xs shrink-0 rounded-lg border-slate-200">{t.subjectEmoji}</Badge>
                     <span className="text-xs truncate">{t.topic || "General"}</span>
                   </div>
-                  <Badge variant="destructive" className="text-[10px] shrink-0 ml-2 rounded-lg">{t.wrongCount} errores</Badge>
+                  <Badge variant="destructive" className="text-xs shrink-0 ml-2 rounded-lg">{t.wrongCount} errores</Badge>
                 </div>
               ))}
             </div>
@@ -168,14 +168,14 @@ export function AnalyticsPanel({ cursoId: initialCursoId }: { cursoId?: number |
                   {data.byStudent.map(s => (
                     <tr key={s.userId} className="border-b border-border/50 last:border-0">
                       <td className="py-2.5 font-medium text-slate-800 text-xs flex items-center gap-2">
-                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-[10px] font-bold text-indigo-600">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-xs font-bold text-indigo-600">
                           {s.fullName.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()}
                         </div>
                         {s.fullName}
                       </td>
                       <td className="text-center text-xs">{s.sessions}</td>
                       <td className="text-center">
-                        <Badge variant={s.percentage >= 70 ? "default" : s.percentage >= 40 ? "outline" : "destructive"} className="text-[10px] rounded-lg">{s.percentage}%</Badge>
+                        <Badge variant={s.percentage >= 70 ? "default" : s.percentage >= 40 ? "outline" : "destructive"} className="text-xs rounded-lg">{s.percentage}%</Badge>
                       </td>
                       <td className="text-center text-xs font-bold tabular-nums">{s.avgScore}</td>
                     </tr>

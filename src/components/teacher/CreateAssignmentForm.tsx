@@ -526,7 +526,7 @@ export function CreateAssignmentForm() {
                                     step={1}
                                     value={gradingSub.grade}
                                     onChange={(e) => setGradingSub({ ...gradingSub, grade: parseFloat(e.target.value) || 0 })}
-                                    className="w-16 h-8 rounded-xl border border-slate-200 bg-white px-2 text-sm text-center focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all"
+                                    className="w-16 h-10 rounded-xl border border-slate-200 bg-white px-2 text-sm text-center focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all"
                                   />
                                   <span className="text-xs text-slate-500">/10</span>
                                 </div>
@@ -535,17 +535,17 @@ export function CreateAssignmentForm() {
                                   value={gradingSub.feedback}
                                   onChange={(e) => setGradingSub({ ...gradingSub, feedback: e.target.value })}
                                   placeholder="Feedback opcional..."
-                                  className="w-full h-8 rounded-xl border border-slate-200 bg-white px-2 text-xs focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all"
+                                  className="w-full h-10 rounded-xl border border-slate-200 bg-white px-2 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all"
                                 />
                                 <div className="flex gap-2">
                                   <Button
                                     size="sm"
                                     onClick={() => handleGrade(s.id, null, gradingSub.grade, gradingSub.feedback)}
-                                    className="h-7 text-xs rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200"
+                                    className="h-9 text-sm rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200"
                                   >
                                     Guardar nota
                                   </Button>
-                                  <Button variant="ghost" size="sm" onClick={() => setGradingSub(null)} className="h-7 text-xs text-slate-400 hover:text-indigo-600">
+                                  <Button variant="ghost" size="sm" onClick={() => setGradingSub(null)} className="h-9 text-sm text-slate-400 hover:text-indigo-600">
                                     Cancelar
                                   </Button>
                                 </div>
@@ -567,7 +567,7 @@ export function CreateAssignmentForm() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="h-7 text-xs rounded-xl border-slate-200"
+                                  className="h-9 text-sm rounded-xl border-slate-200"
                                   onClick={() => setGradingSub({
                                     id: s.id,
                                     grade: s.grade ?? 0,
@@ -605,17 +605,17 @@ export function CreateAssignmentForm() {
                         </div>
                         <div className="flex items-center gap-2">
                           {ns.expired ? (
-                            <Badge variant="destructive" className="text-[10px] rounded-lg">Plazo vencido</Badge>
+                            <Badge variant="destructive" className="text-xs rounded-lg">Plazo vencido</Badge>
                           ) : (
-                            <Badge variant="outline" className="text-[10px] rounded-lg border-slate-200 bg-amber-50 text-amber-700 border-amber-200">Pendiente</Badge>
+                            <Badge variant="outline" className="text-xs rounded-lg border-slate-200 bg-amber-50 text-amber-700 border-amber-200">Pendiente</Badge>
                           )}
-                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1 rounded-xl border-slate-200"
+                          <Button size="sm" variant="outline" className="h-9 text-sm gap-1 rounded-xl border-slate-200"
                             disabled={absentLoading === ns.studentId}
                             onClick={() => handleMarkAbsent(ns.studentId)}>
                             {absentLoading === ns.studentId ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
                             No entrego (0)
                           </Button>
-                          <Button size="sm" variant="outline" className="h-7 text-xs rounded-xl border-slate-200"
+                          <Button size="sm" variant="outline" className="h-9 text-sm rounded-xl border-slate-200"
                             onClick={() => setGradingSub({ studentId: ns.studentId, grade: 0, feedback: "" })}>
                             Calificar
                           </Button>
@@ -633,7 +633,7 @@ export function CreateAssignmentForm() {
                               step={1}
                               value={gradingSub.grade}
                               onChange={(e) => setGradingSub({ ...gradingSub, grade: parseFloat(e.target.value) || 0 })}
-                              className="w-16 h-8 rounded-xl border border-slate-200 bg-white px-2 text-sm text-center focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all"
+                              className="w-16 h-10 rounded-xl border border-slate-200 bg-white px-2 text-sm text-center focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all"
                             />
                             <span className="text-xs text-slate-500">/10</span>
                           </div>
@@ -642,17 +642,17 @@ export function CreateAssignmentForm() {
                             value={gradingSub.feedback}
                             onChange={(e) => setGradingSub({ ...gradingSub, feedback: e.target.value })}
                             placeholder="Feedback o justificación..."
-                            className="w-full h-8 rounded-xl border border-slate-200 bg-white px-2 text-xs focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all"
+                            className="w-full h-10 rounded-xl border border-slate-200 bg-white px-2 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all"
                           />
                           <div className="flex gap-2">
                             <Button
                               size="sm"
                               onClick={() => handleGrade(null, ns.studentId, gradingSub.grade, gradingSub.feedback)}
-                              className="h-7 text-xs rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200"
+                              className="h-9 text-sm rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200"
                             >
                               Guardar nota
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => setGradingSub(null)} className="h-7 text-xs text-slate-400 hover:text-indigo-600">
+                            <Button variant="ghost" size="sm" onClick={() => setGradingSub(null)} className="h-9 text-sm text-slate-400 hover:text-indigo-600">
                               Cancelar
                             </Button>
                           </div>
@@ -757,22 +757,22 @@ export function CreateAssignmentForm() {
                   {/* Attachment file */}
                   <div>
                     <label className="text-sm font-semibold text-slate-800 mb-1.5 block">Archivo adjunto (opcional)</label>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                       {currentFileUrl ? (
-                        <div className="flex items-center gap-2 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                          <FileText className="h-4 w-4 text-indigo-500" />
+                        <div className="flex items-center gap-2 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 min-w-0">
+                          <FileText className="h-4 w-4 text-indigo-500 shrink-0" />
                           <span className="text-xs text-slate-600 flex-1 truncate">Archivo adjunto actual</span>
-                          <a href={currentFileUrl} target="_blank" className="text-xs text-indigo-600 hover:underline" download>Descargar</a>
+                          <a href={currentFileUrl} target="_blank" className="text-xs text-indigo-600 hover:underline shrink-0" download>Descargar</a>
                           <button type="button" onClick={() => { setCurrentFileUrl(null); setAttachmentFile(null); }}
-                            className="text-xs text-red-500 hover:text-red-700 ml-2">Quitar</button>
+                            className="text-xs text-red-500 hover:text-red-700 shrink-0">Quitar</button>
                         </div>
                       ) : attachmentFile ? (
-                        <div className="flex items-center gap-2 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                          <FileText className="h-4 w-4 text-indigo-500" />
+                        <div className="flex items-center gap-2 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 min-w-0">
+                          <FileText className="h-4 w-4 text-indigo-500 shrink-0" />
                           <span className="text-xs text-slate-600 flex-1 truncate">{attachmentFile.name}</span>
-                          <span className="text-[10px] text-slate-400">{(attachmentFile.size / 1024 / 1024).toFixed(2)} MB</span>
+                          <span className="text-xs text-slate-400 shrink-0">{(attachmentFile.size / 1024 / 1024).toFixed(2)} MB</span>
                           <button type="button" onClick={() => setAttachmentFile(null)}
-                            className="text-xs text-red-500 hover:text-red-700">Quitar</button>
+                            className="text-xs text-red-500 hover:text-red-700 shrink-0">Quitar</button>
                         </div>
                       ) : (
                         <label className="flex items-center gap-2 rounded-xl border-2 border-dashed border-slate-200 px-4 py-3 text-sm text-slate-500 hover:border-indigo-200 cursor-pointer w-full">
@@ -816,7 +816,7 @@ export function CreateAssignmentForm() {
                           disabled={aiGenerating}
                         />
                       </div>
-                      <div className="flex gap-4 items-end">
+                      <div className="flex flex-wrap gap-4 items-end">
                         <div>
                           <label className="text-xs font-semibold text-slate-800 mb-1 block">
                             Cantidad de preguntas
@@ -860,16 +860,16 @@ export function CreateAssignmentForm() {
                         <ListChecks className="h-4 w-4" />
                         Preguntas ({questions.length})
                       </h3>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         {!showAiPanel && (
-                          <Button type="button" variant="outline" size="sm" onClick={() => { setShowAiPanel(true); setAiError(""); if (!aiTopic && title) setAiTopic(title); }} className="gap-1 text-xs h-8 rounded-xl border-slate-200 border-violet-200 text-violet-600 hover:bg-violet-50">
+                          <Button type="button" variant="outline" size="sm" onClick={() => { setShowAiPanel(true); setAiError(""); if (!aiTopic && title) setAiTopic(title); }} className="gap-1 text-xs h-9 rounded-xl border-slate-200 border-violet-200 text-violet-600 hover:bg-violet-50">
                             <Sparkles className="h-3 w-3" /> IA
                           </Button>
                         )}
-                        <Button type="button" variant="outline" size="sm" onClick={() => addQuestion("mcq")} className="gap-1 text-xs h-8 rounded-xl border-slate-200">
+                        <Button type="button" variant="outline" size="sm" onClick={() => addQuestion("mcq")} className="gap-1 text-xs h-9 rounded-xl border-slate-200">
                           <Pencil className="h-3 w-3" /> + Opcion multiple
                         </Button>
-                        <Button type="button" variant="outline" size="sm" onClick={() => addQuestion("file_upload")} className="gap-1 text-xs h-8 rounded-xl border-slate-200">
+                        <Button type="button" variant="outline" size="sm" onClick={() => addQuestion("file_upload")} className="gap-1 text-xs h-9 rounded-xl border-slate-200">
                           <FileUp className="h-3 w-3" /> + Subir archivo
                         </Button>
                       </div>
@@ -886,12 +886,12 @@ export function CreateAssignmentForm() {
                       <div key={q.id} className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold text-slate-500 bg-slate-100 rounded-full h-6 w-6 flex items-center justify-center">{qi + 1}</span>
-                          <Badge variant={q.type === "mcq" ? "default" : "secondary"} className="text-[10px] rounded-lg">
+                          <Badge variant={q.type === "mcq" ? "default" : "secondary"} className="text-xs rounded-lg">
                             {q.type === "mcq" ? "Opcion multiple" : "Subir archivo"}
                           </Badge>
                           <input type="number" value={q.points} min={1} max={20} onChange={(e) => updateQuestion(q.id, "points", parseInt(e.target.value) || 1)}
-                            className="ml-auto w-14 h-7 text-xs text-center rounded-xl border border-slate-200 bg-white focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" title="Puntos" />
-                          <span className="text-[10px] text-slate-500">pts</span>
+                            className="ml-auto w-14 h-9 text-sm text-center rounded-xl border border-slate-200 bg-white focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" title="Puntos" />
+                          <span className="text-xs text-slate-500">pts</span>
                           <button type="button" onClick={() => removeQuestion(q.id)} className="text-slate-500 hover:text-red-600 transition-colors">
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -947,12 +947,12 @@ export function CreateAssignmentForm() {
                       <div className="space-y-1 flex-1 cursor-pointer" onClick={() => viewSubmissions(a.id)}>
                         <div className="flex items-center gap-2">
                           <span className="text-lg">{a.subjectEmoji}</span>
-                          <Badge variant="secondary" className="text-[10px] rounded-lg">{a.subjectName}</Badge>
+                          <Badge variant="secondary" className="text-xs rounded-lg">{a.subjectName}</Badge>
                           {a.cursoNombre && (
-                            <Badge variant="outline" className="text-[10px] rounded-lg border-slate-200">{a.cursoNombre}</Badge>
+                            <Badge variant="outline" className="text-xs rounded-lg border-slate-200">{a.cursoNombre}</Badge>
                           )}
                           {a.periodoNombre && (
-                            <Badge variant="outline" className="text-[10px] rounded-lg border-slate-200 bg-blue-50 text-blue-700 border-blue-200">{a.periodoNombre}</Badge>
+                            <Badge variant="outline" className="text-xs rounded-lg border-slate-200 bg-blue-50 text-blue-700 border-blue-200">{a.periodoNombre}</Badge>
                           )}
                         </div>
                         <h3 className="font-bold text-slate-800">{a.title}</h3>
@@ -960,17 +960,17 @@ export function CreateAssignmentForm() {
                       </div>
                       <div className="flex gap-1 ml-2 shrink-0 items-center">
                         <a href={`/api/assignments/${a.id}/export`} download
-                          className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:text-indigo-600 hover:bg-slate-100 transition-colors" title="Exportar a Word/Impresión"
+                          className="flex h-9 w-9 items-center justify-center rounded-md text-slate-500 hover:text-indigo-600 hover:bg-slate-100 transition-colors" title="Exportar a Word/Impresión"
                           onClick={(e) => e.stopPropagation()}>
                           <Download className="h-4 w-4" />
                         </a>
                         <Button variant="ghost" size="icon-sm" onClick={(e) => { e.stopPropagation(); startEdit(a); }}
-                          className="h-7 w-7 text-slate-500 hover:text-indigo-600" title="Editar">
-                          <Pencil className="h-3.5 w-3.5" />
+                          className="h-9 w-9 text-slate-500 hover:text-indigo-600" title="Editar">
+                          <Pencil className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon-sm" onClick={(e) => { e.stopPropagation(); setDeleteConfirm(a.id); }}
-                          className="h-7 w-7 text-slate-500 hover:text-red-600" title="Eliminar">
-                          <Trash2 className="h-3.5 w-3.5" />
+                          className="h-9 w-9 text-slate-500 hover:text-red-600" title="Eliminar">
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>

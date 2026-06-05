@@ -111,7 +111,8 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
         >
           <Menu size={22} />
         </button>
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-xs">
+        <span className="text-sm font-semibold text-slate-700 truncate mx-2">{title}</span>
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
           A
         </div>
       </div>

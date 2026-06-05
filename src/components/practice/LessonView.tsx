@@ -293,27 +293,27 @@ function DiagramView({ diagram, onRetry }: { diagram: NonNullable<LessonData["di
               <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
                 <button
                   onClick={() => setZoom(z => Math.max(0.5, z - 0.25))}
-                  className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600 transition-colors"
+                  className="h-9 w-9 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600 transition-colors"
                   title="Reducir zoom"
                 >
-                  <ZoomOut className="h-3.5 w-3.5" />
+                  <ZoomOut className="h-4 w-4" />
                 </button>
                 <span className="text-xs font-mono text-slate-700 min-w-[40px] text-center tabular-nums">
                   {Math.round(zoom * 100)}%
                 </span>
                 <button
                   onClick={() => setZoom(z => Math.min(3, z + 0.25))}
-                  className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600 transition-colors"
+                  className="h-9 w-9 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600 transition-colors"
                   title="Aumentar zoom"
                 >
-                  <ZoomIn className="h-3.5 w-3.5" />
+                  <ZoomIn className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => setZoom(1)}
-                  className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600 transition-colors ml-1"
+                  className="h-9 w-9 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600 transition-colors ml-1"
                   title="Restablecer zoom"
                 >
-                  <RotateCcw className="h-3.5 w-3.5" />
+                  <RotateCcw className="h-4 w-4" />
                 </button>
               </div>
             </div>

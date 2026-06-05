@@ -147,7 +147,7 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
           <div className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Alumnos</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Alumnos</p>
                 <p className="text-2xl font-extrabold text-slate-800 tabular-nums">{stats.totalEstudiantes}</p>
               </div>
               <Users className="h-5 w-5 text-blue-500" />
@@ -158,7 +158,7 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
           <div className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Pendientes</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Pendientes</p>
                 <p className="text-2xl font-extrabold text-amber-600 tabular-nums">{stats.pendientes}</p>
               </div>
               <AlertTriangle className="h-5 w-5 text-amber-500" />
@@ -169,7 +169,7 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
           <div className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Bajo prom.</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Bajo prom.</p>
                 <p className="text-2xl font-extrabold text-red-600 tabular-nums">{stats.bajoRendimiento}</p>
               </div>
               <TrendingDown className="h-5 w-5 text-red-500" />
@@ -180,7 +180,7 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
           <div className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Prom. General</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Prom. General</p>
                 <p className="text-2xl font-extrabold text-emerald-600 tabular-nums">{stats.promedioGeneral}%</p>
               </div>
               <CheckCircle2 className="h-5 w-5 text-emerald-500" />
@@ -201,7 +201,64 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile: card layout */}
+        <div className="block md:hidden divide-y divide-slate-100">
+          {sorted.length === 0 ? (
+            <div className="py-20 text-center">
+              <BarChart3 className="mx-auto h-10 w-10 text-slate-500/30" />
+              <p className="mt-4 font-medium text-slate-500">No se encontraron estudiantes</p>
+            </div>
+          ) : (
+            sorted.map((s) => {
+              const avg = s.grades.average;
+              const gradePercent = avg !== null ? Math.round(avg * 10) : 0;
+              const riskDaysInactive = s.grades.lastSubmission
+                ? Math.floor((Date.now() - new Date(s.grades.lastSubmission).getTime()) / (1000 * 60 * 60 * 24))
+                : 999;
+              const riskFailures = avg !== null && avg < 7 ? 5 : 0;
+
+              return (
+                <div key={s.id + "-" + s.cursoId} className="p-4 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-sm font-bold text-indigo-600">
+                      {getInitials(s.fullName)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-slate-800 text-sm truncate">{s.fullName}</p>
+                      {s.email && <p className="text-xs text-slate-500 truncate">{s.email}</p>}
+                    </div>
+                    <div className="shrink-0 flex items-center gap-2">
+                      <div className="h-1.5 w-10 rounded-full bg-slate-100 overflow-hidden hidden xs:block">
+                        <div className={cn("h-full rounded-full", getGradeColor(gradePercent / 10))} style={{ width: `${gradePercent}%` }} />
+                      </div>
+                      <Badge variant={avg !== null && avg >= 7 ? "default" : avg !== null ? "destructive" : "outline"} className="text-xs rounded-lg shrink-0">
+                        {avg !== null ? avg.toFixed(1) : "—"}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 pl-[52px]">
+                    <span className="font-mono">{s.cedula}</span>
+                    {!cursoId && (
+                      <>
+                        <span className="text-slate-300 hidden xs:inline">|</span>
+                        <Badge variant="secondary" className="text-[10px] rounded-lg">{s.cursoNombre}</Badge>
+                      </>
+                    )}
+                    <span className="text-slate-300 hidden xs:inline">|</span>
+                    <span className={cn("font-medium", s.grades.pending > 0 ? "text-amber-600" : "text-slate-500")}>
+                      {s.grades.pending > 0 ? `${s.grades.pending} pend.` : "Al dia"}
+                    </span>
+                    <span className="text-slate-300 hidden xs:inline">|</span>
+                    <SemaforoRiesgo daysInactive={riskDaysInactive} consecutiveFailures={riskFailures} />
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop: table */}
+        <div className="hidden md:block overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-slate-100/50 hover:bg-slate-100/50">
@@ -250,20 +307,20 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
                         </div>
                         <div>
                           <span className="font-semibold text-slate-800 text-sm">{s.fullName}</span>
-                          {s.email && <p className="text-[10px] text-slate-500">{s.email}</p>}
+                          {s.email && <p className="text-xs text-slate-500">{s.email}</p>}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell className="font-mono text-xs text-slate-500">{s.cedula}</TableCell>
                     {!cursoId && (
-                      <TableCell><Badge variant="secondary" className="text-[10px] rounded-lg">{s.cursoNombre}</Badge></TableCell>
+                      <TableCell><Badge variant="secondary" className="text-xs rounded-lg">{s.cursoNombre}</Badge></TableCell>
                     )}
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div className="h-1.5 w-12 rounded-full bg-slate-100 overflow-hidden">
                           <div className={cn("h-full rounded-full", getGradeColor(gradePercent / 10))} style={{ width: `${gradePercent}%` }} />
                         </div>
-                        <Badge variant={avg !== null && avg >= 7 ? "default" : avg !== null ? "destructive" : "outline"} className="text-[10px] rounded-lg">
+                        <Badge variant={avg !== null && avg >= 7 ? "default" : avg !== null ? "destructive" : "outline"} className="text-xs rounded-lg">
                           {avg !== null ? avg.toFixed(1) : "—"}
                         </Badge>
                       </div>
@@ -284,13 +341,13 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
               })}
             </TableBody>
           </Table>
+          {sorted.length === 0 && (
+            <div className="py-20 text-center">
+              <BarChart3 className="mx-auto h-10 w-10 text-slate-500/30" />
+              <p className="mt-4 font-medium text-slate-500">No se encontraron estudiantes</p>
+            </div>
+          )}
         </div>
-        {sorted.length === 0 && (
-          <div className="py-20 text-center">
-            <BarChart3 className="mx-auto h-10 w-10 text-slate-500/30" />
-            <p className="mt-4 font-medium text-slate-500">No se encontraron estudiantes</p>
-          </div>
-        )}
       </div>
     </div>
   );

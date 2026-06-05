@@ -180,11 +180,11 @@ export default function StudentGradesPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-lg">{row.subjectEmoji}</span>
                           <span className="text-xs font-medium text-slate-500">{row.subjectName}</span>
-                          <Badge variant="secondary" className="text-[9px] bg-slate-100 text-slate-600">{TRIMESTER_NAMES[row.trimester]}</Badge>
+                          <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-600">{TRIMESTER_NAMES[row.trimester]}</Badge>
                         </div>
                         <h4 className="text-sm font-bold text-slate-800">{row.assignmentTitle}</h4>
                         {row.submittedAt && (
-                          <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                          <p className="text-xs text-slate-400 flex items-center gap-1">
                             <Clock size={12} />
                             Entregado: {new Date(row.submittedAt).toLocaleDateString("es-EC")}
                           </p>
@@ -200,7 +200,7 @@ export default function StudentGradesPage() {
                       </div>
                       <div className="text-center shrink-0">
                         <GradeBadge value={row.grade} />
-                        <p className="text-[9px] text-slate-400 mt-0.5">/10</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">/10</p>
                       </div>
                     </div>
                   </div>
@@ -212,10 +212,10 @@ export default function StudentGradesPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-lg">{row.subjectEmoji}</span>
                           <span className="text-xs font-medium text-slate-500">{row.subjectName}</span>
-                          <Badge variant="secondary" className="text-[9px] bg-slate-100 text-slate-600">{TRIMESTER_NAMES[row.trimester]}</Badge>
+                          <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-600">{TRIMESTER_NAMES[row.trimester]}</Badge>
                         </div>
                         <h4 className="text-sm font-bold text-slate-800">{row.assignmentTitle}</h4>
-                        <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                        <p className="text-xs text-slate-400 flex items-center gap-1">
                           <AlertCircle size={12} />
                           Entregado — Esperando calificación
                         </p>
@@ -262,7 +262,7 @@ export default function StudentGradesPage() {
                       <span className="text-xl">{s.subjectEmoji}</span>
                       <h3 className={`font-bold text-sm ${theme.text}`}>{s.subjectName}</h3>
                     </div>
-                    <div className="grid grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       <div className={`${theme.bgLight} rounded-xl p-3 text-center border ${theme.border}`}>
                         <p className="text-[10px] text-slate-500 font-medium">T1</p>
                         <p className={`text-lg font-extrabold ${s.t1Avg !== null && s.t1Avg >= 7 ? "text-emerald-600" : s.t1Avg !== null ? "text-red-600" : "text-slate-300"}`}>

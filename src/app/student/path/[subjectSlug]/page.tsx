@@ -81,7 +81,7 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
         </div>
       </header>
 
-      <main className="flex-1 py-8 px-4 max-w-2xl mx-auto w-full overflow-hidden">
+      <main className="flex-1 py-8 px-4 max-w-2xl mx-auto w-full overflow-x-visible">
         <div className="space-y-6">
           <PathSearch subjectSlug={subject.slug} suggestedTopics={suggestedTopics} />
 
@@ -166,7 +166,7 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                       const isCurrent = status === "unlocked";
                       const currentCompleted = isCompleted;
 
-                      const offset = i % 2 !== 0 ? "translate-x-12" : "-translate-x-12";
+                      const offset = i % 2 !== 0 ? "sm:translate-x-12" : "sm:-translate-x-12";
 
                       return (
                         <div key={node.id} className={`relative flex flex-col items-center ${offset}`}>

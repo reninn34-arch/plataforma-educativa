@@ -132,7 +132,7 @@ export default function StudentDashboard() {
                   </p>
                   <div className="flex flex-wrap gap-1.5 mt-2 sm:mt-3">
                     {Object.entries(progress).slice(0, 4).map(([slug, p]) => (
-                      <span key={slug} className="text-[10px] bg-white border border-slate-200 rounded-lg px-1.5 py-0.5 text-slate-600">
+                      <span key={slug} className="text-xs bg-white border border-slate-200 rounded-lg px-1.5 py-0.5 text-slate-600">
                         {slug === "matematicas" && "🔢"}
                         {slug === "fisica" && "⚡"}
                         {slug === "quimica" && "🧪"}
@@ -158,22 +158,22 @@ export default function StudentDashboard() {
                 <div className="bg-slate-50 rounded-xl p-3 text-center">
                   <Flame size={18} className="text-orange-500 mx-auto mb-1" />
                   <p className="text-lg font-bold text-slate-800">{streakDays}</p>
-                  <p className="text-[10px] text-slate-400 font-medium">Racha</p>
+                  <p className="text-xs text-slate-400 font-medium">Racha</p>
                 </div>
                 <div className="bg-slate-50 rounded-xl p-3 text-center">
                   <Zap size={18} className="text-indigo-500 mx-auto mb-1" />
                   <p className="text-lg font-bold text-slate-800">{totalSessions}</p>
-                  <p className="text-[10px] text-slate-400 font-medium">Sesiones</p>
+                  <p className="text-xs text-slate-400 font-medium">Sesiones</p>
                 </div>
                 <div className="bg-slate-50 rounded-xl p-3 text-center">
                   <Target size={18} className="text-emerald-500 mx-auto mb-1" />
                   <p className="text-lg font-bold text-slate-800">{accuracy}%</p>
-                  <p className="text-[10px] text-slate-400 font-medium">Precisión</p>
+                  <p className="text-xs text-slate-400 font-medium">Precisión</p>
                 </div>
                 <div className="bg-slate-50 rounded-xl p-3 text-center">
                   <BookOpen size={18} className="text-violet-500 mx-auto mb-1" />
                   <p className="text-lg font-bold text-slate-800">{Object.keys(progress).length}</p>
-                  <p className="text-[10px] text-slate-400 font-medium">Materias</p>
+                  <p className="text-xs text-slate-400 font-medium">Materias</p>
                 </div>
               </div>
             </div>
@@ -190,7 +190,7 @@ export default function StudentDashboard() {
                     <ClipboardList size={18} className="text-indigo-500" />
                     Pendientes
                   </h3>
-                  <span className="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-lg">
+                  <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-lg">
                     {pendingAssignments.length}
                   </span>
                 </div>

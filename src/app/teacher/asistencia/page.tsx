@@ -209,7 +209,7 @@ export default function TeacherAsistenciaPage() {
             ) : (
               <div className="divide-y divide-slate-50">
                 {asistencia.map((a) => (
-                  <div key={a.studentId} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
+                  <div key={a.studentId} className="flex flex-wrap items-center justify-between gap-2 p-4 hover:bg-slate-50 transition-colors">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-sm font-bold text-indigo-600">
                         {a.studentName.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()}
