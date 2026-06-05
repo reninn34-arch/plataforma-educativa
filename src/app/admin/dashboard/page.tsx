@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Users, GraduationCap, BookOpen, ArrowRight, Sparkles } from "lucide-react";
+import { Users, GraduationCap, BookOpen, ArrowRight, Sparkles, Activity, UserCheck, UserX } from "lucide-react";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { apiFetch } from "@/lib/fetch-utils";
 
 interface AdminDashboardData {
@@ -11,6 +12,11 @@ interface AdminDashboardData {
   courses: any[];
   teachers: any[];
   subjects: any[];
+  chartData: {
+    roles: { name: string; value: number; color: string }[];
+    activos: number;
+    inactivos: number;
+  };
 }
 
 export default function AdminDashboard() {
@@ -36,12 +42,26 @@ export default function AdminDashboard() {
   );
 
   const stats = data?.stats || { totalEstudiantes: 0, totalProfesores: 0, totalPadres: 0, totalCursos: 0 };
+  const chartData = data?.chartData || { roles: [], activos: 0, inactivos: 0 };
   const firstName = data?.profile?.fullName?.split(" ")[0] || "Admin";
+  const courses = data?.courses || [];
+
+  const statusData = [
+    { name: "Activos", value: chartData.activos, color: "#22c55e" },
+    { name: "Inactivos", value: chartData.inactivos, color: "#ef4444" },
+  ];
+
+  const studentsPerCourse = courses
+    .filter((c: any) => (c.studentCount || 0) > 0)
+    .slice(0, 10)
+    .map((c: any) => ({
+      name: c.nombre.length > 15 ? c.nombre.slice(0, 15) + "..." : c.nombre,
+      estudiantes: c.studentCount || 0,
+    }));
 
   return (
     <div className="flex-1 w-full animate-fade-in-up">
       <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8 space-y-8">
-        {/* Hero */}
         <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-indigo-200/50 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
           <div className="relative z-10">
@@ -54,7 +74,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
             <div className="flex items-center justify-between mb-3">
@@ -94,7 +113,109 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Quick Actions */}
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <Users size={18} className="text-indigo-500" />
+              <h2 className="text-base font-bold text-slate-800">Usuarios por rol</h2>
+            </div>
+            {chartData.roles.length > 0 ? (
+              <div className="flex items-center gap-4">
+                <ResponsiveContainer width={160} height={160}>
+                  <PieChart>
+                    <Pie
+                      data={chartData.roles}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={40}
+                      outerRadius={70}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {chartData.roles.map((entry, index) => (
+                        <Cell key={index} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="space-y-2">
+                  {chartData.roles.map((r) => (
+                    <div key={r.name} className="flex items-center gap-2 text-sm">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: r.color }} />
+                      <span className="text-slate-600">{r.name}</span>
+                      <span className="font-semibold text-slate-800 ml-auto">{r.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400 text-center py-8">Sin datos</p>
+            )}
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <Activity size={18} className="text-emerald-500" />
+              <h2 className="text-base font-bold text-slate-800">Estado de usuarios</h2>
+            </div>
+            {statusData.some(d => d.value > 0) ? (
+              <div className="flex items-center gap-4">
+                <ResponsiveContainer width={160} height={160}>
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={40}
+                      outerRadius={70}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {statusData.map((entry, index) => (
+                        <Cell key={index} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <UserCheck size={16} className="text-green-500" />
+                    <span className="text-slate-600">Activos</span>
+                    <span className="font-semibold text-slate-800 ml-auto">{chartData.activos}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <UserX size={16} className="text-red-500" />
+                    <span className="text-slate-600">Inactivos</span>
+                    <span className="font-semibold text-slate-800 ml-auto">{chartData.inactivos}</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400 text-center py-8">Sin datos</p>
+            )}
+          </div>
+        </div>
+
+        {studentsPerCourse.length > 0 && (
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <BookOpen size={18} className="text-amber-500" />
+              <h2 className="text-base font-bold text-slate-800">Estudiantes por curso (top 10)</h2>
+            </div>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={studentsPerCourse}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#64748b" }} />
+                <YAxis tick={{ fontSize: 11, fill: "#64748b" }} />
+                <Tooltip />
+                <Bar dataKey="estudiantes" fill="#818cf8" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
         <div>
           <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
             <Sparkles size={20} className="text-indigo-500" />
