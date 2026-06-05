@@ -52,7 +52,7 @@ import bcrypt from "bcryptjs";
  */
 import { db } from "@/lib/db";
 import { users, cursoProfesores, subjects } from "@/lib/db/schema";
-import { eq, desc, and, inArray } from "drizzle-orm";
+import { eq, desc, and, inArray, type SQL } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import type { UserRole } from "@/lib/types";
 
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     const role = request.nextUrl.searchParams.get("role") || "student";
     const showInactive = request.nextUrl.searchParams.get("inactivos") === "true";
     const onlyInactive = request.nextUrl.searchParams.get("soloInactivos") === "true";
-    const conditions: any[] = [eq(users.role, role as UserRole)];
+    const conditions: SQL[] = [eq(users.role, role as UserRole)];
     if (onlyInactive) {
       conditions.push(eq(users.activo, false));
     } else if (!showInactive) {

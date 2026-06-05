@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, type InferInsertModel } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 
 export async function PUT(
@@ -18,7 +18,7 @@ export async function PUT(
     const userId = parseInt(id);
     const body = await request.json();
 
-    const updateData: Record<string, any> = {};
+    const updateData: Partial<InferInsertModel<typeof users>> = {};
 
     if (body.activo !== undefined) {
       updateData.activo = body.activo;
