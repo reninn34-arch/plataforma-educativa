@@ -53,7 +53,7 @@ export function PathSearch({ subjectSlug, suggestedTopics }: PathSearchProps) {
         <h3 className="text-sm font-bold text-slate-700">Que quieres aprender hoy?</h3>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <input
           type="text"
           value={topic}
@@ -68,7 +68,7 @@ export function PathSearch({ subjectSlug, suggestedTopics }: PathSearchProps) {
           onClick={() => handleGenerate()}
           disabled={loading || topic.trim().length < 3}
           aria-label="Generar ruta de aprendizaje"
-          className="rounded-xl gap-2 shrink-0"
+          className="rounded-xl gap-2 w-full sm:w-auto"
         >
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
