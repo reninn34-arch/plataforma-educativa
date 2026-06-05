@@ -115,6 +115,7 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
         </button>
         <span className="text-sm font-semibold text-foreground truncate mx-2">{title}</span>
         <div className="flex items-center gap-1">
+          <ThemeToggle />
           <NotificationBell />
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
             A
@@ -167,8 +168,7 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
             })}
           </nav>
 
-          <div className="px-3 pb-4 border-t border-slate-100 pt-4 space-y-1">
-            <ThemeToggle />
+          <div className="px-3 pb-4 border-t border-slate-100 pt-4">
             <button
               onClick={handleLogout}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-red-600 hover:bg-red-50 w-full transition-all"
