@@ -90,6 +90,8 @@ export function CreateAssignmentForm() {
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [currentFileUrl, setCurrentFileUrl] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [selectedAssignment, setSelectedAssignment] = useState<number | null>(null);
@@ -303,6 +305,8 @@ export function CreateAssignmentForm() {
     setPuntos(a.puntos || 10);
     setShowForm(true);
     setErrorMsg("");
+    setCurrentFileUrl((a as any).fileUrl || null);
+    setAttachmentFile(null);
 
     try {
       const res = await apiFetch(`/api/assignments/${a.id}`);
@@ -335,6 +339,8 @@ export function CreateAssignmentForm() {
     setErrorMsg("");
     setSaving(false);
     setFeedback("");
+    setAttachmentFile(null);
+    setCurrentFileUrl(null);
   };
 
   const addQuestion = (type: "mcq" | "file_upload") => {
@@ -371,6 +377,7 @@ export function CreateAssignmentForm() {
       description: description.trim(),
       dueDate: dueDate || null,
       trimester,
+      fileUrl: currentFileUrl,
       questions: questions.map((q, i) => ({
         type: q.type,
         question: q.question,
@@ -385,11 +392,25 @@ export function CreateAssignmentForm() {
       const url = editId ? `/api/assignments/${editId}` : "/api/assignments";
       const method = editId ? "PUT" : "POST";
 
-      const res = await apiFetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...body, subjectId, puntos, cursoId: cursoId || undefined }),
-      });
+      let res: Response;
+      if (attachmentFile) {
+        const formData = new FormData();
+        formData.append("file", attachmentFile);
+        formData.append("data", JSON.stringify({ ...body, subjectId, puntos, cursoId: cursoId || undefined }));
+        const csrf = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]*)/)?.[1] || "";
+        res = await fetch(url, {
+          method,
+          body: formData,
+          headers: { "x-csrf-token": csrf },
+          credentials: "include",
+        });
+      } else {
+        res = await apiFetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...body, subjectId, puntos, cursoId: cursoId || undefined }),
+        });
+      }
 
       if (res.ok) {
         cancelEdit();
@@ -731,6 +752,37 @@ export function CreateAssignmentForm() {
                     <textarea value={description} onChange={(e) => setDescription(e.target.value)}
                       placeholder="Instrucciones generales..."
                       className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm min-h-[80px] resize-y focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" required />
+                  </div>
+
+                  {/* Attachment file */}
+                  <div>
+                    <label className="text-sm font-semibold text-slate-800 mb-1.5 block">Archivo adjunto (opcional)</label>
+                    <div className="flex items-center gap-3">
+                      {currentFileUrl ? (
+                        <div className="flex items-center gap-2 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                          <FileText className="h-4 w-4 text-indigo-500" />
+                          <span className="text-xs text-slate-600 flex-1 truncate">Archivo adjunto actual</span>
+                          <a href={currentFileUrl} target="_blank" className="text-xs text-indigo-600 hover:underline" download>Descargar</a>
+                          <button type="button" onClick={() => { setCurrentFileUrl(null); setAttachmentFile(null); }}
+                            className="text-xs text-red-500 hover:text-red-700 ml-2">Quitar</button>
+                        </div>
+                      ) : attachmentFile ? (
+                        <div className="flex items-center gap-2 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                          <FileText className="h-4 w-4 text-indigo-500" />
+                          <span className="text-xs text-slate-600 flex-1 truncate">{attachmentFile.name}</span>
+                          <span className="text-[10px] text-slate-400">{(attachmentFile.size / 1024 / 1024).toFixed(2)} MB</span>
+                          <button type="button" onClick={() => setAttachmentFile(null)}
+                            className="text-xs text-red-500 hover:text-red-700">Quitar</button>
+                        </div>
+                      ) : (
+                        <label className="flex items-center gap-2 rounded-xl border-2 border-dashed border-slate-200 px-4 py-3 text-sm text-slate-500 hover:border-indigo-200 cursor-pointer w-full">
+                          <Upload className="h-4 w-4" />
+                          Subir archivo (PDF, Word, imagen, TXT, ZIP - max 10 MB)
+                          <input type="file" className="hidden" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.txt,.zip"
+                            onChange={(e) => { const f = e.target.files?.[0]; if (f) setAttachmentFile(f); }} />
+                        </label>
+                      )}
+                    </div>
                   </div>
 
                   {showAiPanel && (

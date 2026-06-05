@@ -134,6 +134,13 @@
       "when": 1780430342677,
       "tag": "0018_high_black_bolt",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1780595025418,
+      "tag": "0019_violet_prima",
+      "breakpoints": true
     }
   ]
 }

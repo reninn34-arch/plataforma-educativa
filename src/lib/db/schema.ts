@@ -162,6 +162,7 @@ export const assignments = pgTable("assignments", {
   dueDate: timestamp("due_date"),
   trimester: integer("trimester").notNull().default(1),
   puntos: integer("puntos").notNull().default(10),
+  fileUrl: varchar("file_url", { length: 500 }),
   periodoLectivoId: integer("periodo_lectivo_id").references(() => periodosLectivos.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => ({

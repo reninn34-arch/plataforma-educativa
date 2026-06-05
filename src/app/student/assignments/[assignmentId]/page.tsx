@@ -17,6 +17,7 @@ interface AssignmentDetail {
   subjectEmoji: string;
   subjectSlug: string;
   teacherName: string;
+  fileUrl?: string | null;
 }
 
 interface QuestionItem {
@@ -183,6 +184,12 @@ export default function AssignmentSubmitPage() {
           <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{assignment.description}</p>
           <div className="flex flex-wrap gap-4 text-xs text-slate-500">
             <span className="flex items-center gap-1.5"><User className="h-3.5 w-3.5" />{assignment.teacherName}</span>
+            {assignment.fileUrl && (
+              <a href={assignment.fileUrl} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 hover:underline">
+                <FileText className="h-3.5 w-3.5" /> Archivo adjunto
+              </a>
+            )}
           </div>
           {assignment.dueDate && <DueTimer dueDate={assignment.dueDate} />}
           {isExpired && !isSubmitted && (
@@ -233,8 +240,10 @@ export default function AssignmentSubmitPage() {
         )}
 
         {/* File Upload */}
-        {(!isExpired || isSubmitted) && (fileQuestions.length > 0 || questions.length === 0) && (
+        {(!isExpired || isSubmitted) && (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+        {(fileQuestions.length > 0 || questions.length === 0) && (
+          <>
             <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
               <FileUp className="h-4 w-4 text-indigo-500" /> Ejercicios de desarrollo ({fileQuestions.length})
             </h2>
@@ -296,6 +305,8 @@ export default function AssignmentSubmitPage() {
                 )}
               </div>
             )}
+          </>
+        )}
 
             {error && (
               <div className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">

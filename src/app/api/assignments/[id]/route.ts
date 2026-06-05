@@ -4,6 +4,9 @@ import { assignments, assignmentQuestions, assignmentSubmissions, submissionAnsw
 import { eq, and, asc, inArray } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getTeacherCourseIds } from "@/lib/course-helpers";
+import { writeFile, mkdir, unlink } from "fs/promises";
+import { join } from "path";
+import { existsSync } from "fs";
 
 export async function GET(
   request: NextRequest,
@@ -28,6 +31,7 @@ export async function GET(
         subjectEmoji: subjects.emoji,
         subjectSlug: subjects.slug,
         subjectId: assignments.subjectId,
+        fileUrl: assignments.fileUrl,
         cursoId: assignments.cursoId,
         cursoNombre: cursos.nombre,
         puntos: assignments.puntos,
@@ -209,14 +213,65 @@ export async function PUT(
     const { id } = await params;
     const assignmentId = parseInt(id);
 
-    const { title, description, dueDate, trimester, subjectId, cursoId, puntos, questions } = await request.json();
+    const contentType = request.headers.get("content-type") || "";
+    let body: Record<string, any>;
+    let newFileUrl: string | null | undefined = undefined;
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      const dataStr = formData.get("data") as string | null;
+      const file = formData.get("file") as File | null;
+
+      if (!dataStr) {
+        return NextResponse.json({ error: "Datos invalidos" }, { status: 400 });
+      }
+
+      body = JSON.parse(dataStr);
+
+      // Determine if file should be removed
+      if (body._removeFile) {
+        newFileUrl = null;
+      }
+
+      if (file && file.size > 0) {
+        const MAX_FILE_SIZE = 10 * 1024 * 1024;
+        const ALLOWED_TYPES = [
+          "application/pdf", "image/jpeg", "image/png", "image/webp",
+          "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "text/plain", "application/zip",
+        ];
+
+        if (file.size > MAX_FILE_SIZE) {
+          return NextResponse.json({ error: "Archivo excede 10 MB" }, { status: 400 });
+        }
+        if (!ALLOWED_TYPES.includes(file.type)) {
+          return NextResponse.json({ error: "Formato no permitido" }, { status: 400 });
+        }
+
+        const uploadsDir = join(process.cwd(), "uploads", "assignments");
+        await mkdir(uploadsDir, { recursive: true });
+
+        const timestamp = Date.now();
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const fileName = `teacher_${user.id}_${timestamp}_${safeName}`;
+
+        const bytes = await file.arrayBuffer();
+        await writeFile(join(uploadsDir, fileName), Buffer.from(bytes));
+
+        newFileUrl = `/api/uploads/assignments/${fileName}`;
+      }
+    } else {
+      body = await request.json();
+    }
+
+    const { title, description, dueDate, trimester, subjectId, cursoId, puntos, questions, fileUrl } = body;
 
     if (!title || !description) {
       return NextResponse.json({ error: "Titulo y descripcion requeridos" }, { status: 400 });
     }
 
     const [existing] = await db
-      .select({ teacherId: assignments.teacherId })
+      .select({ teacherId: assignments.teacherId, fileUrl: assignments.fileUrl })
       .from(assignments)
       .where(eq(assignments.id, assignmentId))
       .limit(1);
@@ -233,6 +288,20 @@ export async function PUT(
     if (subjectId != null) updateValues.subjectId = subjectId;
     if (cursoId !== undefined) updateValues.cursoId = cursoId || null;
     if (puntos !== undefined) updateValues.puntos = puntos;
+    if (newFileUrl !== undefined) {
+      updateValues.fileUrl = newFileUrl;
+    } else if (fileUrl !== undefined) {
+      updateValues.fileUrl = fileUrl;
+    }
+
+    // Delete old file if replaced or removed
+    if (newFileUrl !== undefined && existing.fileUrl) {
+      const oldFilePath = join(process.cwd(), existing.fileUrl.replace("/api/uploads/assignments/", "uploads/assignments/").replace("/", "\\"));
+      const oldFullPath = join(process.cwd(), "uploads", "assignments", existing.fileUrl.split("/").pop() || "");
+      if (existsSync(oldFullPath)) {
+        try { await unlink(oldFullPath); } catch {}
+      }
+    }
 
     await db
       .update(assignments)

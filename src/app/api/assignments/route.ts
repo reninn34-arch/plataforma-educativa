@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { writeFile, mkdir } from "fs/promises";
+import { join } from "path";
 
 /**
  * @swagger
@@ -84,6 +86,7 @@ export async function GET(request: NextRequest) {
           cursoNombre: cursos.nombre,
           periodoNombre: periodosLectivos.nombre,
           puntos: assignments.puntos,
+          fileUrl: assignments.fileUrl,
           trimester: assignments.trimester,
         })
         .from(assignments)
@@ -132,6 +135,7 @@ export async function GET(request: NextRequest) {
         subjectName: subjects.name,
         subjectEmoji: subjects.emoji,
         subjectSlug: subjects.slug,
+        fileUrl: assignments.fileUrl,
         cursoId: assignments.cursoId,
         cursoNombre: cursos.nombre,
         status: assignmentSubmissions.status,
@@ -167,10 +171,58 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Solo docentes pueden crear tareas" }, { status: 403 });
     }
 
-    const body = await request.json();
+    const contentType = request.headers.get("content-type") || "";
+    let body: Record<string, any>;
+    let fileUrl: string | null = null;
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      const dataStr = formData.get("data") as string | null;
+      const file = formData.get("file") as File | null;
+
+      if (!dataStr) {
+        return NextResponse.json({ error: "Datos invalidos" }, { status: 400 });
+      }
+
+      body = JSON.parse(dataStr);
+
+      if (file && file.size > 0) {
+        const MAX_FILE_SIZE = 10 * 1024 * 1024;
+        const ALLOWED_TYPES = [
+          "application/pdf", "image/jpeg", "image/png", "image/webp",
+          "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "text/plain", "application/zip",
+        ];
+
+        if (file.size > MAX_FILE_SIZE) {
+          return NextResponse.json({ error: "Archivo excede 10 MB" }, { status: 400 });
+        }
+        if (!ALLOWED_TYPES.includes(file.type)) {
+          return NextResponse.json({ error: "Formato no permitido" }, { status: 400 });
+        }
+
+        const uploadsDir = join(process.cwd(), "uploads", "assignments");
+        await mkdir(uploadsDir, { recursive: true });
+
+        const timestamp = Date.now();
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const fileName = `teacher_${user.id}_${timestamp}_${safeName}`;
+
+        const bytes = await file.arrayBuffer();
+        await writeFile(join(uploadsDir, fileName), Buffer.from(bytes));
+
+        fileUrl = `/api/uploads/assignments/${fileName}`;
+      }
+    } else {
+      body = await request.json();
+    }
+
+    console.log("POST /api/assignments body keys:", Object.keys(body), "dueDate:", body.dueDate, "fileUrl:", body.fileUrl, "type of dueDate:", typeof body.dueDate);
+
     const parsed = assignmentSchema.safeParse(body);
 
     if (!parsed.success) {
+      console.error("POST /api/assignments Zod error:", JSON.stringify(parsed.error.flatten()));
       return NextResponse.json({ error: "Datos invalidos", details: parsed.error.flatten() }, { status: 400 });
     }
 
@@ -206,14 +258,15 @@ export async function POST(request: NextRequest) {
         teacherId: user.id,
         subjectId,
         cursoId: cursoId || null,
-        title,
-        description,
-        dueDate: dueDate ? new Date(dueDate) : null,
-        trimester: trimester || 1,
-        puntos: parsed.data.puntos ?? 10,
-        periodoLectivoId: activePeriod?.id || null,
-      } as any)
-      .returning();
+      title,
+      description,
+      dueDate: dueDate ? new Date(dueDate) : null,
+      trimester: trimester || 1,
+      puntos: parsed.data.puntos ?? 10,
+      fileUrl: fileUrl || parsed.data.fileUrl || null,
+      periodoLectivoId: activePeriod?.id || null,
+    } as any)
+    .returning();
 
     if (questions && questions.length > 0) {
       await db.insert(assignmentQuestions).values(
@@ -232,6 +285,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ assignment, questionsCount: questions?.length || 0 });
   } catch (error) {
     console.error("POST /api/assignments error:", error);
-    return NextResponse.json({ error: "Error al gestionar tareas" }, { status: 500 });
+    return NextResponse.json({ error: "Error al gestionar tareas", detail: String(error) }, { status: 500 });
   }
 }
