@@ -1,10 +1,6 @@
-import "jspdf";
-
-declare module "jspdf" {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF;
-    lastAutoTable: {
-      finalY: number;
-    };
-  }
+declare module "jspdf-autotable" {
+  export default function autoTable(
+    doc: import("jspdf").jsPDF,
+    options: Record<string, unknown>
+  ): import("jspdf").jsPDF & { lastAutoTable?: { finalY: number } };
 }

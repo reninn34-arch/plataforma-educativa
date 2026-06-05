@@ -6,7 +6,7 @@ import { Download, FileSpreadsheet, FileText, ChevronDown, BookOpen, GraduationC
 import { apiFetch } from "@/lib/fetch-utils";
 import { Badge } from "@/components/ui/badge";
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 
 interface CursoOption { id: number; nombre: string; nivel: string; }
@@ -43,16 +43,16 @@ function generatePdf(data: ReportData) {
     String(s.totalTareas), String(s.entregadas), String(s.pendientes),
   ]);
 
-  doc.autoTable({
+  let lastY = autoTable(doc, {
     head: headers,
     body: rows,
     startY: 44,
     styles: { fontSize: 8 },
     headStyles: { fillColor: [79, 70, 229], textColor: 255 },
     alternateRowStyles: { fillColor: [249, 250, 251] },
-  });
+  }).lastAutoTable?.finalY || 50;
 
-  let yPos = (doc as any).lastAutoTable.finalY + 10;
+  let yPos = lastY + 10;
 
   for (const student of data.students) {
     if (yPos > 250) { doc.addPage(); yPos = 20; }
@@ -65,7 +65,7 @@ function generatePdf(data: ReportData) {
       `${m.emoji} ${m.nombre}`, m.promedio.toFixed(1), String(m.calificaciones),
     ]);
 
-    doc.autoTable({
+    const result = autoTable(doc, {
       head: subHeaders,
       body: subRows,
       startY: yPos,
@@ -73,7 +73,7 @@ function generatePdf(data: ReportData) {
       headStyles: { fillColor: [99, 102, 241], textColor: 255 },
     });
 
-    yPos = (doc as any).lastAutoTable.finalY + 6;
+    yPos = (result.lastAutoTable?.finalY || yPos + 20) + 6;
   }
 
   doc.save(`reporte-${data.curso.nombre.replace(/\s+/g, "-").toLowerCase()}.pdf`);
