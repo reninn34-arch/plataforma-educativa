@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiFetch, clearCache } from "@/lib/fetch-utils";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -52,17 +53,17 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
       )}
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-slate-200 fixed inset-y-0 z-40 shadow-sm">
+      <aside className="hidden lg:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 fixed inset-y-0 z-40 shadow-sm">
         {/* Logo */}
-        <div className="h-16 flex items-center gap-3 px-5 border-b border-slate-100">
+        <div className="h-16 flex items-center gap-3 px-5 border-b border-slate-100 dark:border-slate-800">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold shadow-sm">
             A
           </div>
           <div>
-            <span className="text-base font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
+            <span className="text-base font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">
               Atlas Edu
             </span>
-            <span className="block text-[10px] text-slate-400 font-medium tracking-wide uppercase">{title}</span>
+            <span className="block text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-wide uppercase">{title}</span>
           </div>
         </div>
 
@@ -76,8 +77,8 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
                 href={href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                   active
-                    ? "bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100"
-                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+                    ? "bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 shadow-sm border border-indigo-100 dark:border-indigo-800"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                 }`}
               >
                 <div className={`${active ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"} transition-colors`}>
@@ -93,7 +94,8 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
         </nav>
 
         {/* Logout */}
-        <div className="px-3 pb-4">
+        <div className="px-3 pb-4 space-y-1">
+          <ThemeToggle />
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-red-600 hover:bg-red-50 w-full transition-all duration-200"
@@ -114,6 +116,7 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
         </button>
         <span className="text-sm font-semibold text-slate-700 truncate mx-2">{title}</span>
         <div className="flex items-center gap-1">
+          <ThemeToggle />
           <NotificationBell />
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
             A
@@ -166,7 +169,8 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
             })}
           </nav>
 
-          <div className="px-3 pb-4 border-t border-slate-100 pt-4">
+          <div className="px-3 pb-4 border-t border-slate-100 pt-4 space-y-1">
+            <ThemeToggle />
             <button
               onClick={handleLogout}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-red-600 hover:bg-red-50 w-full transition-all"
@@ -181,7 +185,8 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-screen lg:pl-64 pt-16 lg:pt-0 w-full min-w-0 overflow-x-hidden">
         {/* Desktop Top Bar */}
-        <div className="hidden lg:flex items-center justify-end px-6 py-3 border-b border-slate-100 bg-white/80 backdrop-blur-sm sticky top-0 z-30">
+        <div className="hidden lg:flex items-center justify-end gap-1 px-6 py-3 border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-30">
+          <ThemeToggle />
           <NotificationBell />
         </div>
         {children}
