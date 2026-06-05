@@ -52,23 +52,23 @@ export default function StudentHorarioPage() {
         <div className="flex items-center gap-3 mb-8">
           <Link
             href="/student/dashboard"
-            className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
+            className="w-9 h-9 rounded-xl bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all shadow-sm"
           >
             <ArrowLeft size={18} />
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">Mi Horario</h1>
+            <h1 className="text-xl font-bold text-foreground">Mi Horario</h1>
             <p className="text-sm text-slate-400">Plan de clases semanal</p>
           </div>
         </div>
 
         {horarios.length === 0 ? (
-          <Card className="shadow-sm border-slate-200">
+          <Card className="shadow-sm border-border">
             <CardContent className="py-16 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
                 <Clock size={32} className="text-slate-300" />
               </div>
-              <p className="font-semibold text-slate-600">Horario no disponible</p>
+              <p className="font-semibold text-muted-foreground">Horario no disponible</p>
               <p className="text-sm text-slate-400 mt-1">El administrador aún no ha configurado el horario.</p>
             </CardContent>
           </Card>
@@ -78,7 +78,7 @@ export default function StudentHorarioPage() {
               const bloques = bloquesPorDia(dia);
               const horas = [...new Set(bloques.map(b => `${b.horaInicio}-${b.horaFin}`))];
               return (
-                <div key={dia} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div key={dia} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
                   <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 px-4 py-3">
                     <h3 className="font-bold text-white text-sm">{DIAS_LABEL[dia]}</h3>
                     <p className="text-indigo-200 text-[11px]">{bloques.length} bloques</p>
@@ -104,10 +104,10 @@ export default function StudentHorarioPage() {
                       }
 
                       return (
-                        <div key={bloque} className={`rounded-xl p-3 border ${theme?.border || "border-slate-200"} ${theme?.bgLight || "bg-slate-50"}`}>
+                        <div key={bloque} className={`rounded-xl p-3 border ${theme?.border || "border-border"} ${theme?.bgLight || "bg-muted"}`}>
                           <div className="flex items-center gap-2 mb-1.5">
                             <span className="text-lg">{b.subjectEmoji || "📚"}</span>
-                            <span className={`text-xs font-bold ${theme?.text || "text-slate-700"}`}>
+                            <span className={`text-xs font-bold ${theme?.text || "text-foreground"}`}>
                               {b.subjectName || "Materia"}
                             </span>
                           </div>

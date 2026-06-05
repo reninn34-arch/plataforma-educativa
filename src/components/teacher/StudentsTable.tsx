@@ -126,7 +126,7 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
   });
 
   const SortIcon = ({ column }: { column: string }) => {
-    if (sortKey !== column) return <ArrowDownUp className="ml-1 h-3 w-3 text-slate-500/40" />;
+    if (sortKey !== column) return <ArrowDownUp className="ml-1 h-3 w-3 text-muted-foreground/40" />;
     return sortDir === "asc"
       ? <ChevronUp className="ml-1 h-3.5 w-3.5 text-indigo-600" />
       : <ChevronDown className="ml-1 h-3.5 w-3.5 text-indigo-600" />;
@@ -135,7 +135,7 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -143,44 +143,44 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm border-l-[3px] border-l-blue-500">
+        <div className="bg-card rounded-2xl border border-border shadow-sm border-l-[3px] border-l-blue-500">
           <div className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Alumnos</p>
-                <p className="text-2xl font-extrabold text-slate-800 tabular-nums">{stats.totalEstudiantes}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Alumnos</p>
+                <p className="text-2xl font-extrabold text-foreground tabular-nums">{stats.totalEstudiantes}</p>
               </div>
               <Users className="h-5 w-5 text-blue-500" />
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm border-l-[3px] border-l-amber-500">
+        <div className="bg-card rounded-2xl border border-border shadow-sm border-l-[3px] border-l-amber-500">
           <div className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Pendientes</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pendientes</p>
                 <p className="text-2xl font-extrabold text-amber-600 tabular-nums">{stats.pendientes}</p>
               </div>
               <AlertTriangle className="h-5 w-5 text-amber-500" />
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm border-l-[3px] border-l-red-500">
+        <div className="bg-card rounded-2xl border border-border shadow-sm border-l-[3px] border-l-red-500">
           <div className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Bajo prom.</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Bajo prom.</p>
                 <p className="text-2xl font-extrabold text-red-600 tabular-nums">{stats.bajoRendimiento}</p>
               </div>
               <TrendingDown className="h-5 w-5 text-red-500" />
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm border-l-[3px] border-l-emerald-500">
+        <div className="bg-card rounded-2xl border border-border shadow-sm border-l-[3px] border-l-emerald-500">
           <div className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Prom. General</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prom. General</p>
                 <p className="text-2xl font-extrabold text-emerald-600 tabular-nums">{stats.promedioGeneral}%</p>
               </div>
               <CheckCircle2 className="h-5 w-5 text-emerald-500" />
@@ -190,23 +190,23 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
       </div>
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
           placeholder="Buscar por nombre o cedula..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 bg-white text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all"
+          className="w-full h-10 pl-10 pr-4 rounded-xl border border-border bg-card text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all"
         />
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
         {/* Mobile: card layout */}
         <div className="block md:hidden divide-y divide-slate-100">
           {sorted.length === 0 ? (
             <div className="py-20 text-center">
-              <BarChart3 className="mx-auto h-10 w-10 text-slate-500/30" />
-              <p className="mt-4 font-medium text-slate-500">No se encontraron estudiantes</p>
+              <BarChart3 className="mx-auto h-10 w-10 text-muted-foreground/30" />
+              <p className="mt-4 font-medium text-muted-foreground">No se encontraron estudiantes</p>
             </div>
           ) : (
             sorted.map((s) => {
@@ -218,17 +218,17 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
               const riskFailures = avg !== null && avg < 7 ? 5 : 0;
 
               return (
-                <div key={s.id + "-" + s.cursoId} className="p-4 hover:bg-slate-50 transition-colors">
+                <div key={s.id + "-" + s.cursoId} className="p-4 hover:bg-muted transition-colors">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-sm font-bold text-indigo-600">
                       {getInitials(s.fullName)}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-slate-800 text-sm truncate">{s.fullName}</p>
-                      {s.email && <p className="text-xs text-slate-500 truncate">{s.email}</p>}
+                      <p className="font-semibold text-foreground text-sm truncate">{s.fullName}</p>
+                      {s.email && <p className="text-xs text-muted-foreground truncate">{s.email}</p>}
                     </div>
                     <div className="shrink-0 flex items-center gap-2">
-                      <div className="h-1.5 w-10 rounded-full bg-slate-100 overflow-hidden hidden xs:block">
+                      <div className="h-1.5 w-10 rounded-full bg-muted overflow-hidden hidden xs:block">
                         <div className={cn("h-full rounded-full", getGradeColor(gradePercent / 10))} style={{ width: `${gradePercent}%` }} />
                       </div>
                       <Badge variant={avg !== null && avg >= 7 ? "default" : avg !== null ? "destructive" : "outline"} className="text-xs rounded-lg shrink-0">
@@ -236,7 +236,7 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
                       </Badge>
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 pl-[52px]">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground pl-[52px]">
                     <span className="font-mono">{s.cedula}</span>
                     {!cursoId && (
                       <>
@@ -245,7 +245,7 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
                       </>
                     )}
                     <span className="text-slate-300 hidden xs:inline">|</span>
-                    <span className={cn("font-medium", s.grades.pending > 0 ? "text-amber-600" : "text-slate-500")}>
+                    <span className={cn("font-medium", s.grades.pending > 0 ? "text-amber-600" : "text-muted-foreground")}>
                       {s.grades.pending > 0 ? `${s.grades.pending} pend.` : "Al dia"}
                     </span>
                     <span className="text-slate-300 hidden xs:inline">|</span>
@@ -261,7 +261,7 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
         <div className="hidden md:block overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-slate-100/50 hover:bg-slate-100/50">
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="cursor-pointer select-none" onClick={() => handleSort("fullName")}>
                   <span className="inline-flex items-center text-xs font-semibold uppercase tracking-wider">
                     Estudiante <SortIcon column="fullName" />
@@ -306,18 +306,18 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
                           {getInitials(s.fullName)}
                         </div>
                         <div>
-                          <span className="font-semibold text-slate-800 text-sm">{s.fullName}</span>
-                          {s.email && <p className="text-xs text-slate-500">{s.email}</p>}
+                          <span className="font-semibold text-foreground text-sm">{s.fullName}</span>
+                          {s.email && <p className="text-xs text-muted-foreground">{s.email}</p>}
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-slate-500">{s.cedula}</TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">{s.cedula}</TableCell>
                     {!cursoId && (
                       <TableCell><Badge variant="secondary" className="text-xs rounded-lg">{s.cursoNombre}</Badge></TableCell>
                     )}
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-12 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="h-1.5 w-12 rounded-full bg-muted overflow-hidden">
                           <div className={cn("h-full rounded-full", getGradeColor(gradePercent / 10))} style={{ width: `${gradePercent}%` }} />
                         </div>
                         <Badge variant={avg !== null && avg >= 7 ? "default" : avg !== null ? "destructive" : "outline"} className="text-xs rounded-lg">
@@ -326,14 +326,14 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className={cn("text-xs font-medium", s.grades.pending > 0 ? "text-amber-600" : "text-slate-500")}>
+                      <span className={cn("text-xs font-medium", s.grades.pending > 0 ? "text-amber-600" : "text-muted-foreground")}>
                         {s.grades.pending > 0 ? `${s.grades.pending} tarea${s.grades.pending > 1 ? "s" : ""}` : "Al dia"}
                       </span>
                     </TableCell>
                     <TableCell>
                       <SemaforoRiesgo daysInactive={riskDaysInactive} consecutiveFailures={riskFailures} />
                     </TableCell>
-                    <TableCell className="hidden md:table-cell text-xs text-slate-500">
+                    <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
                       {daysAgo(s.grades.lastSubmission)}
                     </TableCell>
                   </TableRow>
@@ -343,8 +343,8 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
           </Table>
           {sorted.length === 0 && (
             <div className="py-20 text-center">
-              <BarChart3 className="mx-auto h-10 w-10 text-slate-500/30" />
-              <p className="mt-4 font-medium text-slate-500">No se encontraron estudiantes</p>
+              <BarChart3 className="mx-auto h-10 w-10 text-muted-foreground/30" />
+              <p className="mt-4 font-medium text-muted-foreground">No se encontraron estudiantes</p>
             </div>
           )}
         </div>

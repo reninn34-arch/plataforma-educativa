@@ -18,7 +18,7 @@ function GradesContent() {
               <ClipboardCheck size={20} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-800">Libro de Calificaciones</h1>
+              <h1 className="text-xl font-bold text-foreground">Libro de Calificaciones</h1>
               <p className="text-sm text-slate-400">Revisa y exporta el consolidado de notas por materia</p>
             </div>
           </div>

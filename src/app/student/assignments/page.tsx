@@ -66,26 +66,26 @@ export default function StudentAssignmentsPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/student/dashboard"
-            className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
+            className="w-9 h-9 rounded-xl bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all shadow-sm"
           >
             <ArrowLeft size={18} />
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">Mis Tareas</h1>
+            <h1 className="text-xl font-bold text-foreground">Mis Tareas</h1>
             <p className="text-sm text-slate-400">{assignments.length} tareas asignadas</p>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 p-1.5 bg-slate-100 rounded-xl">
+        <div className="flex gap-2 p-1.5 bg-muted rounded-xl">
           {tabs.map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`flex-1 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
                 activeTab === tab.key
-                  ? "bg-white text-slate-800 shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <div className={`w-2 h-2 rounded-full ${activeTab === tab.key ? tab.color : "bg-slate-300"}`} />
@@ -93,7 +93,7 @@ export default function StudentAssignmentsPage() {
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                 activeTab === tab.key
                   ? `${tab.bgColor} ${tab.color}`
-                  : "bg-slate-100 text-slate-400"
+                  : "bg-muted text-slate-400"
               }`}>
                 {tab.count}
               </span>
@@ -103,7 +103,7 @@ export default function StudentAssignmentsPage() {
 
         {/* List */}
         {currentList.length > 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden shadow-sm">
+          <div className="bg-card rounded-2xl border border-border divide-y divide-slate-100 overflow-hidden shadow-sm">
             {currentList.map((a: any) => {
               const subjectSlug = a.subjectName?.toLowerCase() || "";
               const theme = subjectTheme(subjectSlug);
@@ -111,14 +111,14 @@ export default function StudentAssignmentsPage() {
                 <Link
                   key={a.id}
                   href={`/student/assignments/${a.id}`}
-                  className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors group"
+                  className="flex items-center justify-between p-4 hover:bg-muted transition-colors group"
                 >
                   <div className="flex items-center gap-4 min-w-0">
                     <div className={`w-10 h-10 rounded-xl ${theme.bgLight} flex items-center justify-center text-lg shrink-0`}>
                       {a.subjectEmoji || "📋"}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-700 truncate group-hover:text-indigo-600 transition-colors">
+                      <p className="text-sm font-semibold text-foreground truncate group-hover:text-indigo-600 transition-colors">
                         {a.title}
                       </p>
                       <p className="text-xs text-slate-400 mt-0.5">
@@ -149,16 +149,16 @@ export default function StudentAssignmentsPage() {
             })}
           </div>
         ) : (
-          <Card className="shadow-sm border-slate-200">
+          <Card className="shadow-sm border-border">
             <CardContent className="py-16 text-center space-y-3">
-              <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto">
+              <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto">
                 {activeTab === "submitted" ? (
                   <CheckCircle2 size={32} className="text-slate-300" />
                 ) : (
                   <ClipboardList size={32} className="text-slate-300" />
                 )}
               </div>
-              <p className="font-semibold text-slate-600">
+              <p className="font-semibold text-muted-foreground">
                 No hay tareas {activeTab === "pending" ? "pendientes" : activeTab === "expired" ? "vencidas" : "entregadas"}
               </p>
               <p className="text-sm text-slate-400">

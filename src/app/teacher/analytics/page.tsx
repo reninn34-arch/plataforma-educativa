@@ -18,7 +18,7 @@ function AnalyticsContent() {
               <BarChart3 size={20} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-800">Analíticas con IA</h1>
+              <h1 className="text-xl font-bold text-foreground">Analíticas con IA</h1>
               <p className="text-xs sm:text-sm text-slate-400">Métricas de riesgo predictivo y desempeño estudiantil</p>
             </div>
           </div>

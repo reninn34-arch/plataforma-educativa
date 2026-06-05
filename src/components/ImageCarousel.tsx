@@ -43,7 +43,7 @@ export function ImageCarousel({ subjectId }: ImageCarouselProps) {
   const prev = useCallback(() => setCurrent((c) => (c - 1 + images.length) % images.length), [images.length]);
 
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl bg-slate-100 border border-slate-200 shadow-sm">
+    <div className="relative w-full overflow-hidden rounded-2xl bg-muted border border-border shadow-sm">
       <div className="aspect-[3/2] w-full">
         {images.map((src, i) => (
           <img
@@ -71,13 +71,13 @@ export function ImageCarousel({ subjectId }: ImageCarouselProps) {
       {/* Nav arrows */}
       <button
         onClick={prev}
-        className="absolute left-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-white/40 backdrop-blur text-[#1A2332] hover:bg-white/70 transition-all shadow-sm"
+        className="absolute left-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-card/40 backdrop-blur text-[#1A2332] hover:bg-card/70 transition-all shadow-sm"
       >
         &#8249;
       </button>
       <button
         onClick={next}
-        className="absolute right-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-white/40 backdrop-blur text-[#1A2332] hover:bg-white/70 transition-all shadow-sm"
+        className="absolute right-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-card/40 backdrop-blur text-[#1A2332] hover:bg-card/70 transition-all shadow-sm"
       >
         &#8250;
       </button>
@@ -89,7 +89,7 @@ export function ImageCarousel({ subjectId }: ImageCarouselProps) {
             key={i}
             onClick={() => setCurrent(i)}
             className={`h-2 rounded-full transition-all ${
-              i === current ? "w-6 bg-white" : "w-2 bg-white/60"
+              i === current ? "w-6 bg-card" : "w-2 bg-card/60"
             }`}
           />
         ))}

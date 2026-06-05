@@ -43,7 +43,7 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-800 overflow-x-hidden">
+    <div className="flex min-h-screen bg-muted text-foreground overflow-x-hidden">
       {/* Mobile Overlay */}
       {mobileMenuOpen && (
         <div
@@ -53,7 +53,7 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
       )}
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 fixed inset-y-0 z-40 shadow-sm">
+      <aside className="hidden lg:flex flex-col w-64 bg-card dark:bg-slate-900 border-r border-border dark:border-slate-800 fixed inset-y-0 z-40 shadow-sm">
         {/* Logo */}
         <div className="h-16 flex items-center gap-3 px-5 border-b border-slate-100 dark:border-slate-800">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold shadow-sm">
@@ -63,7 +63,7 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
             <span className="text-base font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">
               Atlas Edu
             </span>
-            <span className="block text-[10px] text-slate-400 dark:text-slate-500 font-medium tracking-wide uppercase">{title}</span>
+            <span className="block text-[10px] text-slate-400 dark:text-muted-foreground font-medium tracking-wide uppercase">{title}</span>
           </div>
         </div>
 
@@ -78,10 +78,10 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                   active
                     ? "bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 shadow-sm border border-indigo-100 dark:border-indigo-800"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    : "text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-slate-200 hover:bg-muted dark:hover:bg-slate-800"
                 }`}
               >
-                <div className={`${active ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"} transition-colors`}>
+                <div className={`${active ? "text-indigo-600" : "text-slate-400 group-hover:text-muted-foreground"} transition-colors`}>
                   <Icon size={20} />
                 </div>
                 <span>{label}</span>
@@ -107,14 +107,14 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
       </aside>
 
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-md border-b border-slate-200 z-40 flex items-center justify-between px-4">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-card/90 backdrop-blur-md border-b border-border z-40 flex items-center justify-between px-4">
         <button
-          className="text-slate-500 hover:bg-slate-100 p-2 rounded-xl transition-colors"
+          className="text-muted-foreground hover:bg-muted p-2 rounded-xl transition-colors"
           onClick={() => setMobileMenuOpen(true)}
         >
           <Menu size={22} />
         </button>
-        <span className="text-sm font-semibold text-slate-700 truncate mx-2">{title}</span>
+        <span className="text-sm font-semibold text-foreground truncate mx-2">{title}</span>
         <div className="flex items-center gap-1">
           <ThemeToggle />
           <NotificationBell />
@@ -126,7 +126,7 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
 
       {/* Mobile Menu Panel */}
       {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-y-0 left-0 w-72 bg-white z-50 shadow-2xl animate-fade-in-up border-r border-slate-200 flex flex-col">
+        <div className="lg:hidden fixed inset-y-0 left-0 w-72 bg-card z-50 shadow-2xl animate-fade-in-up border-r border-border flex flex-col">
           <div className="h-16 flex items-center justify-between px-5 border-b border-slate-100">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold">
@@ -139,7 +139,7 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
                 <span className="block text-[10px] text-slate-400 font-medium">{title}</span>
               </div>
             </div>
-            <button className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100" onClick={() => setMobileMenuOpen(false)}>
+            <button className="text-slate-400 hover:text-muted-foreground p-1 rounded-lg hover:bg-muted" onClick={() => setMobileMenuOpen(false)}>
               <X size={22} />
             </button>
           </div>
@@ -154,7 +154,7 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
                   className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all ${
                     active
                       ? "bg-indigo-50 text-indigo-700 border border-indigo-100"
-                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   }`}
                 >
                   <div className={`${active ? "text-indigo-600" : "text-slate-400"}`}>
@@ -185,7 +185,7 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-screen lg:pl-64 pt-16 lg:pt-0 w-full min-w-0 overflow-x-hidden">
         {/* Desktop Top Bar */}
-        <div className="hidden lg:flex items-center justify-end gap-1 px-6 py-3 border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-30">
+        <div className="hidden lg:flex items-center justify-end gap-1 px-6 py-3 border-b border-slate-100 dark:border-slate-800 bg-card/80 dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-30">
           <ThemeToggle />
           <NotificationBell />
         </div>

@@ -28,7 +28,7 @@ export function SemaforoRiesgo({ daysInactive, consecutiveFailures }: SemaforoRi
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex gap-1 p-1 rounded-md bg-slate-100/60 border border-slate-200">
+      <div className="flex gap-1 p-1 rounded-md bg-muted/60 border border-border">
         {(["red", "yellow", "green"] as RiskLevel[]).map((color) => (
           <div
             key={color}

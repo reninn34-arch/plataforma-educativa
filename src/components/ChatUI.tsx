@@ -53,7 +53,7 @@ export function ChatUI({ subject }: { subject: string }) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-card">
       <ScrollArea className="flex-1 min-h-0">
         <div role="log" aria-live="polite" className="px-4 py-4 space-y-4">
           {messages.length === 0 && (
@@ -62,7 +62,7 @@ export function ChatUI({ subject }: { subject: string }) {
                 <Bot className="h-8 w-8 text-indigo-600" />
               </div>
               <p className="text-lg font-bold text-foreground">Tutor Socratico</p>
-              <p className="mt-1 text-sm text-slate-500 max-w-xs">
+              <p className="mt-1 text-sm text-muted-foreground max-w-xs">
                 Escribe &quot;hola&quot; o &quot;empecemos&quot; para comenzar un ejercicio practico de <strong>{subject}</strong>
               </p>
             </div>
@@ -116,7 +116,7 @@ export function ChatUI({ subject }: { subject: string }) {
         </div>
       </ScrollArea>
 
-      <form onSubmit={onSubmit} className="border-t bg-white p-4">
+      <form onSubmit={onSubmit} className="border-t bg-card p-4">
         <div className="flex gap-2">
           <input
             ref={inputRef}
@@ -124,7 +124,7 @@ export function ChatUI({ subject }: { subject: string }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Escribe tu respuesta..."
-            className="flex-1 rounded-xl border border-slate-200 bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
+            className="flex-1 rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-ring transition-colors"
             aria-label="Mensaje"
             disabled={isLoading}
             autoComplete="off"

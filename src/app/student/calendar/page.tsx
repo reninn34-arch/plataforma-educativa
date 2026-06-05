@@ -66,12 +66,12 @@ export default function CalendarPage() {
             variant="ghost"
             size="icon"
             onClick={() => router.push("/student/dashboard")}
-            className="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 shadow-sm"
+            className="w-9 h-9 rounded-xl bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted shadow-sm"
           >
             <ArrowLeft size={18} />
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+            <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
               <CalendarIcon size={22} className="text-indigo-500" />
               Calendario
             </h1>
@@ -80,19 +80,19 @@ export default function CalendarPage() {
         </div>
 
         {events.length === 0 ? (
-          <Card className="shadow-sm border-slate-200">
+          <Card className="shadow-sm border-border">
             <CardContent className="py-16 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
                 <CalendarIcon size={32} className="text-slate-300" />
               </div>
-              <p className="font-semibold text-slate-600">No tienes tareas con fecha de entrega</p>
+              <p className="font-semibold text-muted-foreground">No tienes tareas con fecha de entrega</p>
               <p className="text-sm text-slate-400 mt-1">Tu calendario está limpio</p>
             </CardContent>
           </Card>
         ) : (
           Object.entries(grouped).map(([month, items]) => (
             <div key={month} className="space-y-3">
-              <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+              <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                 <CalendarIcon size={14} />
                 {month.charAt(0).toUpperCase() + month.slice(1)}
               </h3>
@@ -106,12 +106,12 @@ export default function CalendarPage() {
                   return (
                     <div
                       key={i}
-                      className={`bg-white rounded-2xl border-2 p-4 transition-all ${
+                      className={`bg-card rounded-2xl border-2 p-4 transition-all ${
                         isPast && !isSubmitted
                           ? "border-red-200 bg-red-50/30"
                           : isSubmitted
                           ? "border-emerald-200 bg-emerald-50/30"
-                          : "border-slate-200 hover:shadow-md hover:-translate-y-0.5"
+                          : "border-border hover:shadow-md hover:-translate-y-0.5"
                       }`}
                     >
                       <div className="flex items-center gap-4">
@@ -119,18 +119,18 @@ export default function CalendarPage() {
                           <p className="text-[10px] font-semibold text-slate-400 uppercase">
                             {dueDate.toLocaleDateString("es-EC", { weekday: "short" })}
                           </p>
-                          <p className="text-2xl font-extrabold text-slate-800 tabular-nums -mt-0.5">
+                          <p className="text-2xl font-extrabold text-foreground tabular-nums -mt-0.5">
                             {dueDate.getDate()}
                           </p>
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-lg">{ev.subjectEmoji}</span>
-                            <span className={`text-xs font-semibold ${theme?.text || "text-slate-600"}`}>
+                            <span className={`text-xs font-semibold ${theme?.text || "text-muted-foreground"}`}>
                               {ev.subjectName}
                             </span>
                           </div>
-                          <p className="text-sm font-bold text-slate-700 mt-0.5">{ev.title}</p>
+                          <p className="text-sm font-bold text-foreground mt-0.5">{ev.title}</p>
                         </div>
                         <div className="shrink-0">
                           {isSubmitted ? (

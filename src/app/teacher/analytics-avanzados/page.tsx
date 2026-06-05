@@ -166,7 +166,7 @@ function AnalyticsAvanzadosContent() {
               <TrendingUp size={20} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-800">Analytics Avanzados</h1>
+              <h1 className="text-xl font-bold text-foreground">Analytics Avanzados</h1>
               <p className="text-xs sm:text-sm text-slate-400">Rendimiento académico, detección de riesgo y comparativa por período</p>
             </div>
           </div>
@@ -179,7 +179,7 @@ function AnalyticsAvanzadosContent() {
                 <select
                   value={cursoId || ""}
                   onChange={e => setCursoId(e.target.value ? Number(e.target.value) : null)}
-                  className="h-8 appearance-none rounded-xl border border-slate-200 bg-white pl-3 pr-7 text-xs focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none w-[160px] truncate"
+                  className="h-8 appearance-none rounded-xl border border-border bg-card pl-3 pr-7 text-xs focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none w-[160px] truncate"
                 >
                   <option value="">Todos los cursos</option>
                   {cursos.map(c => (
@@ -194,7 +194,7 @@ function AnalyticsAvanzadosContent() {
                 <select
                   value={periodoId || ""}
                   onChange={e => setPeriodoId(e.target.value ? Number(e.target.value) : null)}
-                  className="h-8 appearance-none rounded-xl border border-slate-200 bg-white pl-3 pr-7 text-xs focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none w-[160px] truncate"
+                  className="h-8 appearance-none rounded-xl border border-border bg-card pl-3 pr-7 text-xs focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none w-[160px] truncate"
                 >
                   <option value="">Período activo</option>
                   {periods.map(p => (
@@ -209,7 +209,7 @@ function AnalyticsAvanzadosContent() {
             {hasData && (
               <button
                 onClick={() => exportToCsv(data!.students)}
-                className="h-8 px-3 rounded-xl border border-slate-200 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition-colors flex items-center gap-1.5 shrink-0"
+                className="h-8 px-3 rounded-xl border border-border text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition-colors flex items-center gap-1.5 shrink-0"
               >
                 <Download className="h-3 w-3" />
                 Exportar CSV
@@ -217,7 +217,7 @@ function AnalyticsAvanzadosContent() {
             )}
             <button
               onClick={() => refetch()}
-              className="h-8 px-3 rounded-xl border border-slate-200 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center gap-1.5 shrink-0"
+              className="h-8 px-3 rounded-xl border border-border text-xs font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center gap-1.5 shrink-0"
             >
               <RefreshCw className="h-3 w-3" />
               Actualizar
@@ -228,38 +228,38 @@ function AnalyticsAvanzadosContent() {
         {hasData ? (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-2 p-4 min-h-[100px]">
+              <div className="bg-card rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-2 p-4 min-h-[100px]">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-sm">
                   <Users className="h-5 w-5 text-white" />
                 </div>
-                <p className="text-2xl font-extrabold text-slate-800 tabular-nums leading-none">{data!.students.length}</p>
+                <p className="text-2xl font-extrabold text-foreground tabular-nums leading-none">{data!.students.length}</p>
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Estudiantes</p>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-2 p-4 min-h-[100px]">
+              <div className="bg-card rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-2 p-4 min-h-[100px]">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-sm">
                   <Award className="h-5 w-5 text-white" />
                 </div>
-                <p className="text-2xl font-extrabold text-slate-800 tabular-nums leading-none">{data!.stats.promedioGeneral}</p>
+                <p className="text-2xl font-extrabold text-foreground tabular-nums leading-none">{data!.stats.promedioGeneral}</p>
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Promedio Gral.</p>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-2 p-4 min-h-[100px]">
+              <div className="bg-card rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-2 p-4 min-h-[100px]">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-sm">
                   <BookOpen className="h-5 w-5 text-white" />
                 </div>
-                <p className="text-2xl font-extrabold text-slate-800 tabular-nums leading-none">{data!.stats.estudiantesConDatos}</p>
+                <p className="text-2xl font-extrabold text-foreground tabular-nums leading-none">{data!.stats.estudiantesConDatos}</p>
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Con datos</p>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-2 p-4 min-h-[100px]">
+              <div className="bg-card rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-2 p-4 min-h-[100px]">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center shadow-sm">
                   <AlertTriangle className="h-5 w-5 text-white" />
                 </div>
-                <p className="text-2xl font-extrabold text-slate-800 tabular-nums leading-none">{data!.stats.enRiesgo}</p>
+                <p className="text-2xl font-extrabold text-foreground tabular-nums leading-none">{data!.stats.enRiesgo}</p>
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">En riesgo</p>
               </div>
             </div>
 
             {atRiskStudents.length > 0 && (
-              <div className="bg-white rounded-2xl border border-red-100 shadow-sm overflow-hidden">
+              <div className="bg-card rounded-2xl border border-red-100 shadow-sm overflow-hidden">
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-red-100 bg-red-50/50">
                   <AlertCircle className="h-4 w-4 text-red-500" />
                   <h3 className="text-sm font-bold text-red-700">Estudiantes en riesgo ({atRiskStudents.length})</h3>
@@ -272,7 +272,7 @@ function AnalyticsAvanzadosContent() {
                           {s.fullName.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-xs font-semibold text-slate-800">{s.fullName}</p>
+                          <p className="text-xs font-semibold text-foreground">{s.fullName}</p>
                           <p className="text-[10px] text-slate-400">
                             {s.submittedAssignments}/{s.totalAssignments} tareas · {s.pendientes} pendientes
                           </p>
@@ -288,23 +288,23 @@ function AnalyticsAvanzadosContent() {
               </div>
             )}
 
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="bg-card rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
                 <div className="flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-indigo-500" />
-                  <h3 className="text-sm font-bold text-slate-800">Rendimiento por estudiante</h3>
+                  <h3 className="text-sm font-bold text-foreground">Rendimiento por estudiante</h3>
                 </div>
                 <div className="flex items-center gap-1 text-xs text-slate-400">
                   <button
                     onClick={() => toggleSort("promedio")}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-colors ${sortBy === "promedio" ? "bg-indigo-50 text-indigo-600 font-semibold" : "hover:bg-slate-50"}`}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-colors ${sortBy === "promedio" ? "bg-indigo-50 text-indigo-600 font-semibold" : "hover:bg-muted"}`}
                   >
                     <ArrowUpDown className="h-3 w-3" />
                     Promedio
                   </button>
                   <button
                     onClick={() => toggleSort("nombre")}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-colors ${sortBy === "nombre" ? "bg-indigo-50 text-indigo-600 font-semibold" : "hover:bg-slate-50"}`}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-colors ${sortBy === "nombre" ? "bg-indigo-50 text-indigo-600 font-semibold" : "hover:bg-muted"}`}
                   >
                     <ArrowUpDown className="h-3 w-3" />
                     Nombre
@@ -344,16 +344,16 @@ function AnalyticsAvanzadosContent() {
             {data?.periodComparison && data.periodComparison.length > 1 && (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {data.periodComparison.map(pc => (
-                  <div key={pc.trimester} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                  <div key={pc.trimester} className="bg-card rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                     <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100">
                       <TrendingUp className="h-4 w-4 text-emerald-500" />
-                      <h3 className="text-sm font-bold text-slate-800">{pc.label}</h3>
+                      <h3 className="text-sm font-bold text-foreground">{pc.label}</h3>
                     </div>
                     {pc.students.length > 0 ? (
                       <div className="divide-y divide-slate-100">
                         {pc.students.slice(0, 8).map((s, i) => (
                           <div key={i} className="flex items-center justify-between px-4 py-2">
-                            <span className="text-xs text-slate-700 truncate max-w-[120px]">{s.name}</span>
+                            <span className="text-xs text-foreground truncate max-w-[120px]">{s.name}</span>
                             <span className="text-xs font-bold tabular-nums">{Math.round(s.promedio * 10) / 10}</span>
                           </div>
                         ))}
@@ -366,15 +366,15 @@ function AnalyticsAvanzadosContent() {
               </div>
             )}
 
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="bg-card rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100">
                 <Users className="h-4 w-4 text-indigo-500" />
-                <h3 className="text-sm font-bold text-slate-800">Listado completo de estudiantes</h3>
+                <h3 className="text-sm font-bold text-foreground">Listado completo de estudiantes</h3>
               </div>
               <div className="overflow-x-auto p-4">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b text-xs text-slate-500">
+                    <tr className="border-b text-xs text-muted-foreground">
                       <th className="text-left py-2 font-medium">Estudiante</th>
                       <th className="text-center py-2 font-medium">Promedio</th>
                       <th className="text-center py-2 font-medium">Tareas</th>
@@ -386,7 +386,7 @@ function AnalyticsAvanzadosContent() {
                   <tbody>
                     {sortedStudents.map(s => (
                       <tr key={s.id} className="border-b border-slate-100 last:border-0">
-                        <td className="py-2.5 text-xs font-medium text-slate-800">
+                        <td className="py-2.5 text-xs font-medium text-foreground">
                           <div className="flex items-center gap-2">
                             <div className="h-8 w-8 shrink-0 rounded-full bg-indigo-50 flex items-center justify-center text-xs font-bold text-indigo-600">
                               {s.fullName.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()}
@@ -411,7 +411,7 @@ function AnalyticsAvanzadosContent() {
             </div>
           </>
         ) : (
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center">
+          <div className="bg-card rounded-2xl border border-slate-100 shadow-sm p-12 text-center">
             <BarChart3 className="h-12 w-12 text-slate-200 mx-auto mb-3" />
             <p className="text-sm font-semibold text-slate-400">No hay datos de rendimiento disponibles</p>
             <p className="text-xs text-slate-300 mt-1">Crea tareas y califica a tus estudiantes para ver analytics</p>

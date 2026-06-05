@@ -99,7 +99,7 @@ export function ModuleComplete({
               )}>
                 <Star className={cn(
                   "h-8 w-8",
-                  i <= starsEarned ? "text-white fill-white" : "text-slate-500"
+                  i <= starsEarned ? "text-white fill-white" : "text-muted-foreground"
                 )} />
               </div>
             </div>
@@ -116,15 +116,15 @@ export function ModuleComplete({
 
         {/* Stats cards */}
         <div className="grid grid-cols-3 gap-3 mb-8">
-          <div className="rounded-xl bg-white/10 backdrop-blur border border-white/20 p-2 sm:p-3">
+          <div className="rounded-xl bg-card/10 backdrop-blur border border-white/20 p-2 sm:p-3">
             <p className="text-xl sm:text-2xl font-extrabold text-white">{correct}/{total}</p>
             <p className="text-[10px] text-slate-400 uppercase tracking-wider">Aciertos</p>
           </div>
-          <div className="rounded-xl bg-white/10 backdrop-blur border border-white/20 p-2 sm:p-3">
+          <div className="rounded-xl bg-card/10 backdrop-blur border border-white/20 p-2 sm:p-3">
             <p className="text-xl sm:text-2xl font-extrabold text-yellow-300">+{xpEarned}</p>
             <p className="text-[10px] text-slate-400 uppercase tracking-wider">XP</p>
           </div>
-          <div className="rounded-xl bg-white/10 backdrop-blur border border-white/20 p-2 sm:p-3">
+          <div className="rounded-xl bg-card/10 backdrop-blur border border-white/20 p-2 sm:p-3">
             <div className="flex items-center justify-center gap-1">
               <Zap className="h-5 w-5 text-amber-400" />
               <span className="text-xl sm:text-2xl font-extrabold text-amber-400">{maxCombo}</span>

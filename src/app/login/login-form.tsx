@@ -89,9 +89,9 @@ export function LoginForm({ redirect }: Props) {
   if (showForgot) {
     return (
       <div className="w-full max-w-md mx-auto space-y-6 animate-fade-in-up">
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-indigo-200/20 overflow-hidden">
+        <div className="bg-card rounded-3xl border border-border shadow-xl shadow-indigo-200/20 overflow-hidden">
           <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center mx-auto mb-3 border border-white/20">
+            <div className="w-14 h-14 rounded-2xl bg-card/15 backdrop-blur-sm flex items-center justify-center mx-auto mb-3 border border-white/20">
               <GraduationCap size={28} className="text-white" />
             </div>
             <h1 className="text-xl font-bold text-white">Recuperar PIN</h1>
@@ -105,14 +105,14 @@ export function LoginForm({ redirect }: Props) {
                   <span className="text-lg">📧</span>
                   <span>{forgotMsg}</span>
                 </div>
-                <Button onClick={() => setShowForgot(false)} variant="outline" className="w-full h-11 rounded-xl border-slate-200">
+                <Button onClick={() => setShowForgot(false)} variant="outline" className="w-full h-11 rounded-xl border-border">
                   <ArrowLeft className="h-4 w-4 mr-2" /> Volver al inicio
                 </Button>
               </div>
             ) : (
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-semibold text-slate-700 block mb-1.5">Número de Cédula</label>
+                  <label className="text-sm font-semibold text-foreground block mb-1.5">Número de Cédula</label>
                   <input
                     id="forgot-cedula"
                     type="tel"
@@ -121,7 +121,7 @@ export function LoginForm({ redirect }: Props) {
                     placeholder="Ej. 0999999999"
                     value={forgotCedula}
                     onChange={(e) => setForgotCedula(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    className="w-full h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all"
+                    className="w-full h-11 rounded-xl border border-border bg-card px-4 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all"
                     disabled={forgotLoading}
                   />
                 </div>
@@ -140,7 +140,7 @@ export function LoginForm({ redirect }: Props) {
                 <button
                   type="button"
                   onClick={() => setShowForgot(false)}
-                  className="w-full text-sm text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center gap-1 py-2"
+                  className="w-full text-sm text-slate-400 hover:text-muted-foreground transition-colors flex items-center justify-center gap-1 py-2"
                 >
                   <ArrowLeft className="h-3 w-3" /> Volver al inicio
                 </button>
@@ -162,17 +162,17 @@ export function LoginForm({ redirect }: Props) {
         <h1 className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
           Atlas Edu
         </h1>
-        <p className="text-slate-500 text-sm mt-1">
+        <p className="text-muted-foreground text-sm mt-1">
           Plataforma Educativa PCEI
         </p>
       </div>
 
       {/* Login Card */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-indigo-200/20 overflow-hidden">
+      <div className="bg-card rounded-3xl border border-border shadow-xl shadow-indigo-200/20 overflow-hidden">
         <div className="p-6 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
-              <label htmlFor="cedula" className="text-sm font-semibold text-slate-700">
+              <label htmlFor="cedula" className="text-sm font-semibold text-foreground">
                 Número de Cédula
               </label>
               <input
@@ -187,14 +187,14 @@ export function LoginForm({ redirect }: Props) {
                   const v = e.target.value.replace(/\D/g, "").slice(0, 10);
                   setCedula(v);
                 }}
-                className="w-full h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all"
+                className="w-full h-11 rounded-xl border border-border bg-card px-4 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all"
                 autoComplete="username"
                 disabled={loading}
               />
             </div>
 
             <div className="space-y-1.5">
-              <label htmlFor="pin" className="text-sm font-semibold text-slate-700">
+              <label htmlFor="pin" className="text-sm font-semibold text-foreground">
                 PIN de Seguridad (4 dígitos)
               </label>
               <div className="relative">
@@ -210,7 +210,7 @@ export function LoginForm({ redirect }: Props) {
                     const v = e.target.value.replace(/\D/g, "").slice(0, 4);
                     setPin(v);
                   }}
-                  className="w-full h-11 rounded-xl border border-slate-200 bg-white px-4 pr-11 text-sm font-bold tracking-[0.3em] placeholder:tracking-normal focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all"
+                  className="w-full h-11 rounded-xl border border-border bg-card px-4 pr-11 text-sm font-bold tracking-[0.3em] placeholder:tracking-normal focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all"
                   autoComplete="current-password"
                   disabled={loading}
                 />
@@ -218,7 +218,7 @@ export function LoginForm({ redirect }: Props) {
                   type="button"
                   onClick={() => setShowPin(!showPin)}
                   aria-label="Mostrar u ocultar PIN"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-muted-foreground transition-colors"
                   tabIndex={-1}
                 >
                   {showPin ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -251,7 +251,7 @@ export function LoginForm({ redirect }: Props) {
             </button>
           </form>
         </div>
-        <div className="border-t border-slate-100 bg-slate-50/50 p-4 text-center">
+        <div className="border-t border-slate-100 bg-muted/50 p-4 text-center">
           <p className="text-xs text-slate-400">
             Acceso restringido a estudiantes y personal autorizado de PCEI.
           </p>

@@ -77,7 +77,7 @@ export function NotificationBell() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="relative p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+        className="relative p-2 rounded-xl text-slate-400 hover:text-muted-foreground hover:bg-muted transition-colors"
         aria-label="Notificaciones"
       >
         <Bell size={20} />
@@ -89,9 +89,9 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-2xl border border-slate-200 shadow-xl z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-card rounded-2xl border border-border shadow-xl z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-            <h3 className="text-sm font-bold text-slate-800">Notificaciones</h3>
+            <h3 className="text-sm font-bold text-foreground">Notificaciones</h3>
             {unreadCount > 0 && (
               <button
                 onClick={() => markAllRead.mutate()}
@@ -127,14 +127,14 @@ export function NotificationBell() {
                 <div
                   key={n.id}
                   className={`flex items-start gap-3 px-4 py-3 transition-colors ${
-                    !n.read ? "bg-indigo-50/50" : "hover:bg-slate-50"
+                    !n.read ? "bg-indigo-50/50" : "hover:bg-muted"
                   }`}
                 >
                   <span className="text-base shrink-0 mt-0.5">
                     {typeIcons[n.type] || typeIcons.system}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-xs ${!n.read ? "font-bold text-slate-800" : "font-medium text-slate-600"}`}>
+                    <p className={`text-xs ${!n.read ? "font-bold text-foreground" : "font-medium text-muted-foreground"}`}>
                       {n.title}
                     </p>
                     {n.message && (

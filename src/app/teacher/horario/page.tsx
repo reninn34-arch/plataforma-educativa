@@ -77,7 +77,7 @@ export default function TeacherHorarioPage() {
                 <Clock size={20} />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-slate-800">Horario</h1>
+                <h1 className="text-xl font-bold text-foreground">Horario</h1>
                 <p className="text-sm text-slate-400">Horario semanal por curso</p>
               </div>
             </div>
@@ -87,13 +87,13 @@ export default function TeacherHorarioPage() {
               <select
                 value={selectedCurso}
                 onChange={e => setSelectedCurso(e.target.value)}
-                className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
+                className="h-10 rounded-xl border border-border bg-card px-3 text-sm font-medium text-muted-foreground focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
               >
                 <option value="todos">Todos los cursos</option>
                 {cursos.map(c => <option key={c.id} value={c.id}>{c.nombre} ({c.nivel})</option>)}
               </select>
             )}
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-500 bg-white border border-slate-200 rounded-xl px-3 py-2 cursor-pointer hover:bg-slate-50 transition-colors">
+            <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground bg-card border border-border rounded-xl px-3 py-2 cursor-pointer hover:bg-muted transition-colors">
               <input type="checkbox" checked={showRecesos} onChange={e => setShowRecesos(e.target.checked)} className="rounded text-indigo-600 focus:ring-indigo-500" />
               <Filter size={14} />
               Recreos
@@ -102,12 +102,12 @@ export default function TeacherHorarioPage() {
         </div>
 
         {filtered.length === 0 ? (
-          <Card className="shadow-sm border-slate-200">
+          <Card className="shadow-sm border-border">
             <CardContent className="py-16 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
                 <Clock size={32} className="text-slate-300" />
               </div>
-              <p className="font-semibold text-slate-600">Sin horario disponible</p>
+              <p className="font-semibold text-muted-foreground">Sin horario disponible</p>
             </CardContent>
           </Card>
         ) : (
@@ -116,7 +116,7 @@ export default function TeacherHorarioPage() {
               const bloques = bloquesPorDia(dia);
               const horas = [...new Set(bloques.map(b => `${b.horaInicio}-${b.horaFin}`))];
               return (
-                <div key={dia} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div key={dia} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
                   <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 px-4 py-3">
                     <h3 className="font-bold text-white text-sm">{DIAS_LABEL[dia]}</h3>
                     <p className="text-indigo-200 text-[11px]">{bloques.length} bloques</p>
@@ -142,10 +142,10 @@ export default function TeacherHorarioPage() {
                       }
 
                       return (
-                        <div key={bloque} className={`rounded-xl p-3 border ${theme?.border || "border-slate-200"} ${theme?.bgLight || "bg-slate-50"}`}>
+                        <div key={bloque} className={`rounded-xl p-3 border ${theme?.border || "border-border"} ${theme?.bgLight || "bg-muted"}`}>
                           <div className="flex items-center gap-2 mb-1.5">
                             <span className="text-lg">{b.subjectEmoji || "📚"}</span>
-                            <span className={`text-xs font-bold ${theme?.text || "text-slate-700"}`}>
+                            <span className={`text-xs font-bold ${theme?.text || "text-foreground"}`}>
                               {b.subjectName || "Materia"}
                             </span>
                           </div>

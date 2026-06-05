@@ -45,12 +45,12 @@ function DashboardContent() {
                 <>
                   <button
                     onClick={() => router.push("/teacher/dashboard")}
-                    className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
+                    className="w-9 h-9 rounded-xl bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all shadow-sm"
                   >
                     <ArrowLeft size={18} />
                   </button>
-                  <h1 className="text-xl font-bold text-slate-800">{selectedCurso.nombre}</h1>
-                  <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">{selectedCurso.nivel}</span>
+                  <h1 className="text-xl font-bold text-foreground">{selectedCurso.nombre}</h1>
+                  <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-lg">{selectedCurso.nivel}</span>
                   {selectedCurso.mySubjects?.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {selectedCurso.mySubjects.map((s: any, i: number) => (
@@ -67,8 +67,8 @@ function DashboardContent() {
                     <Sparkles size={20} />
                   </div>
                   <div>
-                    <h1 className="text-xl font-bold text-slate-800">Panel Principal</h1>
-                    <p className="text-sm text-slate-500">Monitorea el progreso de tus estudiantes</p>
+                    <h1 className="text-xl font-bold text-foreground">Panel Principal</h1>
+                    <p className="text-sm text-muted-foreground">Monitorea el progreso de tus estudiantes</p>
                   </div>
                 </div>
               )}
@@ -91,7 +91,7 @@ function DashboardContent() {
                   if (e.target.value) router.push(`/teacher/dashboard?cursoId=${e.target.value}`);
                   else router.push("/teacher/dashboard");
                 }}
-                className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
+                className="h-10 rounded-xl border border-border bg-card px-3 text-sm font-medium text-muted-foreground focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
               >
                 <option value="">Todos los cursos</option>
                 {cursos.map((c: any) => (
@@ -141,7 +141,7 @@ export default function TeacherDashboard() {
       <div className="flex-1 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 rounded-full border-3 border-indigo-200 border-t-indigo-600 animate-spin" />
-          <p className="text-sm text-slate-500 font-medium">Cargando panel...</p>
+          <p className="text-sm text-muted-foreground font-medium">Cargando panel...</p>
         </div>
       </div>
     }>

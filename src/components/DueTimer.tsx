@@ -62,7 +62,7 @@ export function DueTimer({ dueDate, compact = false }: DueTimerProps) {
     normal: "bg-blue-50 text-blue-700 border-blue-200",
     soon: "bg-amber-50 text-amber-700 border-amber-200",
     critical: "bg-red-50 text-red-700 border-red-200",
-    expired: "bg-slate-100 text-slate-500 border-slate-200",
+    expired: "bg-muted text-muted-foreground border-border",
   };
 
   const icons: Record<string, string> = {

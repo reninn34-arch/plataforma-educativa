@@ -309,7 +309,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
             <Check className="h-7 w-7 text-emerald-600" />
           </div>
           <p className="text-sm font-semibold text-emerald-800 mb-1">Tarea creada exitosamente</p>
-          <p className="text-xs text-slate-500 mb-4">{generatedData?.title} • {selectedSubject?.subjectName}</p>
+          <p className="text-xs text-muted-foreground mb-4">{generatedData?.title} • {selectedSubject?.subjectName}</p>
           <button onClick={clearFlow} className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors">
             Volver al chat
           </button>
@@ -320,17 +320,17 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
     if (generatedData) {
       return (
         <div className="space-y-3">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Previsualizar tarea</p>
-          <div className="rounded-xl border border-gray-200 bg-white p-3 space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Previsualizar tarea</p>
+          <div className="rounded-xl border border-border bg-card p-3 space-y-2">
             <p className="font-semibold text-sm">{generatedData.title}</p>
-            <p className="text-xs text-gray-600 line-clamp-3">{generatedData.description}</p>
+            <p className="text-xs text-muted-foreground line-clamp-3">{generatedData.description}</p>
             <div className="max-h-48 overflow-y-auto space-y-1.5">
               {generatedData.questions.map((q, i) => (
                 <div key={i} className="rounded-lg bg-gray-50 p-2 text-xs">
                   <p className="font-medium">{i + 1}. {q.question}</p>
                   <div className="mt-1 flex flex-wrap gap-1">
                     {q.options.map((opt, j) => (
-                      <span key={j} className={cn("rounded px-1.5 py-0.5 text-[10px]", j === q.correctIndex ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600")}>
+                      <span key={j} className={cn("rounded px-1.5 py-0.5 text-[10px]", j === q.correctIndex ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-muted-foreground")}>
                         {opt}
                       </span>
                     ))}
@@ -338,11 +338,11 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                 </div>
               ))}
             </div>
-            <p className="text-[10px] text-slate-500 text-center">{generatedData.questions.length} preguntas</p>
+            <p className="text-[10px] text-muted-foreground text-center">{generatedData.questions.length} preguntas</p>
           </div>
           {flowError && <p className="text-xs text-red-600 text-center">{flowError}</p>}
           <div className="flex gap-2">
-            <button onClick={() => setGeneratedData(null)} disabled={creating} className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50">
+            <button onClick={() => setGeneratedData(null)} disabled={creating} className="flex-1 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-gray-50 transition-colors disabled:opacity-50">
               Editar
             </button>
             <button onClick={handleCreateAssignment} disabled={creating} className="flex-1 rounded-lg bg-violet-600 px-3 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-1">
@@ -363,7 +363,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
         if (courses.length === 0 && !flowLoading) {
           return (
             <div className="text-center py-4">
-              <p className="text-xs text-gray-500 mb-3">Selecciona un curso:</p>
+              <p className="text-xs text-muted-foreground mb-3">Selecciona un curso:</p>
               <button onClick={loadCourses} className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors">
                 Cargar cursos
               </button>
@@ -373,16 +373,16 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
         }
         return (
           <div>
-            <p className="text-xs font-semibold text-gray-500 mb-2">Selecciona un curso:</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-2">Selecciona un curso:</p>
             <div className="space-y-1.5">
               {courses.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => { setSelectedCourse(c); if (c.mySubjects.length > 0) setSelectedSubject(c.mySubjects[0]); }}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left text-sm hover:border-violet-300 hover:bg-violet-50 transition-colors flex items-center justify-between"
+                  className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-left text-sm hover:border-violet-300 hover:bg-violet-50 transition-colors flex items-center justify-between"
                 >
                   <span className="font-medium">{c.nombre}</span>
-                  <span className="text-xs text-slate-500">{c.studentCount} estudiantes</span>
+                  <span className="text-xs text-muted-foreground">{c.studentCount} estudiantes</span>
                 </button>
               ))}
             </div>
@@ -394,10 +394,10 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
       return (
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <button onClick={() => { setSelectedCourse(null); setCourses([]); loadCourses(); }} className="rounded-lg p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+            <button onClick={() => { setSelectedCourse(null); setCourses([]); loadCourses(); }} className="rounded-lg p-1 text-gray-400 hover:text-muted-foreground hover:bg-gray-100 transition-colors">
               <ArrowLeft className="h-4 w-4" />
             </button>
-            <p className="text-xs font-semibold text-gray-500">Materia para {selectedCourse.nombre}:</p>
+            <p className="text-xs font-semibold text-muted-foreground">Materia para {selectedCourse.nombre}:</p>
           </div>
           <div className="space-y-1.5">
             {selectedCourse.mySubjects.length === 0 ? (
@@ -406,7 +406,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
               <button
                 key={s.subjectId}
                 onClick={() => setSelectedSubject(s)}
-                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left text-sm hover:border-violet-300 hover:bg-violet-50 transition-colors flex items-center gap-2"
+                className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-left text-sm hover:border-violet-300 hover:bg-violet-50 transition-colors flex items-center gap-2"
               >
                 <span>{s.subjectEmoji || "📚"}</span>
                 <span className="font-medium">{s.subjectName}</span>
@@ -421,42 +421,42 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
     return (
       <div>
         <div className="flex items-center gap-2 mb-2">
-          <button onClick={() => { setSelectedSubject(null); }} className="rounded-lg p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+          <button onClick={() => { setSelectedSubject(null); }} className="rounded-lg p-1 text-gray-400 hover:text-muted-foreground hover:bg-gray-100 transition-colors">
             <ArrowLeft className="h-4 w-4" />
           </button>
-          <p className="text-xs font-semibold text-gray-500">Detalles de la tarea</p>
+          <p className="text-xs font-semibold text-muted-foreground">Detalles de la tarea</p>
         </div>
         <div className="space-y-2.5">
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Tema *</label>
+            <label className="text-xs text-muted-foreground mb-1 block">Tema *</label>
             <input
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder="Ej: matrices 3x3, ecuaciones cuadraticas..."
-              className="w-full h-9 rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
+              className="w-full h-9 rounded-xl border border-border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
             />
           </div>
           <div className="flex gap-2">
             <div className="flex-1">
-              <label className="text-xs text-gray-500 mb-1 block">Preguntas</label>
-              <select value={questionCount} onChange={(e) => setQuestionCount(Number(e.target.value))} className="w-full h-9 rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400">
+              <label className="text-xs text-muted-foreground mb-1 block">Preguntas</label>
+              <select value={questionCount} onChange={(e) => setQuestionCount(Number(e.target.value))} className="w-full h-9 rounded-xl border border-border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400">
                 {[3, 4, 5, 6, 7, 8, 9, 10].map(n => <option key={n} value={n}>{n} preguntas</option>)}
               </select>
             </div>
             <div className="flex-1">
-              <label className="text-xs text-gray-500 mb-1 block">Trimestre</label>
-              <select value={trimester} onChange={(e) => setTrimester(Number(e.target.value))} className="w-full h-9 rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400">
+              <label className="text-xs text-muted-foreground mb-1 block">Trimestre</label>
+              <select value={trimester} onChange={(e) => setTrimester(Number(e.target.value))} className="w-full h-9 rounded-xl border border-border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400">
                 {[1, 2, 3].map(n => <option key={n} value={n}>Trimestre {n}</option>)}
               </select>
             </div>
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Fecha de entrega (opcional)</label>
+            <label className="text-xs text-muted-foreground mb-1 block">Fecha de entrega (opcional)</label>
             <input
               type="datetime-local"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full h-9 rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
+              className="w-full h-9 rounded-xl border border-border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
             />
           </div>
           {flowError && <p className="text-xs text-red-600">{flowError}</p>}
@@ -480,16 +480,16 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
       case "my-courses":
         return (
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Mis cursos</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Mis cursos</p>
             {flowLoading ? (
               <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-violet-600" /></div>
             ) : myCoursesData && myCoursesData.length > 0 ? (
               <div className="space-y-2">
                 {myCoursesData.map((c) => (
-                  <div key={c.id} className="rounded-xl border border-gray-200 bg-white p-3">
+                  <div key={c.id} className="rounded-xl border border-border bg-card p-3">
                     <div className="flex items-center justify-between mb-1">
                       <p className="font-semibold text-sm">{c.nombre}</p>
-                      <span className="text-xs text-slate-500">{c.studentCount} estudiantes</span>
+                      <span className="text-xs text-muted-foreground">{c.studentCount} estudiantes</span>
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {c.mySubjects.map((s) => (
@@ -507,13 +507,13 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
               </div>
             )}
             {flowError && <p className="text-xs text-red-600 text-center mt-2">{flowError}</p>}
-            {myCoursesData && <button onClick={clearFlow} className="w-full mt-3 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">Volver al chat</button>}
+            {myCoursesData && <button onClick={clearFlow} className="w-full mt-3 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-gray-50 transition-colors">Volver al chat</button>}
           </div>
         );
       case "risk":
         return (
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Estudiantes en riesgo</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Estudiantes en riesgo</p>
             {flowLoading ? (
               <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-violet-600" /></div>
             ) : riskData && riskData.length > 0 ? (
@@ -535,11 +535,11 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                   <Check className="h-6 w-6 text-emerald-600" />
                 </div>
                 <p className="text-xs font-medium text-emerald-700">No hay estudiantes en riesgo</p>
-                <p className="text-[10px] text-slate-500 mt-1">Todos están al día</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Todos están al día</p>
               </div>
             )}
             {flowError && <p className="text-xs text-red-600 text-center mt-2">{flowError}</p>}
-            {riskData && <button onClick={clearFlow} className="w-full mt-3 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">Volver al chat</button>}
+            {riskData && <button onClick={clearFlow} className="w-full mt-3 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-gray-50 transition-colors">Volver al chat</button>}
           </div>
         );
       case "message":
@@ -551,14 +551,14 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                   <Check className="h-7 w-7 text-emerald-600" />
                 </div>
                 <p className="text-sm font-semibold text-emerald-800 mb-1">Mensaje enviado</p>
-                <p className="text-xs text-slate-500 mb-3">A los estudiantes de {messageCourse?.nombre}</p>
+                <p className="text-xs text-muted-foreground mb-3">A los estudiantes de {messageCourse?.nombre}</p>
                 <button onClick={clearFlow} className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors">
                   Volver al chat
                 </button>
               </div>
             ) : !messageCourse ? (
               <div>
-                <p className="text-xs font-semibold text-gray-500 mb-2">Selecciona el curso:</p>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Selecciona el curso:</p>
                 {courses.length === 0 && !flowLoading ? (
                   <button onClick={loadCourses} className="w-full rounded-xl bg-violet-600 px-3 py-2.5 text-xs font-medium text-white hover:bg-violet-700 transition-colors">
                     Cargar cursos
@@ -571,7 +571,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                       <button
                         key={c.id}
                         onClick={() => setMessageCourse(c)}
-                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left text-sm hover:border-violet-300 hover:bg-violet-50 transition-colors"
+                        className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-left text-sm hover:border-violet-300 hover:bg-violet-50 transition-colors"
                       >
                         {c.nombre}
                       </button>
@@ -583,17 +583,17 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
             ) : (
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <button onClick={() => { setMessageCourse(null); setMessageText(""); }} className="rounded-lg p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                  <button onClick={() => { setMessageCourse(null); setMessageText(""); }} className="rounded-lg p-1 text-gray-400 hover:text-muted-foreground hover:bg-gray-100 transition-colors">
                     <ArrowLeft className="h-4 w-4" />
                   </button>
-                  <p className="text-xs font-semibold text-gray-500">Mensaje para {messageCourse.nombre}</p>
+                  <p className="text-xs font-semibold text-muted-foreground">Mensaje para {messageCourse.nombre}</p>
                 </div>
                 <textarea
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
                   placeholder="Escribe tu mensaje..."
                   rows={4}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 resize-none"
+                  className="w-full rounded-xl border border-border bg-gray-50 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 resize-none"
                 />
                 {flowError && <p className="text-xs text-red-600 mt-1">{flowError}</p>}
                 <button
@@ -639,7 +639,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
         <div
           className={cn(
             // base
-            "fixed z-50 flex flex-col bg-white shadow-2xl overflow-hidden",
+            "fixed z-50 flex flex-col bg-card shadow-2xl overflow-hidden",
             // mobile: full-width bottom sheet
             "inset-x-0 bottom-0 rounded-t-3xl",
             "h-[90dvh]",
@@ -651,8 +651,8 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
           )}
         >
           {/* Drag handle — mobile only */}
-          <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0 bg-white rounded-t-3xl">
-            <div className="w-10 h-1 rounded-full bg-slate-200" />
+          <div className="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0 bg-card rounded-t-3xl">
+            <div className="w-10 h-1 rounded-full bg-accent" />
           </div>
 
           {/* Header */}
@@ -661,12 +661,12 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
               {flow !== "none" && flow !== "tutor" ? (
                 <button
                   onClick={clearFlow}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 transition-colors"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-card/20 hover:bg-card/30 transition-colors"
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </button>
               ) : (
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-card/20">
                   <Bot className="h-5 w-5" />
                 </div>
               )}
@@ -684,7 +684,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
             </div>
             <button
               onClick={() => { clearFlow(); setMessages([]); setOpen(false); }}
-              className="flex h-9 w-9 items-center justify-center rounded-xl text-violet-200 hover:bg-white/10 hover:text-white transition-colors"
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-violet-200 hover:bg-card/10 hover:text-white transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
@@ -702,8 +702,8 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-violet-100 mb-4">
                         <Sparkles className="h-8 w-8 text-violet-600" />
                       </div>
-                      <p className="text-base font-semibold text-slate-800 mb-1">Soy tu tutor de aprendizaje</p>
-                      <p className="text-xs text-slate-500 mb-6 text-center max-w-[280px] leading-relaxed">
+                      <p className="text-base font-semibold text-foreground mb-1">Soy tu tutor de aprendizaje</p>
+                      <p className="text-xs text-muted-foreground mb-6 text-center max-w-[280px] leading-relaxed">
                         No te daré respuestas directas. Te guiaré con preguntas y pistas para que descubras la solución tú mismo.
                       </p>
                       <div className="flex flex-wrap justify-center gap-2 max-w-[300px]">
@@ -728,8 +728,8 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-violet-100 mb-4">
                         <Sparkles className="h-8 w-8 text-violet-600" />
                       </div>
-                      <p className="text-base font-semibold text-slate-800 mb-1">Hola, soy Atlas IA</p>
-                      <p className="text-xs text-slate-500 mb-6 text-center max-w-[260px]">
+                      <p className="text-base font-semibold text-foreground mb-1">Hola, soy Atlas IA</p>
+                      <p className="text-xs text-muted-foreground mb-6 text-center max-w-[260px]">
                         Puedo ayudarte a consultar datos de la plataforma o crear contenido educativo.
                       </p>
                       <div className="flex flex-wrap justify-center gap-2 max-w-[300px]">
@@ -754,7 +754,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                             "rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed max-w-[85%]",
                             m.role === "user"
                               ? "bg-violet-600 text-white rounded-br-sm"
-                              : "bg-slate-100 text-slate-800 rounded-bl-sm"
+                              : "bg-muted text-foreground rounded-bl-sm"
                           )}>
                             {m.parts?.map((part: any, j: number) => {
                               if (part.type === "text") return <span key={j}>{stripMarkdown(part.text)}</span>;
@@ -793,7 +793,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
 
                     {loading && messages[messages.length - 1]?.role === "user" && (
                       <div className="flex gap-2 justify-start">
-                        <div className="rounded-2xl rounded-bl-sm bg-slate-100 px-4 py-3">
+                        <div className="rounded-2xl rounded-bl-sm bg-muted px-4 py-3">
                           <div className="flex gap-1.5 items-center">
                             <span className="h-2 w-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "0ms" }} />
                             <span className="h-2 w-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -830,7 +830,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
 
           {/* ── Input bar ── */}
           <div
-            className="border-t border-slate-100 bg-white shrink-0 px-3 pt-3 pb-3"
+            className="border-t border-slate-100 bg-card shrink-0 px-3 pt-3 pb-3"
             style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}
           >
             {/* Attached file pill */}
@@ -864,7 +864,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="hidden sm:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 transition-colors"
+                  className="hidden sm:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 hover:bg-muted transition-colors"
                 >
                   <Paperclip className="h-4 w-4" />
                 </button>
@@ -877,7 +877,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                   onClick={toggleRecording}
                   className={cn(
                     "hidden sm:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors",
-                    isRecording ? "bg-red-100 text-red-600 animate-pulse" : "text-slate-400 hover:bg-slate-100"
+                    isRecording ? "bg-red-100 text-red-600 animate-pulse" : "text-slate-400 hover:bg-muted"
                   )}
                 >
                   <Mic className="h-4 w-4" />
@@ -891,7 +891,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder={flow === "tutor" ? "Escribe tu duda o tema..." : "Escribe un mensaje..."}
-                className="flex-1 min-w-0 h-11 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400/30 focus:border-violet-400 transition-colors"
+                className="flex-1 min-w-0 h-11 rounded-2xl border border-border bg-muted px-4 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400/30 focus:border-violet-400 transition-colors"
                 disabled={loading}
                 autoComplete="off"
               />

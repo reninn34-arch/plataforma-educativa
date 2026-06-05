@@ -12,8 +12,8 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <div className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center">
-        <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700" />
+      <div className="w-9 h-9 rounded-xl border border-border dark:border-slate-700 flex items-center justify-center">
+        <div className="w-4 h-4 rounded-full bg-accent dark:bg-slate-700" />
       </div>
     );
   }
@@ -23,7 +23,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+      className="w-9 h-9 rounded-xl border border-border dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-muted-foreground dark:hover:text-slate-300 hover:bg-muted dark:hover:bg-slate-800 transition-colors"
       aria-label={isDark ? "Modo claro" : "Modo oscuro"}
     >
       {isDark ? <Sun size={16} /> : <Moon size={16} />}

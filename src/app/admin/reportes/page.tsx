@@ -173,9 +173,9 @@ function ReportesContent() {
       <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8 space-y-6">
 
         <div className="bg-gradient-to-br from-emerald-600 to-teal-600 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-emerald-200/50 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-card/5 rounded-full blur-3xl" />
           <div className="relative z-10 flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-card/20 flex items-center justify-center shrink-0">
               <FileText size={24} />
             </div>
             <div>
@@ -190,7 +190,7 @@ function ReportesContent() {
             <select
               value={cursoId || ""}
               onChange={e => setCursoId(e.target.value ? Number(e.target.value) : null)}
-              className="h-10 appearance-none rounded-2xl border border-slate-200 bg-white pl-4 pr-10 text-sm focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 focus:outline-none w-[220px]"
+              className="h-10 appearance-none rounded-2xl border border-border bg-card pl-4 pr-10 text-sm focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 focus:outline-none w-[220px]"
             >
               <option value="">Seleccionar curso...</option>
               {cursos.map(c => (
@@ -229,7 +229,7 @@ function ReportesContent() {
         )}
 
         {error && !isLoading && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+          <div className="bg-card rounded-2xl border border-border p-12 text-center">
             <p className="text-sm text-slate-400">Selecciona un curso para ver el reporte</p>
           </div>
         )}
@@ -237,52 +237,52 @@ function ReportesContent() {
         {data && (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+              <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Estudiantes</p>
                   <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
                     <GraduationCap size={20} className="text-blue-500" />
                   </div>
                 </div>
-                <p className="text-3xl font-extrabold text-slate-800">{data.stats.totalEstudiantes}</p>
+                <p className="text-3xl font-extrabold text-foreground">{data.stats.totalEstudiantes}</p>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+              <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Promedio</p>
                   <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
                     <BarChart3 size={20} className="text-emerald-500" />
                   </div>
                 </div>
-                <p className="text-3xl font-extrabold text-slate-800">{data.stats.promedioCurso}</p>
+                <p className="text-3xl font-extrabold text-foreground">{data.stats.promedioCurso}</p>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+              <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Materias</p>
                   <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
                     <BookOpen size={20} className="text-violet-500" />
                   </div>
                 </div>
-                <p className="text-3xl font-extrabold text-slate-800">{data.stats.totalMaterias}</p>
+                <p className="text-3xl font-extrabold text-foreground">{data.stats.totalMaterias}</p>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+              <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tareas</p>
                   <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
                     <Download size={20} className="text-amber-500" />
                   </div>
                 </div>
-                <p className="text-3xl font-extrabold text-slate-800">{data.stats.totalTareas}</p>
+                <p className="text-3xl font-extrabold text-foreground">{data.stats.totalTareas}</p>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-slate-100">
-                <h3 className="text-sm font-bold text-slate-800">Estudiantes - {data.curso.nombre}</h3>
+                <h3 className="text-sm font-bold text-foreground">Estudiantes - {data.curso.nombre}</h3>
               </div>
               <div className="overflow-x-auto p-4">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b text-xs text-slate-500">
+                    <tr className="border-b text-xs text-muted-foreground">
                       <th className="text-left py-2 font-medium">#</th>
                       <th className="text-left py-2 font-medium">Estudiante</th>
                       <th className="text-center py-2 font-medium">Promedio</th>
@@ -294,9 +294,9 @@ function ReportesContent() {
                   </thead>
                   <tbody>
                     {data.students.map((s, i) => (
-                      <tr key={s.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors">
+                      <tr key={s.id} className="border-b border-slate-100 last:border-0 hover:bg-muted/50 transition-colors">
                         <td className="py-2.5 text-xs text-slate-400">{i + 1}</td>
-                        <td className="py-2.5 text-xs font-medium text-slate-800">{s.nombre}</td>
+                        <td className="py-2.5 text-xs font-medium text-foreground">{s.nombre}</td>
                         <td className="py-2.5 text-center">
                           <span className={`text-xs font-bold tabular-nums ${
                             s.promedioGeneral < 7 ? "text-red-500" : s.promedioGeneral < 8.5 ? "text-amber-500" : "text-green-500"
@@ -322,20 +322,20 @@ function ReportesContent() {
             </div>
 
             {data.students.length > 0 && (
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
                 <div className="px-4 py-3 border-b border-slate-100">
-                  <h3 className="text-sm font-bold text-slate-800">Desglose por estudiante</h3>
+                  <h3 className="text-sm font-bold text-foreground">Desglose por estudiante</h3>
                 </div>
                 <div className="divide-y divide-slate-100">
                   {data.students.slice(0, 20).map(s => (
                     <details key={s.id} className="group">
-                      <summary className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-slate-50/50 transition-colors">
+                      <summary className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors">
                         <div className="flex items-center gap-3">
                           <div className="h-9 w-9 shrink-0 rounded-full bg-indigo-50 flex items-center justify-center text-xs font-bold text-indigo-600">
                             {s.nombre.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase()}
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-slate-800">{s.nombre}</p>
+                            <p className="text-sm font-semibold text-foreground">{s.nombre}</p>
                             <p className="text-[10px] text-slate-400">{s.materias.length} materias · {s.entregadas}/{s.totalTareas} tareas</p>
                           </div>
                         </div>
@@ -358,9 +358,9 @@ function ReportesContent() {
                           <tbody>
                             {s.materias.map((m, mi) => (
                               <tr key={mi} className="border-b border-slate-50">
-                                <td className="py-1.5 text-xs text-slate-700">{m.emoji} {m.nombre}</td>
+                                <td className="py-1.5 text-xs text-foreground">{m.emoji} {m.nombre}</td>
                                 <td className="py-1.5 text-center text-xs font-bold tabular-nums">{m.promedio.toFixed(1)}</td>
-                                <td className="py-1.5 text-center text-xs text-slate-500">{m.calificaciones}</td>
+                                <td className="py-1.5 text-center text-xs text-muted-foreground">{m.calificaciones}</td>
                               </tr>
                             ))}
                           </tbody>

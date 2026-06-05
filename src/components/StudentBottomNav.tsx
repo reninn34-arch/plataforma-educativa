@@ -21,7 +21,7 @@ export function StudentBottomNav() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90 lg:hidden shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/90 lg:hidden shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
       <div className="flex items-center justify-around h-16 safe-area-bottom px-2">
         {links.map(({ href, label, icon: Icon }) => {
           const active = isActive(href);
@@ -32,7 +32,7 @@ export function StudentBottomNav() {
               className={`flex flex-col items-center justify-center gap-0.5 min-w-0 px-3 py-1 rounded-xl transition-all duration-200 ${
                 active
                   ? "text-indigo-600"
-                  : "text-slate-400 hover:text-slate-600"
+                  : "text-slate-400 hover:text-muted-foreground"
               }`}
             >
               <div className={`p-1 rounded-lg transition-colors duration-200 ${

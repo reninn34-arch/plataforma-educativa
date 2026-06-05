@@ -85,8 +85,8 @@ export default function AdminPeriodosPage() {
     <div className="p-6 sm:p-8 w-full max-w-4xl mx-auto space-y-6 animate-fade-in-up">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Períodos Lectivos</h1>
-          <p className="text-sm text-slate-500 mt-1">{periodos.length} períodos registrados</p>
+          <h1 className="text-2xl font-bold text-foreground">Períodos Lectivos</h1>
+          <p className="text-sm text-muted-foreground mt-1">{periodos.length} períodos registrados</p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200"><Plus className="h-4 w-4" />Nuevo Periodo</Button>
       </div>
@@ -95,22 +95,22 @@ export default function AdminPeriodosPage() {
       {error && <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700 flex items-center gap-2"><AlertTriangle className="h-4 w-4" />{error}</div>}
 
       {periodos.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 py-16 text-center shadow-sm">
+        <div className="bg-card rounded-2xl border border-border py-16 text-center shadow-sm">
           <Calendar className="mx-auto h-10 w-10 text-slate-300" />
-          <p className="mt-4 font-medium text-slate-500">No hay períodos creados</p>
+          <p className="mt-4 font-medium text-muted-foreground">No hay períodos creados</p>
         </div>
       ) : (
         <div className="space-y-3">
           {periodos.map(p => (
-            <div key={p.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div key={p.id} className="bg-card rounded-2xl border border-border shadow-sm hover:shadow-md transition-shadow">
               <div className="p-5 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${p.activo ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400"}`}>
+                  <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${p.activo ? "bg-emerald-100 text-emerald-600" : "bg-muted text-slate-400"}`}>
                     {p.activo ? <CheckCircle2 className="h-6 w-6" /> : <Clock className="h-6 w-6" />}
                   </div>
                   <div>
-                    <p className="font-bold text-slate-800">{p.nombre}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="font-bold text-foreground">{p.nombre}</p>
+                    <p className="text-xs text-muted-foreground">
                       {p.fechaInicio && p.fechaFin ? `${new Date(p.fechaInicio).toLocaleDateString("es-EC")} — ${new Date(p.fechaFin).toLocaleDateString("es-EC")}` : "Sin fechas definidas"}
                     </p>
                   </div>
@@ -129,24 +129,24 @@ export default function AdminPeriodosPage() {
 
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 w-full max-w-md mx-4">
+          <div className="bg-card rounded-2xl shadow-xl shadow-slate-200/50 w-full max-w-md mx-4">
             <div className="flex items-center justify-between p-4 border-b border-slate-100">
-              <h2 className="font-bold text-slate-800">Nuevo Periodo</h2>
-              <Button variant="ghost" size="icon-sm" onClick={() => { setShowCreate(false); setError(""); }} className="text-slate-400 hover:text-slate-600"><X className="h-4 w-4" /></Button>
+              <h2 className="font-bold text-foreground">Nuevo Periodo</h2>
+              <Button variant="ghost" size="icon-sm" onClick={() => { setShowCreate(false); setError(""); }} className="text-slate-400 hover:text-muted-foreground"><X className="h-4 w-4" /></Button>
             </div>
             <form onSubmit={handleCreate} className="p-4 space-y-4">
               <div>
-                <label className="text-xs font-semibold text-slate-500 mb-1 block">Nombre</label>
-                <input value={nombre} onChange={e => setNombre(e.target.value)} className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" placeholder="Quimestre 1 - 2024-2025" />
+                <label className="text-xs font-semibold text-muted-foreground mb-1 block">Nombre</label>
+                <input value={nombre} onChange={e => setNombre(e.target.value)} className="w-full h-10 rounded-xl border border-border bg-card px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" placeholder="Quimestre 1 - 2024-2025" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-500 mb-1 block">Fecha inicio</label>
-                  <input type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" />
+                  <label className="text-xs font-semibold text-muted-foreground mb-1 block">Fecha inicio</label>
+                  <input type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} className="w-full h-10 rounded-xl border border-border bg-card px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-500 mb-1 block">Fecha fin</label>
-                  <input type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)} className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" />
+                  <label className="text-xs font-semibold text-muted-foreground mb-1 block">Fecha fin</label>
+                  <input type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)} className="w-full h-10 rounded-xl border border-border bg-card px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" />
                 </div>
               </div>
               {error && <p className="text-xs text-red-500">{error}</p>}
@@ -158,30 +158,30 @@ export default function AdminPeriodosPage() {
 
       {editId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 w-full max-w-md mx-4">
+          <div className="bg-card rounded-2xl shadow-xl shadow-slate-200/50 w-full max-w-md mx-4">
             <div className="flex items-center justify-between p-4 border-b border-slate-100">
-              <h2 className="font-bold text-slate-800">Editar Periodo</h2>
-              <Button variant="ghost" size="icon-sm" onClick={() => { setEditId(null); setError(""); }} className="text-slate-400 hover:text-slate-600"><X className="h-4 w-4" /></Button>
+              <h2 className="font-bold text-foreground">Editar Periodo</h2>
+              <Button variant="ghost" size="icon-sm" onClick={() => { setEditId(null); setError(""); }} className="text-slate-400 hover:text-muted-foreground"><X className="h-4 w-4" /></Button>
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="text-xs font-semibold text-slate-500 mb-1 block">Nombre</label>
-                <input value={editNombre} onChange={e => setEditNombre(e.target.value)} className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" />
+                <label className="text-xs font-semibold text-muted-foreground mb-1 block">Nombre</label>
+                <input value={editNombre} onChange={e => setEditNombre(e.target.value)} className="w-full h-10 rounded-xl border border-border bg-card px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-500 mb-1 block">Fecha inicio</label>
-                  <input type="date" value={editFechaI} onChange={e => setEditFechaI(e.target.value)} className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" />
+                  <label className="text-xs font-semibold text-muted-foreground mb-1 block">Fecha inicio</label>
+                  <input type="date" value={editFechaI} onChange={e => setEditFechaI(e.target.value)} className="w-full h-10 rounded-xl border border-border bg-card px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-500 mb-1 block">Fecha fin</label>
-                  <input type="date" value={editFechaF} onChange={e => setEditFechaF(e.target.value)} className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" />
+                  <label className="text-xs font-semibold text-muted-foreground mb-1 block">Fecha fin</label>
+                  <input type="date" value={editFechaF} onChange={e => setEditFechaF(e.target.value)} className="w-full h-10 rounded-xl border border-border bg-card px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" />
                 </div>
               </div>
               {error && <p className="text-xs text-red-500">{error}</p>}
             </div>
             <div className="flex justify-end gap-2 p-4 border-t border-slate-100">
-              <Button variant="outline" onClick={() => { setEditId(null); setError(""); }} className="rounded-xl border-slate-200">Cancelar</Button>
+              <Button variant="outline" onClick={() => { setEditId(null); setError(""); }} className="rounded-xl border-border">Cancelar</Button>
               <Button onClick={handleEdit} disabled={saving} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200 gap-2">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}Guardar</Button>
             </div>
           </div>
@@ -190,11 +190,11 @@ export default function AdminPeriodosPage() {
 
       {deletePeriodo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 w-full max-w-md mx-4 p-6">
-            <h2 className="font-bold text-slate-800 mb-2">Eliminar Periodo</h2>
-            <p className="text-sm text-slate-500 mb-6">¿Seguro que deseas eliminar <strong className="text-slate-700">{deletePeriodo.nombre}</strong>?</p>
+          <div className="bg-card rounded-2xl shadow-xl shadow-slate-200/50 w-full max-w-md mx-4 p-6">
+            <h2 className="font-bold text-foreground mb-2">Eliminar Periodo</h2>
+            <p className="text-sm text-muted-foreground mb-6">¿Seguro que deseas eliminar <strong className="text-foreground">{deletePeriodo.nombre}</strong>?</p>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setDeletePeriodo(null)} className="rounded-xl border-slate-200">Cancelar</Button>
+              <Button variant="outline" onClick={() => setDeletePeriodo(null)} className="rounded-xl border-border">Cancelar</Button>
               <Button variant="destructive" onClick={handleDelete} disabled={saving} className="rounded-xl gap-2">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}Eliminar</Button>
             </div>
           </div>

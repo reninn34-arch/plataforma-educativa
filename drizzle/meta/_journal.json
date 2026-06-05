@@ -141,6 +141,13 @@
       "when": 1780595025418,
       "tag": "0019_violet_prima",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1780685938509,
+      "tag": "0020_thankful_moon_knight",
+      "breakpoints": true
     }
   ]
 }

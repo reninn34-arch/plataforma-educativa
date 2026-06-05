@@ -140,9 +140,9 @@ function VideoSlide({ videos, videoSearchUrl }: { videos: VideoData[]; videoSear
 
       {/* Info del video activo */}
       <div className="px-1 space-y-1">
-        <p className="text-sm font-semibold text-slate-800 line-clamp-2">{active.title}</p>
+        <p className="text-sm font-semibold text-foreground line-clamp-2">{active.title}</p>
         <div className="flex items-center justify-between">
-          <p className="text-xs text-slate-500">{active.channelName} · {active.duration}</p>
+          <p className="text-xs text-muted-foreground">{active.channelName} · {active.duration}</p>
           <a
             href={`https://www.youtube.com/watch?v=${active.id}`}
             target="_blank"
@@ -164,7 +164,7 @@ function VideoSlide({ videos, videoSearchUrl }: { videos: VideoData[]; videoSear
               className={`flex-1 rounded-xl overflow-hidden border-2 transition-all text-left ${
                 i === activeIndex
                   ? "border-red-500 ring-1 ring-red-500"
-                  : "border-slate-200 hover:border-slate-300"
+                  : "border-border hover:border-border"
               }`}
             >
               <div className="relative aspect-video bg-black">
@@ -182,7 +182,7 @@ function VideoSlide({ videos, videoSearchUrl }: { videos: VideoData[]; videoSear
                 </div>
               </div>
               <div className="p-1.5">
-                <p className="text-xs font-medium text-slate-700 line-clamp-1">{v.title}</p>
+                <p className="text-xs font-medium text-foreground line-clamp-1">{v.title}</p>
                 <p className="text-[10px] text-slate-400">{v.channelName}</p>
               </div>
             </button>
@@ -290,27 +290,27 @@ function DiagramView({ diagram, onRetry }: { diagram: NonNullable<LessonData["di
                 <Image className="h-4 w-4 text-blue-600" />
                 {currentDiagram.caption}
               </DialogTitle>
-              <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
+              <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5">
                 <button
                   onClick={() => setZoom(z => Math.max(0.5, z - 0.25))}
-                  className="h-9 w-9 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600 transition-colors"
+                  className="h-9 w-9 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground transition-colors"
                   title="Reducir zoom"
                 >
                   <ZoomOut className="h-4 w-4" />
                 </button>
-                <span className="text-xs font-mono text-slate-700 min-w-[40px] text-center tabular-nums">
+                <span className="text-xs font-mono text-foreground min-w-[40px] text-center tabular-nums">
                   {Math.round(zoom * 100)}%
                 </span>
                 <button
                   onClick={() => setZoom(z => Math.min(3, z + 0.25))}
-                  className="h-9 w-9 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600 transition-colors"
+                  className="h-9 w-9 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground transition-colors"
                   title="Aumentar zoom"
                 >
                   <ZoomIn className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => setZoom(1)}
-                  className="h-9 w-9 flex items-center justify-center rounded-md hover:bg-slate-200 text-slate-600 transition-colors ml-1"
+                  className="h-9 w-9 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground transition-colors ml-1"
                   title="Restablecer zoom"
                 >
                   <RotateCcw className="h-4 w-4" />
@@ -351,12 +351,12 @@ function QuickCheck({ data, onComplete }: { data: LessonData["quickCheck"]; onCo
         <h3 className="text-sm font-bold text-amber-800 uppercase tracking-wider">Comprobacion rapida</h3>
       </div>
       <p
-        className="text-base font-semibold text-slate-800 leading-relaxed"
+        className="text-base font-semibold text-foreground leading-relaxed"
         dangerouslySetInnerHTML={{ __html: formatNotation(data.question) }}
       />
       <div className="grid gap-2.5">
         {data.options.map((opt, i) => {
-          let stateClass = "border-slate-200 bg-white hover:border-amber-300 hover:bg-amber-50";
+          let stateClass = "border-border bg-card hover:border-amber-300 hover:bg-amber-50";
           if (showResult && i === data.correctIndex) {
             stateClass = "border-emerald-500 bg-emerald-50";
           } else if (showResult && i === selected && !isCorrect) {
@@ -379,7 +379,7 @@ function QuickCheck({ data, onComplete }: { data: LessonData["quickCheck"]; onCo
                 "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold",
                 showResult && i === data.correctIndex ? "bg-emerald-500 text-white" :
                 showResult && i === selected ? "bg-red-500 text-white" :
-                "bg-slate-100 text-slate-500"
+                "bg-muted text-muted-foreground"
               )}>
                 {showResult && i === data.correctIndex ? <Check className="h-3.5 w-3.5" /> :
                  showResult && i === selected && !isCorrect ? <X className="h-3.5 w-3.5" /> :
@@ -403,11 +403,11 @@ function QuickCheck({ data, onComplete }: { data: LessonData["quickCheck"]; onCo
               <Lightbulb className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
             )}
             <div className="space-y-2 w-full">
-              <p className="text-sm font-semibold text-slate-800">
+              <p className="text-sm font-semibold text-foreground">
                 {isCorrect ? "Correcto! Muy bien." : "No te preocupes, es parte del aprendizaje."}
               </p>
               <p
-                className="text-sm text-slate-600 leading-relaxed"
+                className="text-sm text-muted-foreground leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: formatNotation(data.feedback) }}
               />
               <Button
@@ -438,7 +438,7 @@ function ExampleSlide({ lesson, onNextSlide }: { lesson: LessonData; onNextSlide
       </div>
 
       <p
-        className="text-sm font-semibold text-slate-700 leading-relaxed mb-4"
+        className="text-sm font-semibold text-foreground leading-relaxed mb-4"
         dangerouslySetInnerHTML={{ __html: formatNotation(lesson.example.problem) }}
       />
 
@@ -450,13 +450,13 @@ function ExampleSlide({ lesson, onNextSlide }: { lesson: LessonData; onNextSlide
                 {i + 1}
               </span>
               <p
-                className="text-sm text-slate-700 leading-relaxed flex-1"
+                className="text-sm text-foreground leading-relaxed flex-1"
                 dangerouslySetInnerHTML={{ __html: formatNotation(step.text) }}
               />
             </div>
             {step.svg && (
               <div
-                className="ml-0 sm:ml-9 rounded-xl bg-white border border-emerald-100 p-3 flex justify-center overflow-x-auto [&_svg]:max-w-full [&_svg]:h-auto"
+                className="ml-0 sm:ml-9 rounded-xl bg-card border border-emerald-100 p-3 flex justify-center overflow-x-auto [&_svg]:max-w-full [&_svg]:h-auto"
                 dangerouslySetInnerHTML={{ __html: step.svg }}
               />
             )}
@@ -589,13 +589,13 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
         <div className="h-full w-full overflow-y-auto overflow-x-hidden">
           {/* Explanation slide */}
           {slides[currentSlide]?.type === "explanation" && (
-            <div className="rounded-2xl border bg-white shadow-sm">
+            <div className="rounded-2xl border bg-card shadow-sm">
               <div className={cn("bg-gradient-to-r px-6 py-4", theme.header)}>
                 <h2 className="text-lg font-extrabold text-white">{lesson.title}</h2>
               </div>
               <div className="p-4 sm:p-6">
                 <p
-                  className="text-sm sm:text-base text-slate-700 leading-relaxed"
+                  className="text-sm sm:text-base text-foreground leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: formatNotation(lesson.explanation) }}
                 />
               </div>
@@ -604,7 +604,7 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
 
           {/* Video slide */}
           {slides[currentSlide]?.type === "video" && lesson.videos && lesson.videos.length > 0 && (
-            <div className="rounded-2xl border bg-white shadow-sm">
+            <div className="rounded-2xl border bg-card shadow-sm">
               <div className="bg-gradient-to-r from-red-600 to-red-500 px-5 py-3">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <Play className="h-4 w-4" /> Video explicativo
@@ -667,8 +667,8 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
                 <Play className="h-8 w-8 text-primary" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-slate-800">Listo para practicar</h3>
-                <p className="text-sm text-slate-500 mt-2 max-w-xs mx-auto">
+                <h3 className="text-xl font-bold text-foreground">Listo para practicar</h3>
+                <p className="text-sm text-muted-foreground mt-2 max-w-xs mx-auto">
                   Has visto la teoria y los ejemplos. Ahora pon a prueba lo que aprendiste con ejercicios interactivos.
                 </p>
               </div>
@@ -681,7 +681,7 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
               </Button>
               <button
                 onClick={onStartPractice}
-                className="text-xs text-slate-400 hover:text-slate-600 underline transition-colors"
+                className="text-xs text-slate-400 hover:text-muted-foreground underline transition-colors"
               >
                 Omitir e ir directo a practicar
               </button>
@@ -695,7 +695,7 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
         {canGoPrev ? (
           <button
             onClick={() => goTo(currentSlide - 1)}
-            className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors px-3 py-2"
+            className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-2"
           >
             <ArrowLeft className="h-4 w-4" /> Anterior
           </button>

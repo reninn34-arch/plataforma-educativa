@@ -38,9 +38,9 @@ export default function ParentDashboard() {
       <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8 space-y-8">
         {/* Hero */}
         <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-indigo-200/50 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-card/5 rounded-full blur-3xl" />
           <div className="relative z-10">
-            <div className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider mb-3">
+            <div className="inline-flex items-center gap-1.5 bg-card/15 backdrop-blur-sm rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider mb-3">
               <Sparkles size={12} />
               Portal de Representante
             </div>
@@ -54,23 +54,23 @@ export default function ParentDashboard() {
         </div>
 
         {children.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-200 p-16 text-center shadow-sm">
-            <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
+          <div className="bg-card rounded-2xl border border-border p-16 text-center shadow-sm">
+            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
               <Users size={32} className="text-slate-300" />
             </div>
-            <p className="font-semibold text-slate-600">No tienes estudiantes vinculados</p>
+            <p className="font-semibold text-muted-foreground">No tienes estudiantes vinculados</p>
             <p className="text-sm text-slate-400 mt-1">Contacta al administrador para vincular tu cuenta</p>
           </div>
         ) : (
           <div className="grid sm:grid-cols-2 gap-6">
             {children.map((child: any) => (
-              <div key={child.studentId} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-all">
+              <div key={child.studentId} className="bg-card rounded-2xl border border-border p-6 shadow-sm hover:shadow-md transition-all">
                 <div className="flex items-center gap-4 mb-5">
                   <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-lg font-bold shadow-md shadow-indigo-200">
                     {child.studentName?.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-lg font-bold text-slate-800">{child.studentName}</p>
+                    <p className="text-lg font-bold text-foreground">{child.studentName}</p>
                     <p className="text-sm text-slate-400">{child.studentCedula}</p>
                   </div>
                 </div>
@@ -82,12 +82,12 @@ export default function ParentDashboard() {
                       {child.cursos.map((c: any) => {
                         const pct = c.progress || 0;
                         return (
-                          <div key={c.cursoId} className="bg-slate-50 rounded-xl p-3">
+                          <div key={c.cursoId} className="bg-muted rounded-xl p-3">
                             <div className="flex items-center justify-between text-sm mb-1.5">
-                              <span className="font-semibold text-slate-700">{c.cursoNombre}</span>
+                              <span className="font-semibold text-foreground">{c.cursoNombre}</span>
                               <Badge variant="outline" className="text-[10px] border-indigo-200 text-indigo-600 bg-indigo-50">{pct}%</Badge>
                             </div>
-                            <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                            <div className="w-full h-1.5 bg-accent rounded-full overflow-hidden">
                               <div className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full" style={{ width: `${pct}%` }} />
                             </div>
                           </div>

@@ -33,11 +33,11 @@ function StatCard({
   bgTo: string;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-2 p-4 min-h-[100px]">
+    <div className="bg-card rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-2 p-4 min-h-[100px]">
       <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${bgFrom} ${bgTo} flex items-center justify-center shadow-sm`}>
         {icon}
       </div>
-      <p className="text-2xl font-extrabold text-slate-800 tabular-nums leading-none">{value}</p>
+      <p className="text-2xl font-extrabold text-foreground tabular-nums leading-none">{value}</p>
       <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">{label}</p>
     </div>
   );
@@ -46,10 +46,10 @@ function StatCard({
 /* ─── Section wrapper ────────────────────────────────── */
 function Section({ title, icon, children }: { title: string; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+    <div className="bg-card rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100">
         {icon && <span className="shrink-0">{icon}</span>}
-        <h3 className="text-sm font-bold text-slate-800">{title}</h3>
+        <h3 className="text-sm font-bold text-foreground">{title}</h3>
       </div>
       {children}
     </div>
@@ -100,14 +100,14 @@ export function AnalyticsPanel({ cursoId: initialCursoId }: { cursoId?: number |
 
       {/* ── Toolbar ── */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-bold text-slate-700">Analíticas de Práctica IA</p>
+        <p className="text-sm font-bold text-foreground">Analíticas de Práctica IA</p>
         <div className="flex items-center gap-2">
           {cursos.length > 1 && (
             <div className="relative">
               <select
                 value={cursoId || ""}
                 onChange={e => setCursoId(e.target.value ? Number(e.target.value) : null)}
-                className="h-8 appearance-none rounded-xl border border-slate-200 bg-white pl-3 pr-7 text-xs focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none w-[150px] truncate"
+                className="h-8 appearance-none rounded-xl border border-border bg-card pl-3 pr-7 text-xs focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none w-[150px] truncate"
               >
                 <option value="">Todos los cursos</option>
                 {cursos.map(c => (
@@ -119,7 +119,7 @@ export function AnalyticsPanel({ cursoId: initialCursoId }: { cursoId?: number |
           )}
           <button
             onClick={() => refetch()}
-            className="h-8 px-3 rounded-xl border border-slate-200 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center gap-1.5 shrink-0"
+            className="h-8 px-3 rounded-xl border border-border text-xs font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center gap-1.5 shrink-0"
           >
             <RefreshCw className="h-3 w-3" />
             Actualizar
@@ -166,10 +166,10 @@ export function AnalyticsPanel({ cursoId: initialCursoId }: { cursoId?: number |
             {data.bySubject.map(s => (
               <div key={s.subjectId} className="w-full min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <span className="text-xs font-semibold text-slate-700 truncate flex-1 min-w-0">
+                  <span className="text-xs font-semibold text-foreground truncate flex-1 min-w-0">
                     {s.subjectEmoji} {s.subjectName}
                   </span>
-                  <span className="text-xs font-bold text-slate-800 tabular-nums shrink-0">
+                  <span className="text-xs font-bold text-foreground tabular-nums shrink-0">
                     {s.percentage}%
                   </span>
                 </div>
@@ -193,7 +193,7 @@ export function AnalyticsPanel({ cursoId: initialCursoId }: { cursoId?: number |
             {data.errorTopics.slice(0, 8).map((t, i) => (
               <div
                 key={i}
-                className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2.5"
+                className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2.5"
               >
                 {/* rank */}
                 <span className="text-[10px] font-bold text-slate-300 w-4 shrink-0">
@@ -202,7 +202,7 @@ export function AnalyticsPanel({ cursoId: initialCursoId }: { cursoId?: number |
                 {/* emoji */}
                 <span className="text-sm shrink-0">{t.subjectEmoji}</span>
                 {/* topic name */}
-                <span className="flex-1 text-xs text-slate-700 truncate min-w-0">
+                <span className="flex-1 text-xs text-foreground truncate min-w-0">
                   {t.topic || "General"}
                 </span>
                 {/* count */}
@@ -238,7 +238,7 @@ export function AnalyticsPanel({ cursoId: initialCursoId }: { cursoId?: number |
                   </div>
                   {/* info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-slate-800 truncate">{s.fullName}</p>
+                    <p className="text-xs font-semibold text-foreground truncate">{s.fullName}</p>
                     <p className="text-[10px] text-slate-400">
                       {s.sessions} ses. · {s.avgScore} XP
                     </p>
@@ -259,7 +259,7 @@ export function AnalyticsPanel({ cursoId: initialCursoId }: { cursoId?: number |
           <div className="hidden sm:block overflow-x-auto p-4">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-xs text-slate-500">
+                <tr className="border-b text-xs text-muted-foreground">
                   <th className="text-left py-2 font-medium">Estudiante</th>
                   <th className="text-center py-2 font-medium">Sesiones</th>
                   <th className="text-center py-2 font-medium">% Aciertos</th>
@@ -276,7 +276,7 @@ export function AnalyticsPanel({ cursoId: initialCursoId }: { cursoId?: number |
                     .toUpperCase();
                   return (
                     <tr key={s.userId} className="border-b border-slate-100 last:border-0">
-                      <td className="py-2.5 text-xs font-medium text-slate-800">
+                      <td className="py-2.5 text-xs font-medium text-foreground">
                         <div className="flex items-center gap-2">
                           <div className="h-8 w-8 shrink-0 rounded-full bg-indigo-50 flex items-center justify-center text-xs font-bold text-indigo-600">
                             {initials}

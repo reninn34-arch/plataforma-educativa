@@ -95,12 +95,12 @@ export default function StudentGradesPage() {
             variant="ghost"
             size="icon"
             onClick={() => router.push("/student/dashboard")}
-            className="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 shadow-sm"
+            className="w-9 h-9 rounded-xl bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted shadow-sm"
           >
             <ArrowLeft size={18} />
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+            <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
               <Award size={22} className="text-amber-500" />
               Mis Calificaciones
             </h1>
@@ -111,7 +111,7 @@ export default function StudentGradesPage() {
         {/* General Average Hero */}
         {generalAvg !== null && (
           <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl p-6 text-white shadow-xl shadow-indigo-200/50 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full blur-3xl" />
+            <div className="absolute top-0 right-0 w-48 h-48 bg-card/5 rounded-full blur-3xl" />
             <div className="relative z-10 flex items-center justify-between">
               <div>
                 <p className="text-indigo-200 text-sm font-medium">Promedio General Anual</p>
@@ -128,7 +128,7 @@ export default function StudentGradesPage() {
                   </span>
                 </div>
               </div>
-              <div className="hidden sm:flex items-center justify-center w-24 h-24 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
+              <div className="hidden sm:flex items-center justify-center w-24 h-24 rounded-full bg-card/10 backdrop-blur-sm border border-white/20">
                 <div className="text-center">
                   <p className="text-3xl font-extrabold">{generalAvg.toFixed(0)}</p>
                   <p className="text-[10px] text-indigo-200">/10</p>
@@ -139,11 +139,11 @@ export default function StudentGradesPage() {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-1.5 bg-slate-100 p-1.5 rounded-xl">
+        <div className="flex gap-1.5 bg-muted p-1.5 rounded-xl">
           <button
             onClick={() => setTab("tasks")}
             className={`flex-1 rounded-lg py-2.5 text-xs font-semibold transition-all ${
-              tab === "tasks" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              tab === "tasks" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Por Tarea ({graded.length + pending.length})
@@ -151,7 +151,7 @@ export default function StudentGradesPage() {
           <button
             onClick={() => setTab("summary")}
             className={`flex-1 rounded-lg py-2.5 text-xs font-semibold transition-all ${
-              tab === "summary" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              tab === "summary" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Por Trimestre
@@ -162,27 +162,27 @@ export default function StudentGradesPage() {
         {tab === "tasks" && (
           <div className="space-y-3">
             {graded.length === 0 && pending.length === 0 ? (
-              <Card className="shadow-sm border-slate-200">
+              <Card className="shadow-sm border-border">
                 <CardContent className="py-16 text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
                     <BarChart3 size={32} className="text-slate-300" />
                   </div>
-                  <p className="font-semibold text-slate-600">Aún no tienes calificaciones</p>
+                  <p className="font-semibold text-muted-foreground">Aún no tienes calificaciones</p>
                   <p className="text-sm text-slate-400 mt-1">Tus notas aparecerán cuando el docente califique tus tareas</p>
                 </CardContent>
               </Card>
             ) : (
               <>
                 {graded.map((row, i) => (
-                  <div key={`g-${i}`} className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
+                  <div key={`g-${i}`} className="bg-card rounded-2xl border border-border p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0 space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-lg">{row.subjectEmoji}</span>
-                          <span className="text-xs font-medium text-slate-500">{row.subjectName}</span>
-                          <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-600">{TRIMESTER_NAMES[row.trimester]}</Badge>
+                          <span className="text-xs font-medium text-muted-foreground">{row.subjectName}</span>
+                          <Badge variant="secondary" className="text-[10px] bg-muted text-muted-foreground">{TRIMESTER_NAMES[row.trimester]}</Badge>
                         </div>
-                        <h4 className="text-sm font-bold text-slate-800">{row.assignmentTitle}</h4>
+                        <h4 className="text-sm font-bold text-foreground">{row.assignmentTitle}</h4>
                         {row.submittedAt && (
                           <p className="text-xs text-slate-400 flex items-center gap-1">
                             <Clock size={12} />
@@ -190,8 +190,8 @@ export default function StudentGradesPage() {
                           </p>
                         )}
                         {row.feedback && (
-                          <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                            <p className="text-xs text-slate-500 flex items-start gap-1.5">
+                          <div className="bg-muted rounded-xl p-3 border border-slate-100">
+                            <p className="text-xs text-muted-foreground flex items-start gap-1.5">
                               <MessageSquare size={12} className="mt-0.5 shrink-0 text-indigo-400" />
                               {row.feedback}
                             </p>
@@ -206,21 +206,21 @@ export default function StudentGradesPage() {
                   </div>
                 ))}
                 {pending.map((row, i) => (
-                  <div key={`p-${i}`} className="bg-white rounded-2xl border border-slate-200 p-5 opacity-70">
+                  <div key={`p-${i}`} className="bg-card rounded-2xl border border-border p-5 opacity-70">
                     <div className="flex items-start justify-between gap-4">
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
                           <span className="text-lg">{row.subjectEmoji}</span>
-                          <span className="text-xs font-medium text-slate-500">{row.subjectName}</span>
-                          <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-600">{TRIMESTER_NAMES[row.trimester]}</Badge>
+                          <span className="text-xs font-medium text-muted-foreground">{row.subjectName}</span>
+                          <Badge variant="secondary" className="text-[10px] bg-muted text-muted-foreground">{TRIMESTER_NAMES[row.trimester]}</Badge>
                         </div>
-                        <h4 className="text-sm font-bold text-slate-800">{row.assignmentTitle}</h4>
+                        <h4 className="text-sm font-bold text-foreground">{row.assignmentTitle}</h4>
                         <p className="text-xs text-slate-400 flex items-center gap-1">
                           <AlertCircle size={12} />
                           Entregado — Esperando calificación
                         </p>
                       </div>
-                      <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200">
+                      <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-muted border-2 border-dashed border-border">
                         <span className="text-xs text-slate-400 font-bold">—</span>
                       </div>
                     </div>
@@ -245,38 +245,38 @@ export default function StudentGradesPage() {
               </div>
             </div>
             {summary.length === 0 ? (
-              <Card className="shadow-sm border-slate-200">
+              <Card className="shadow-sm border-border">
                 <CardContent className="py-16 text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
                     <BarChart3 size={32} className="text-slate-300" />
                   </div>
-                  <p className="font-semibold text-slate-600">Sin datos de calificaciones</p>
+                  <p className="font-semibold text-muted-foreground">Sin datos de calificaciones</p>
                 </CardContent>
               </Card>
             ) : (
               summary.map((s, i) => {
                 const theme = subjectTheme(s.subjectName.toLowerCase());
                 return (
-                  <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all">
+                  <div key={i} className="bg-card rounded-2xl border border-border p-5 shadow-sm hover:shadow-md transition-all">
                     <div className="flex items-center gap-2 mb-4">
                       <span className="text-xl">{s.subjectEmoji}</span>
                       <h3 className={`font-bold text-sm ${theme.text}`}>{s.subjectName}</h3>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       <div className={`${theme.bgLight} rounded-xl p-3 text-center border ${theme.border}`}>
-                        <p className="text-[10px] text-slate-500 font-medium">T1</p>
+                        <p className="text-[10px] text-muted-foreground font-medium">T1</p>
                         <p className={`text-lg font-extrabold ${s.t1Avg !== null && s.t1Avg >= 7 ? "text-emerald-600" : s.t1Avg !== null ? "text-red-600" : "text-slate-300"}`}>
                           {s.t1Avg?.toFixed(1) || "—"}
                         </p>
                       </div>
                       <div className={`${theme.bgLight} rounded-xl p-3 text-center border ${theme.border}`}>
-                        <p className="text-[10px] text-slate-500 font-medium">T2</p>
+                        <p className="text-[10px] text-muted-foreground font-medium">T2</p>
                         <p className={`text-lg font-extrabold ${s.t2Avg !== null && s.t2Avg >= 7 ? "text-emerald-600" : s.t2Avg !== null ? "text-red-600" : "text-slate-300"}`}>
                           {s.t2Avg?.toFixed(1) || "—"}
                         </p>
                       </div>
                       <div className={`${theme.bgLight} rounded-xl p-3 text-center border ${theme.border}`}>
-                        <p className="text-[10px] text-slate-500 font-medium">T3</p>
+                        <p className="text-[10px] text-muted-foreground font-medium">T3</p>
                         <p className={`text-lg font-extrabold ${s.t3Avg !== null && s.t3Avg >= 7 ? "text-emerald-600" : s.t3Avg !== null ? "text-red-600" : "text-slate-300"}`}>
                           {s.t3Avg?.toFixed(1) || "—"}
                         </p>

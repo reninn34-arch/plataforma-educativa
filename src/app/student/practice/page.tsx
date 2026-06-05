@@ -9,12 +9,12 @@ import { subjectTheme } from "@/lib/subject-theme";
 
 function ProgressBar({ percentage, color = "bg-indigo-500" }: { percentage: number; color?: string }) {
   return (
-    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+    <div className="w-full h-2 bg-muted rounded-full overflow-hidden shadow-inner">
       <div
         className={`h-full rounded-full relative overflow-hidden transition-all duration-700 ease-out ${color}`}
         style={{ width: `${percentage}%` }}
       >
-        <div className="absolute inset-0 bg-white/20 animate-shimmer" />
+        <div className="absolute inset-0 bg-card/20 animate-shimmer" />
       </div>
     </div>
   );
@@ -51,14 +51,14 @@ export default function PracticePage() {
       <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8 pb-24 lg:pb-8">
         {/* Hero */}
         <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-600 to-violet-600 p-6 sm:p-8 text-white shadow-xl shadow-indigo-200/50">
-          <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute top-0 right-0 w-72 h-72 bg-card/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-400/10 rounded-full blur-3xl -translate-x-1/3 translate-y-1/3" />
           <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
             <div>
-              <div className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider mb-3">
+              <div className="inline-flex items-center gap-1.5 bg-card/15 backdrop-blur-sm rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider mb-3">
                 <div className="relative">
                   <Brain size={14} className="relative z-10 animate-pulse" />
-                  <div className="absolute inset-0 bg-white/40 rounded-full blur-sm animate-ping" />
+                  <div className="absolute inset-0 bg-card/40 rounded-full blur-sm animate-ping" />
                 </div>
                 Práctica con IA
               </div>
@@ -79,11 +79,11 @@ export default function PracticePage() {
         {/* Subject Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Object.keys(progress).length === 0 ? (
-            <div className="sm:col-span-2 lg:col-span-3 bg-white rounded-2xl border border-slate-200 p-16 text-center shadow-sm">
-              <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
+            <div className="sm:col-span-2 lg:col-span-3 bg-card rounded-2xl border border-border p-16 text-center shadow-sm">
+              <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
                 <BookOpen size={32} className="text-slate-300" />
               </div>
-              <p className="font-semibold text-slate-600">Aún no tienes materias disponibles</p>
+              <p className="font-semibold text-muted-foreground">Aún no tienes materias disponibles</p>
               <p className="text-sm text-slate-400 mt-1">Los docentes asignarán materias próximamente</p>
             </div>
           ) : (
@@ -101,7 +101,7 @@ export default function PracticePage() {
                 <Link
                   key={slug}
                   href={`/student/path/${slug}`}
-                  className="group bg-white rounded-2xl p-5 border border-slate-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+                  className="group bg-card rounded-2xl p-5 border border-border hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className={`w-14 h-14 rounded-2xl ${theme.bgLight} flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-200`}>
@@ -121,7 +121,7 @@ export default function PracticePage() {
                       </div>
                     </div>
                   </div>
-                  <h3 className="font-bold text-slate-800 text-lg">{name}</h3>
+                  <h3 className="font-bold text-foreground text-lg">{name}</h3>
                   <p className="text-xs text-slate-400 mt-0.5 mb-4">
                     {total > 0 ? `${completed}/${total} nodos completados` : "Sin empezar"}
                   </p>

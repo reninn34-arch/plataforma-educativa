@@ -63,7 +63,7 @@ export default function AdminDashboard() {
     <div className="flex-1 w-full animate-fade-in-up">
       <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8 space-y-8">
         <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-indigo-200/50 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-card/5 rounded-full blur-3xl" />
           <div className="relative z-10">
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Panel de Administración
@@ -75,49 +75,49 @@ export default function AdminDashboard() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+          <div className="bg-card rounded-2xl border border-border p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Estudiantes</p>
               <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
                 <GraduationCap size={20} className="text-blue-500" />
               </div>
             </div>
-            <p className="text-3xl font-extrabold text-slate-800">{stats.totalEstudiantes}</p>
+            <p className="text-3xl font-extrabold text-foreground">{stats.totalEstudiantes}</p>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+          <div className="bg-card rounded-2xl border border-border p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Profesores</p>
               <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
                 <Users size={20} className="text-emerald-500" />
               </div>
             </div>
-            <p className="text-3xl font-extrabold text-slate-800">{stats.totalProfesores}</p>
+            <p className="text-3xl font-extrabold text-foreground">{stats.totalProfesores}</p>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+          <div className="bg-card rounded-2xl border border-border p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Padres</p>
               <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
                 <Users size={20} className="text-violet-500" />
               </div>
             </div>
-            <p className="text-3xl font-extrabold text-slate-800">{stats.totalPadres}</p>
+            <p className="text-3xl font-extrabold text-foreground">{stats.totalPadres}</p>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+          <div className="bg-card rounded-2xl border border-border p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Cursos activos</p>
               <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
                 <BookOpen size={20} className="text-amber-500" />
               </div>
             </div>
-            <p className="text-3xl font-extrabold text-slate-800">{stats.totalCursos}</p>
+            <p className="text-3xl font-extrabold text-foreground">{stats.totalCursos}</p>
           </div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
               <Users size={18} className="text-indigo-500" />
-              <h2 className="text-base font-bold text-slate-800">Usuarios por rol</h2>
+              <h2 className="text-base font-bold text-foreground">Usuarios por rol</h2>
             </div>
             {chartData.roles.length > 0 ? (
               <div className="flex items-center gap-4">
@@ -143,8 +143,8 @@ export default function AdminDashboard() {
                   {chartData.roles.map((r) => (
                     <div key={r.name} className="flex items-center gap-2 text-sm">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: r.color }} />
-                      <span className="text-slate-600">{r.name}</span>
-                      <span className="font-semibold text-slate-800 ml-auto">{r.value}</span>
+                      <span className="text-muted-foreground">{r.name}</span>
+                      <span className="font-semibold text-foreground ml-auto">{r.value}</span>
                     </div>
                   ))}
                 </div>
@@ -154,10 +154,10 @@ export default function AdminDashboard() {
             )}
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
               <Activity size={18} className="text-emerald-500" />
-              <h2 className="text-base font-bold text-slate-800">Estado de usuarios</h2>
+              <h2 className="text-base font-bold text-foreground">Estado de usuarios</h2>
             </div>
             {statusData.some(d => d.value > 0) ? (
               <div className="flex items-center gap-4">
@@ -182,13 +182,13 @@ export default function AdminDashboard() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm">
                     <UserCheck size={16} className="text-green-500" />
-                    <span className="text-slate-600">Activos</span>
-                    <span className="font-semibold text-slate-800 ml-auto">{chartData.activos}</span>
+                    <span className="text-muted-foreground">Activos</span>
+                    <span className="font-semibold text-foreground ml-auto">{chartData.activos}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <UserX size={16} className="text-red-500" />
-                    <span className="text-slate-600">Inactivos</span>
-                    <span className="font-semibold text-slate-800 ml-auto">{chartData.inactivos}</span>
+                    <span className="text-muted-foreground">Inactivos</span>
+                    <span className="font-semibold text-foreground ml-auto">{chartData.inactivos}</span>
                   </div>
                 </div>
               </div>
@@ -199,10 +199,10 @@ export default function AdminDashboard() {
         </div>
 
         {studentsPerCourse.length > 0 && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
               <BookOpen size={18} className="text-amber-500" />
-              <h2 className="text-base font-bold text-slate-800">Estudiantes por curso (top 10)</h2>
+              <h2 className="text-base font-bold text-foreground">Estudiantes por curso (top 10)</h2>
             </div>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={studentsPerCourse}>
@@ -217,21 +217,21 @@ export default function AdminDashboard() {
         )}
 
         <div>
-          <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
             <Sparkles size={20} className="text-indigo-500" />
             Acceso rápido
           </h2>
           <div className="grid sm:grid-cols-2 gap-4">
             <button
               onClick={() => router.push("/admin/usuarios")}
-              className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-left group"
+              className="bg-card rounded-2xl border border-border p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-left group"
             >
               <div className="flex items-center justify-between">
                 <div>
                   <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white mb-3 shadow-md shadow-blue-200">
                     <Users size={24} />
                   </div>
-                  <h3 className="font-bold text-slate-800">Gestionar Usuarios</h3>
+                  <h3 className="font-bold text-foreground">Gestionar Usuarios</h3>
                   <p className="text-xs text-slate-400 mt-1">Crear, ver y eliminar estudiantes y profesores</p>
                 </div>
                 <ArrowRight size={20} className="text-slate-300 group-hover:text-indigo-500 transition-colors" />
@@ -239,14 +239,14 @@ export default function AdminDashboard() {
             </button>
             <button
               onClick={() => router.push("/admin/cursos")}
-              className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-left group"
+              className="bg-card rounded-2xl border border-border p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-left group"
             >
               <div className="flex items-center justify-between">
                 <div>
                   <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-white mb-3 shadow-md shadow-amber-200">
                     <BookOpen size={24} />
                   </div>
-                  <h3 className="font-bold text-slate-800">Gestionar Cursos</h3>
+                  <h3 className="font-bold text-foreground">Gestionar Cursos</h3>
                   <p className="text-xs text-slate-400 mt-1">Crear cursos, asignar profesores y matricular estudiantes</p>
                 </div>
                 <ArrowRight size={20} className="text-slate-300 group-hover:text-indigo-500 transition-colors" />

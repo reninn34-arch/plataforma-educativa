@@ -12,7 +12,7 @@ export default function TeacherAssignmentsPage() {
             <Pencil size={20} />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">Gestión de Tareas</h1>
+            <h1 className="text-xl font-bold text-foreground">Gestión de Tareas</h1>
             <p className="text-sm text-slate-400">Crea, edita y asigna tareas a tus estudiantes</p>
           </div>
         </div>

@@ -208,35 +208,35 @@ export default function TeacherCursosPage() {
               <BookOpen size={20} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-800">Mis Cursos</h1>
+              <h1 className="text-xl font-bold text-foreground">Mis Cursos</h1>
               <p className="text-sm text-slate-400">{cursos.length} {cursos.length === 1 ? "curso asignado" : "cursos asignados"}</p>
             </div>
           </div>
         </div>
 
         {cursos.length === 0 ? (
-          <Card className="shadow-sm border-slate-200">
+          <Card className="shadow-sm border-border">
             <CardContent className="py-16 text-center space-y-3">
-              <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto">
+              <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto">
                 <BookOpen size={32} className="text-slate-300" />
               </div>
-              <p className="font-semibold text-slate-600">No tienes cursos asignados</p>
+              <p className="font-semibold text-muted-foreground">No tienes cursos asignados</p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid sm:grid-cols-2 gap-4">
             {cursos.map(c => (
-              <div key={c.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all">
+              <div key={c.id} className="bg-card rounded-2xl border border-border p-5 shadow-sm hover:shadow-md transition-all">
                 <div className="space-y-4">
                   <div>
                     <div className="flex items-start justify-between">
                       <div>
-                        <h3 className="font-bold text-slate-800">{c.nombre}</h3>
+                        <h3 className="font-bold text-foreground">{c.nombre}</h3>
                         <p className="text-sm text-slate-400">{c.nivel}</p>
                       </div>
                       <div className="flex gap-1">
                         {c.isTutor && <Badge variant="secondary" className="text-[10px] bg-indigo-50 text-indigo-600 border-indigo-100">Tutor</Badge>}
-                        <Badge variant="secondary" className="text-[10px] flex items-center gap-1 bg-slate-50 text-slate-600"><UsersIcon className="h-3 w-3" /> {c.studentCount}</Badge>
+                        <Badge variant="secondary" className="text-[10px] flex items-center gap-1 bg-muted text-muted-foreground"><UsersIcon className="h-3 w-3" /> {c.studentCount}</Badge>
                       </div>
                     </div>
                   </div>
@@ -249,7 +249,7 @@ export default function TeacherCursosPage() {
                           <thead>
                             <tr>
                               {["lun","mar","mie","jue","vie"].map(d => (
-                                <th key={d} className="p-1 border border-slate-100 bg-slate-50 text-center font-semibold text-slate-500 capitalize">{d}</th>
+                                <th key={d} className="p-1 border border-slate-100 bg-muted text-center font-semibold text-muted-foreground capitalize">{d}</th>
                               ))}
                             </tr>
                           </thead>
@@ -293,7 +293,7 @@ export default function TeacherCursosPage() {
                               className={`inline-flex items-center gap-1 rounded-xl border px-2.5 py-1.5 text-xs font-medium transition-colors ${
                                 hasMaterial
                                   ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                                  : `${theme.border} ${theme.bgLight} ${theme.text} hover:bg-white`
+                                  : `${theme.border} ${theme.bgLight} ${theme.text} hover:bg-card`
                               }`}
                               title={hasMaterial ? "Ver o cambiar material de estudio" : "Subir material de estudio"}
                             >
@@ -316,7 +316,7 @@ export default function TeacherCursosPage() {
                       <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Todos los profesores</p>
                       <div className="flex flex-wrap gap-1">
                         {c.teacherSubjects.map((ts, i) => (
-                          <Badge key={i} variant="outline" className="text-[10px] py-0.5 gap-1 border-slate-200 text-slate-600">
+                          <Badge key={i} variant="outline" className="text-[10px] py-0.5 gap-1 border-border text-muted-foreground">
                             <span>{ts.subjectEmoji}</span><span>{ts.subjectName}</span><span className="text-slate-400">· {ts.teacherName}</span>
                           </Badge>
                         ))}
@@ -376,14 +376,14 @@ export default function TeacherCursosPage() {
             )}
 
             <div>
-              <label className="text-xs font-semibold text-slate-500 block mb-2">
+              <label className="text-xs font-semibold text-muted-foreground block mb-2">
                 {modalMaterial ? "Editar o reemplazar contenido" : "Pega el contenido del material"}
               </label>
               <textarea
                 value={pastedText}
                 onChange={e => setPastedText(e.target.value)}
                 rows={8}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm resize-y focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
+                className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm resize-y focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
                 placeholder="Copia aquí el texto del material de estudio..."
               />
             </div>
@@ -394,8 +394,8 @@ export default function TeacherCursosPage() {
             </Button>
 
             <div className="relative">
-              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200" /></div>
-              <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-400">o sube un PDF</span></div>
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+              <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-slate-400">o sube un PDF</span></div>
             </div>
 
             <div className="space-y-3">
@@ -404,13 +404,13 @@ export default function TeacherCursosPage() {
                 type="file"
                 accept=".pdf"
                 onChange={e => setSelectedPdf(e.target.files?.[0] || null)}
-                className="block w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700"
+                className="block w-full text-sm text-muted-foreground file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700"
               />
               {selectedPdf && (
-                <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2">
+                <div className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2">
                   <div className="flex items-center gap-2 text-sm">
                     <FileText className="h-4 w-4 text-slate-400" />
-                    <span className="font-medium text-slate-700">{selectedPdf.name}</span>
+                    <span className="font-medium text-foreground">{selectedPdf.name}</span>
                     <span className="text-xs text-slate-400">({(selectedPdf.size / 1024).toFixed(0)} KB)</span>
                   </div>
                   <div className="flex items-center gap-1.5">
