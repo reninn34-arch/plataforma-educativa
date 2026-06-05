@@ -128,7 +128,7 @@ function ReportesContent() {
   const { data: coursesData } = useQuery<CoursesData, Error>({
     queryKey: ["cursos"],
     queryFn: async () => {
-      const res = await apiFetch("/api/teacher/courses");
+      const res = await apiFetch("/api/admin/courses");
       if (!res.ok) throw new Error("Error al cargar cursos");
       return res.json();
     },
