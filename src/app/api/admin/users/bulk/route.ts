@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { parseCSV, generatePin } from "@/lib/csv-utils";
+import { hashPin } from "@/lib/hash-utils";
 import type { InferInsertModel } from "drizzle-orm";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -101,12 +101,12 @@ export async function POST(request: NextRequest) {
     const existingByCedula = new Map(existingUsers.map(u => [u.cedula, u]));
 
     const pins = rowsData.filter(r => !r.error).map(() => generatePin());
-    const hashedPins = await Promise.all(pins.map(p => bcrypt.hash(p, 10)));
+    const hashedPins = await Promise.all(pins.map(p => hashPin(p)));
 
     const toInsert: NewUser[] = [];
     const toReactivate: ReactivationItem[] = [];
     const resultados: BulkResult[] = [];
-    let creados = 0, omitidos = 0, reactivados = 0;
+    let creados = 0, omitidos = 0, reactivados = 0, errores = 0;
 
     let pinIndex = 0;
     for (const row of rowsData) {
@@ -114,6 +114,7 @@ export async function POST(request: NextRequest) {
 
       if (row.error) {
         resultados.push({ cedula, nombre, pin: "", status: "error", razon: row.error });
+        errores++;
         continue;
       }
 
@@ -155,13 +156,14 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    const total = creados + omitidos + reactivados;
+    const total = creados + omitidos + reactivados + errores;
 
     return NextResponse.json({
       total,
       creados,
       reactivados,
       omitidos,
+      errores,
       resultados,
     });
   } catch (error) {
