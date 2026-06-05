@@ -56,7 +56,10 @@ export default function PracticePage() {
           <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
             <div>
               <div className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider mb-3">
-                <Brain size={12} />
+                <div className="relative">
+                  <Brain size={14} className="relative z-10 animate-pulse" />
+                  <div className="absolute inset-0 bg-white/40 rounded-full blur-sm animate-ping" />
+                </div>
                 Práctica con IA
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
@@ -110,8 +113,11 @@ export default function PracticePage() {
                           ⭐ {stars}
                         </span>
                       )}
-                      <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500 group-hover:bg-indigo-100 transition-colors">
-                        <Play size={16} className="fill-current ml-0.5" />
+                      <div className="relative">
+                        <div className="absolute inset-0 rounded-xl bg-indigo-300/40 animate-ping group-hover:animate-none" />
+                        <div className="relative z-10 w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500 group-hover:bg-indigo-100 transition-colors">
+                          <Play size={16} className="fill-current ml-0.5" />
+                        </div>
                       </div>
                     </div>
                   </div>

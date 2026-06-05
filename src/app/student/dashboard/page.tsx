@@ -122,8 +122,9 @@ export default function StudentDashboard() {
               className="block group bg-gradient-to-r from-indigo-50 to-violet-50 rounded-2xl p-4 sm:p-6 border border-indigo-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
             >
               <div className="flex items-center gap-3 sm:gap-5">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
-                  <Brain size={24} className="text-white" />
+                <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
+                  <div className="absolute inset-0 rounded-2xl bg-white/20 animate-ping" />
+                  <Brain size={24} className="relative z-10 text-white animate-pulse" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h2 className="font-bold text-slate-800 text-sm sm:text-lg">Práctica con IA</h2>
@@ -142,8 +143,11 @@ export default function StudentDashboard() {
                     ))}
                   </div>
                 </div>
-                <div className="bg-indigo-600 text-white p-2 sm:p-3 rounded-xl group-hover:bg-indigo-700 transition-colors shrink-0">
-                  <ChevronRight size={18} />
+                <div className="relative shrink-0">
+                  <div className="absolute inset-0 rounded-xl bg-indigo-400/40 animate-ping group-hover:animate-none" />
+                  <div className="relative z-10 bg-indigo-600 text-white p-2 sm:p-3 rounded-xl group-hover:bg-indigo-700 transition-colors">
+                    <ChevronRight size={18} />
+                  </div>
                 </div>
               </div>
             </Link>
