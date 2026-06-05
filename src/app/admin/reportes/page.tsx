@@ -43,16 +43,16 @@ function generatePdf(data: ReportData) {
     String(s.totalTareas), String(s.entregadas), String(s.pendientes),
   ]);
 
-  let lastY = autoTable(doc, {
+  autoTable(doc, {
     head: headers,
     body: rows,
     startY: 44,
     styles: { fontSize: 8 },
     headStyles: { fillColor: [79, 70, 229], textColor: 255 },
     alternateRowStyles: { fillColor: [249, 250, 251] },
-  }).lastAutoTable?.finalY || 50;
+  });
 
-  let yPos = lastY + 10;
+  let yPos = (doc.lastAutoTable?.finalY || 50) + 10;
 
   for (const student of data.students) {
     if (yPos > 250) { doc.addPage(); yPos = 20; }
@@ -65,7 +65,7 @@ function generatePdf(data: ReportData) {
       `${m.emoji} ${m.nombre}`, m.promedio.toFixed(1), String(m.calificaciones),
     ]);
 
-    const result = autoTable(doc, {
+    autoTable(doc, {
       head: subHeaders,
       body: subRows,
       startY: yPos,
@@ -73,7 +73,7 @@ function generatePdf(data: ReportData) {
       headStyles: { fillColor: [99, 102, 241], textColor: 255 },
     });
 
-    yPos = (result.lastAutoTable?.finalY || yPos + 20) + 6;
+    yPos = (doc.lastAutoTable?.finalY || yPos + 20) + 6;
   }
 
   doc.save(`reporte-${data.curso.nombre.replace(/\s+/g, "-").toLowerCase()}.pdf`);
