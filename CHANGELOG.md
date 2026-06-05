@@ -4,7 +4,7 @@ Todas las cambios notables en Atlas Edu serán documentados aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/), y el proyecto usa [Semantic Versioning](https://semver.org/).
 
-## [0.2.0] - 2026-06-05
+## [0.2.0] - 2026-06-05 — Sprint 1 ✅ (100% completado)
 
 ### Agregado
 - Issue templates para bugs y features (GitHub)
