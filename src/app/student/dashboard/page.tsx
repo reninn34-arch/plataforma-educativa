@@ -42,7 +42,7 @@ export default function StudentDashboard() {
     <div className="flex-1 flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
         <div className="w-10 h-10 rounded-full border-3 border-indigo-200 border-t-indigo-600 animate-spin" />
-        <p className="text-sm text-slate-400 font-medium">Cargando tu progreso...</p>
+        <p className="text-sm text-muted-foreground font-medium">Cargando tu progreso...</p>
       </div>
     </div>
   );
@@ -54,7 +54,7 @@ export default function StudentDashboard() {
           <span className="text-2xl">⚠️</span>
         </div>
         <p className="text-muted-foreground font-medium">Error al cargar el dashboard</p>
-        <p className="text-sm text-slate-400 mt-1">Intenta recargar la página</p>
+        <p className="text-sm text-muted-foreground mt-1">Intenta recargar la página</p>
       </div>
     </div>
   );
@@ -100,9 +100,9 @@ export default function StudentDashboard() {
 
             <Link
               href="/student/assignments"
-              className="inline-flex items-center gap-2 bg-card text-indigo-600 font-bold py-3 px-6 rounded-2xl hover:bg-muted hover:scale-[1.02] transition-all duration-200 shadow-lg shadow-indigo-900/20 group shrink-0"
+              className="inline-flex items-center gap-2 bg-card text-foreground font-bold py-3 px-6 rounded-2xl hover:bg-muted hover:scale-[1.02] transition-all duration-200 shadow-lg shadow-indigo-900/20 group shrink-0"
             >
-              <div className="bg-indigo-100 text-indigo-600 p-1.5 rounded-full group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+              <div className="bg-indigo-100 dark:bg-indigo-900/50 text-foreground p-1.5 rounded-full group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                 <ClipboardList size={18} />
               </div>
               Ver tareas
@@ -119,10 +119,10 @@ export default function StudentDashboard() {
             {/* Quick Access to Practice */}
             <Link
               href="/student/practice"
-              className="block group bg-gradient-to-r from-indigo-50 to-violet-50 rounded-2xl p-4 sm:p-6 border border-indigo-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+              className="block group bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-950/60 dark:to-violet-950/60 rounded-2xl p-4 sm:p-6 border border-indigo-100 dark:border-indigo-800/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
             >
               <div className="flex items-center gap-3 sm:gap-5">
-                <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
+                <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200 dark:shadow-indigo-900/40 shrink-0">
                   <div className="absolute inset-0 rounded-2xl bg-card/20 animate-ping" />
                   <Brain size={24} className="relative z-10 text-white animate-pulse" />
                 </div>
@@ -144,7 +144,7 @@ export default function StudentDashboard() {
                   </div>
                 </div>
                 <div className="relative shrink-0">
-                  <div className="absolute inset-0 rounded-xl bg-indigo-400/40 animate-ping group-hover:animate-none" />
+                  <div className="absolute inset-0 rounded-xl bg-indigo-400/40 dark:bg-indigo-600/40 animate-ping group-hover:animate-none" />
                   <div className="relative z-10 bg-indigo-600 text-white p-2 sm:p-3 rounded-xl group-hover:bg-indigo-700 transition-colors">
                     <ChevronRight size={18} />
                   </div>
@@ -162,22 +162,22 @@ export default function StudentDashboard() {
                 <div className="bg-muted rounded-xl p-3 text-center">
                   <Flame size={18} className="text-orange-500 mx-auto mb-1" />
                   <p className="text-lg font-bold text-foreground">{streakDays}</p>
-                  <p className="text-xs text-slate-400 font-medium">Racha</p>
+                  <p className="text-xs text-muted-foreground font-medium">Racha</p>
                 </div>
                 <div className="bg-muted rounded-xl p-3 text-center">
                   <Zap size={18} className="text-indigo-500 mx-auto mb-1" />
                   <p className="text-lg font-bold text-foreground">{totalSessions}</p>
-                  <p className="text-xs text-slate-400 font-medium">Sesiones</p>
+                  <p className="text-xs text-muted-foreground font-medium">Sesiones</p>
                 </div>
                 <div className="bg-muted rounded-xl p-3 text-center">
                   <Target size={18} className="text-emerald-500 mx-auto mb-1" />
                   <p className="text-lg font-bold text-foreground">{accuracy}%</p>
-                  <p className="text-xs text-slate-400 font-medium">Precisión</p>
+                  <p className="text-xs text-muted-foreground font-medium">Precisión</p>
                 </div>
                 <div className="bg-muted rounded-xl p-3 text-center">
                   <BookOpen size={18} className="text-violet-500 mx-auto mb-1" />
                   <p className="text-lg font-bold text-foreground">{Object.keys(progress).length}</p>
-                  <p className="text-xs text-slate-400 font-medium">Materias</p>
+                  <p className="text-xs text-muted-foreground font-medium">Materias</p>
                 </div>
               </div>
             </div>
@@ -188,7 +188,7 @@ export default function StudentDashboard() {
 
             {/* Pending Assignments */}
             <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
-              <div className="px-5 pt-5 pb-3 border-b border-slate-100">
+              <div className="px-5 pt-5 pb-3 border-b border-border">
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-foreground flex items-center gap-2 text-sm">
                     <ClipboardList size={18} className="text-indigo-500" />
@@ -212,28 +212,28 @@ export default function StudentDashboard() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-foreground truncate">{a.title}</p>
-                        <p className="text-xs text-slate-400">{a.subjectName}</p>
+                        <p className="text-xs text-muted-foreground">{a.subjectName}</p>
                         {a.dueDate && (
                           <div className="mt-1">
                             <DueTimer dueDate={a.dueDate} compact />
                           </div>
                         )}
                       </div>
-                      <ChevronRight size={16} className="text-slate-300 group-hover:text-muted-foreground transition-colors shrink-0" />
+                      <ChevronRight size={16} className="text-muted-foreground group-hover:text-muted-foreground transition-colors shrink-0" />
                     </Link>
                   ))
                 ) : (
                   <div className="p-6 text-center">
                     <CheckCircle2 size={36} className="text-emerald-300 mx-auto mb-2" />
                     <p className="text-sm font-medium text-muted-foreground">¡Todo al día!</p>
-                    <p className="text-xs text-slate-400 mt-0.5">No tienes tareas pendientes</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">No tienes tareas pendientes</p>
                   </div>
                 )}
               </div>
               {pendingAssignments.length > 0 && (
                 <Link
                   href="/student/assignments"
-                  className="block text-center text-xs font-semibold text-indigo-600 py-3 hover:bg-indigo-50 transition-colors"
+                  className="block text-center text-xs font-semibold text-foreground py-3 hover:bg-accent transition-colors"
                 >
                   Ver todas las tareas
                 </Link>
@@ -267,7 +267,7 @@ export default function StudentDashboard() {
                 </div>
                 <button
                   onClick={() => window.dispatchEvent(new CustomEvent("open-ai-assistant", { detail: { flow: "tutor" } }))}
-                  className="mt-4 bg-card text-violet-700 font-semibold py-2.5 px-5 rounded-xl text-sm hover:bg-purple-50 hover:scale-[1.02] transition-all shadow-md w-full text-center active:scale-95"
+                  className="mt-4 bg-card text-foreground font-semibold py-2.5 px-5 rounded-xl text-sm hover:bg-accent hover:scale-[1.02] transition-all shadow-md w-full text-center active:scale-95"
                 >
                   Iniciar tutoría
                 </button>

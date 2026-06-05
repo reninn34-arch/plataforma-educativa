@@ -32,6 +32,7 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
     } catch {}
     queryClient.clear();
     clearCache();
+    localStorage.removeItem("theme");
     router.push("/login");
   };
 

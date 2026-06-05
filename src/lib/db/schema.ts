@@ -24,6 +24,7 @@ export const users = pgTable("users", {
   activo: boolean("activo").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLogin: timestamp("last_login"),
+  themePreference: varchar("theme_preference", { length: 20 }).default("system"),
 }, (table) => ({
   roleIdx: index("idx_users_role").on(table.role),
   activoIdx: index("idx_users_activo").on(table.activo),

@@ -36,6 +36,7 @@
 
 :root {
   --radius: 0.5rem;
+  color-scheme: light;
 
   --background: #F8FAFC;
   --foreground: #0F172A;
@@ -70,6 +71,44 @@
   --sidebar-accent-foreground: #1E1B4B;
   --sidebar-border: #E2E8F0;
   --sidebar-ring: #4F46E5;
+}
+
+.dark {
+  color-scheme: dark;
+  background-color: #0F172A;
+  color: #F8FAFC;
+
+  --background: #0F172A;
+  --foreground: #F8FAFC;
+  --card: #1E293B;
+  --card-foreground: #F8FAFC;
+  --popover: #1E293B;
+  --popover-foreground: #F8FAFC;
+  --primary: #818CF8;
+  --primary-foreground: #1E1B4B;
+  --secondary: #1E293B;
+  --secondary-foreground: #E2E8F0;
+  --muted: #1E293B;
+  --muted-foreground: #94A3B8;
+  --accent: #334155;
+  --accent-foreground: #E2E8F0;
+  --destructive: #F87171;
+  --border: #334155;
+  --input: #334155;
+  --ring: #818CF8;
+  --chart-1: #818CF8;
+  --chart-2: #34D399;
+  --chart-3: #FBBF24;
+  --chart-4: #A78BFA;
+  --chart-5: #F472B6;
+  --sidebar: #1E293B;
+  --sidebar-foreground: #F8FAFC;
+  --sidebar-primary: #818CF8;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #334155;
+  --sidebar-accent-foreground: #E2E8F0;
+  --sidebar-border: #475569;
+  --sidebar-ring: #818CF8;
 }
 
 .dark {

@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json({
       success: true,
-      user: { id: user.id, cedula: user.cedula, fullName: user.fullName, role: user.role },
+      user: { id: user.id, cedula: user.cedula, fullName: user.fullName, role: user.role, themePreference: user.themePreference || "system" },
     });
 
     response.cookies.set("atlas-edu-token", token, {

@@ -148,6 +148,13 @@
       "when": 1780685938509,
       "tag": "0020_thankful_moon_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1780690054934,
+      "tag": "0021_rainy_wilson_fisk",
+      "breakpoints": true
     }
   ]
 }
