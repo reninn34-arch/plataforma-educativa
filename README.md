@@ -14,8 +14,40 @@ Plataforma educativa integral para el sistema PCEI (Programa de Curricular para 
 | IA | Vercel AI SDK (OpenCode/OpenAI/Anthropic/Gemini) |
 | PWA | Service Worker + Web Manifest |
 | Email | Nodemailer (SMTP) |
-| Testing | Vitest |
-| CI/CD | GitHub Actions |
+| Testing | Vitest (unitarios + integración) |
+| CI/CD | GitHub Actions (tests + build en cada PR) |
+
+## Metodología de desarrollo
+
+Este proyecto sigue un enfoque **ágil iterativo e incremental** con las siguientes prácticas:
+
+### Flujo de trabajo
+
+| Práctica | Implementación |
+|----------|---------------|
+| Branching | `main` (producción) ← `develop` (integración) ← `feature/*`, `fix/*` |
+| Commits | [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `refactor:`, etc.) |
+| Pull Requests | revisión obligatoria, CI debe pasar |
+| CI/CD | GitHub Actions: tests + build en cada push y PR |
+| Testing | Vitest con cobertura |
+
+### Artefactos del proyecto
+
+- **`CHANGELOG.md`** - registro de cambios por versión
+- **`CONTRIBUTING.md`** - guía de contribución y flujo de trabajo
+- **`docs/adr/`** - Architecture Decision Records (decisiones técnicas documentadas)
+- **`.github/ISSUE_TEMPLATE/`** - plantillas para bugs y features
+- **`.github/PULL_REQUEST_TEMPLATE.md`** - plantilla para PRs
+
+### Ciclo de desarrollo
+
+1. Se crea un issue (bug o feature) en GitHub
+2. Se crea una rama `feature/xxx` o `fix/xxx` desde `develop`
+3. Se desarrolla con commits convencionales
+4. Se abre un Pull Request a `develop`
+5. CI verifica tests y build
+6. Se revisa el código y se mergea
+7. Periódicamente, `develop` se fusiona a `main` y se versiona
 
 ## Requisitos
 
