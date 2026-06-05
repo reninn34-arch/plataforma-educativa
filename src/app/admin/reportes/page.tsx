@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useMemo, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Download, FileSpreadsheet, FileText, ChevronDown, BookOpen, GraduationCap, BarChart3 } from "lucide-react";
 import { apiFetch } from "@/lib/fetch-utils";
 import { Badge } from "@/components/ui/badge";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 interface CursoOption { id: number; nombre: string; nivel: string; }
 interface CoursesData { cursos: CursoOption[]; }
@@ -24,9 +27,6 @@ interface ReportData {
 }
 
 function generatePdf(data: ReportData) {
-  const jsPDF = require("jspdf");
-  require("jspdf-autotable");
-
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
   doc.setFontSize(16);
@@ -80,8 +80,6 @@ function generatePdf(data: ReportData) {
 }
 
 function generateExcel(data: ReportData) {
-  const XLSX = require("xlsx");
-
   const wb = XLSX.utils.book_new();
 
   const summaryData = [
