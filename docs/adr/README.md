@@ -16,4 +16,5 @@ Cada ADR sigue esta plantilla:
 | # | Título | Fecha |
 |---|--------|-------|
 | 1 | [Usar Next.js 16 + Drizzle ORM + PostgreSQL](./0001-usar-next-js-y-drizzle.md) | — |
-| 2 | [Estructura de branching y flujo de trabajo](./0002-estructura-de-branching-y-flujo-de-trabajo.md) | — |
+| 2 | [Estructura de branching y flujo de trabajo](./0002-estructura-de-branching-y-flujo-de-trabajo.md) | 2026-06-05 |
+| 3 | [Adoptar Scrum como marco de trabajo ágil](./0003-adoptar-scrum.md) | 2026-06-05 |

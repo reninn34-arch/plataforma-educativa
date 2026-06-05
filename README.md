@@ -19,35 +19,77 @@ Plataforma educativa integral para el sistema PCEI (Programa de Curricular para 
 
 ## Metodología de desarrollo
 
-Este proyecto sigue un enfoque **ágil iterativo e incremental** con las siguientes prácticas:
+Atlas Edu sigue **Scrum**, un marco de trabajo ágil con sprints, roles definidos y ceremonias periódicas.
 
-### Flujo de trabajo
+### Roles
+
+| Rol | Responsable |
+|-----|-------------|
+| **Product Owner** | Max prioriza el backlog y define qué construir |
+| **Scrum Master** | Max asegura que Scrum se siga correctamente |
+| **Development Team** | Max desarrolla, prueba y entrega los incrementos |
+
+### Ceremonias
+
+| Ceremonia | Cadencia | Duración | Propósito |
+|-----------|----------|----------|-----------|
+| **Sprint Planning** | Cada 2 semanas | 1h | Definir qué se entrega en el sprint y cómo se hará |
+| **Daily Scrum** | Diaria | 15min | Sincronizar el trabajo, identificar bloqueos |
+| **Sprint Review** | Fin de sprint | 30min | Mostrar lo completado, recibir feedback |
+| **Sprint Retrospective** | Fin de sprint | 30min | Mejorar el proceso para el próximo sprint |
+
+### Artefactos
+
+| Artefacto | Descripción | Dónde vive |
+|-----------|-------------|------------|
+| **Product Backlog** | Lista priorizada de todo lo que falta construir | GitHub Issues con label `backlog` |
+| **Sprint Backlog** | Items seleccionados para el sprint actual | GitHub Issues con milestone del sprint |
+| **Incremento** | Versión funcional al final de cada sprint | Rama `main` + tag semántico (`v1.2.3`) |
+| **Definition of Done** | Criterios: código revisado, tests pasan, build ok, desplegado en producción | `CONTRIBUTING.md` |
+
+### Flujo por sprint
+
+```
+Sprint Planning → seleccionar issues → milestone creado
+     ↓
+Desarrollo en ramas feature/* → PR a develop → CI → merge
+     ↓
+Daily Scrum (diario, 15min)
+     ↓
+Fin de sprint: Review + Retro → PR develop → main → tag vX.Y.Z
+```
+
+### Flujo de trabajo técnico
 
 | Práctica | Implementación |
 |----------|---------------|
 | Branching | `main` (producción) ← `develop` (integración) ← `feature/*`, `fix/*` |
-| Commits | [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `refactor:`, etc.) |
+| Commits | [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, etc.) |
 | Pull Requests | revisión obligatoria, CI debe pasar |
 | CI/CD | GitHub Actions: tests + build en cada push y PR |
 | Testing | Vitest con cobertura |
+| Versionado | SemVer con tags Git (`v1.2.3`) |
+
+### Ciclo de desarrollo por historia
+
+1. La historia se estima y prioriza en el Product Backlog
+2. Se selecciona en Sprint Planning y se asigna al milestone del sprint
+3. Se crea una rama `feature/xxx` desde `develop`
+4. Se desarrolla con commits convencionales
+5. Se abre un Pull Request a `develop` referenciando `Closes #123`
+6. CI verifica tests y build
+7. Se revisa el código y se mergea a `develop`
+8. Al final del sprint, `develop` se fusiona a `main` con tag de versión
 
 ### Artefactos del proyecto
 
-- **`CHANGELOG.md`** - registro de cambios por versión
-- **`CONTRIBUTING.md`** - guía de contribución y flujo de trabajo
-- **`docs/adr/`** - Architecture Decision Records (decisiones técnicas documentadas)
-- **`.github/ISSUE_TEMPLATE/`** - plantillas para bugs y features
+- **`CHANGELOG.md`** - registro de cambios por versión (Keep a Changelog)
+- **`CONTRIBUTING.md`** - guía detallada con roles, ceremonias y DoD
+- **`docs/adr/`** - Architecture Decision Records
+- **`.github/ISSUE_TEMPLATE/`** - plantillas para bugs, features y user stories
 - **`.github/PULL_REQUEST_TEMPLATE.md`** - plantilla para PRs
-
-### Ciclo de desarrollo
-
-1. Se crea un issue (bug o feature) en GitHub
-2. Se crea una rama `feature/xxx` o `fix/xxx` desde `develop`
-3. Se desarrolla con commits convencionales
-4. Se abre un Pull Request a `develop`
-5. CI verifica tests y build
-6. Se revisa el código y se mergea
-7. Periódicamente, `develop` se fusiona a `main` y se versiona
+- **Milestones de GitHub** - representan cada sprint
+- **GitHub Projects** - tablero kanban del sprint activo
 
 ## Requisitos
 

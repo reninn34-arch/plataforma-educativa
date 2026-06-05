@@ -1,49 +1,82 @@
 # Guía de contribución
 
-## Flujo de trabajo
+Atlas Edu se desarrolla con **Scrum** (sprints de 2 semanas). Esta guía documenta el flujo de trabajo, roles, ceremonias y definiciones.
 
-Este proyecto sigue un flujo **trunk-based simplificado** con dos ramas principales (`main` y `develop`) y ramas temporales de funcionalidad.
+## Roles
 
-### Ramas
+| Rol | Responsabilidad |
+|-----|----------------|
+| **Product Owner** | Gestiona el Product Backlog, prioriza, define criterios de aceptación |
+| **Scrum Master** | Facilita las ceremonias, elimina bloqueos, asegura que se siga Scrum |
+| **Development Team** | Autogestionado, desarrolla, prueba y entrega los incrementos |
 
-| Rama | Propósito | Base |
-|------|-----------|------|
-| `main` | Producción. Solo se actualiza via PR desde `develop`. | — |
-| `develop` | Integración. Rama activa de desarrollo. | `main` |
-| `feature/*` | Funcionalidades nuevas. Se mergean a `develop`. | `develop` |
-| `fix/*` | Correcciones de bugs. Se mergean a `develop`. | `develop` |
-| `refactor/*` | Refactors de código. Se mergean a `develop`. | `develop` |
+## Ceremonias
 
-### Flujo paso a paso
+| Ceremonia | Cuándo | Duración |
+|-----------|--------|----------|
+| **Sprint Planning** | Primer día del sprint | 1h |
+| **Daily Scrum** | Cada día hábil | 15 min |
+| **Sprint Review** | Último día del sprint | 30 min |
+| **Sprint Retrospective** | Último día del sprint | 30 min |
+
+## Definition of Done (DoD)
+
+Una historia se considera **completada** cuando cumple **todas** estas condiciones:
+
+- [ ] Código implementado y funcional
+- [ ] Tests unitarios escritos y pasan
+- [ ] TypeScript sin errores (`npx tsc --noEmit`)
+- [ ] Build exitoso (`npm run build`)
+- [ ] Pull Request revisado y aprobado
+- [ ] Mergeado a `develop`
+- [ ] Documentación actualizada (si aplica)
+
+## Flujo de trabajo con ramas
 
 ```bash
-# 1. Asegurar que develop está actualizada
+# Al inicio del sprint: actualizar develop
 git checkout develop
 git pull
 
-# 2. Crear rama de funcionalidad
-git checkout -b feature/mi-funcionalidad
+# Crear rama para la historia
+git checkout -b feature/123-descripcion-corta
 
-# 3. Desarrollar y commitear
+# Desarrollar con commits convencionales
 git add .
-git commit -m "feat: descripción del cambio"
+git commit -m "feat(#123): descripción del cambio"
 
-# 4. Mantener la rama actualizada con develop
+# Mantener actualizada con develop
 git fetch origin
 git rebase origin/develop
 
-# 5. Subir y crear Pull Request
-git push -u origin feature/mi-funcionalidad
+# Subir y crear Pull Request
+git push -u origin feature/123-descripcion-corta
 # Crear PR en GitHub hacia develop
 ```
+
+### Ramas
+
+| Rama | Propósito | Base | Mergea a |
+|------|-----------|------|----------|
+| `main` | Producción. Solo se actualiza al final del sprint. | — | — |
+| `develop` | Integración diaria. Rama activa. | `main` | `main` (fin de sprint) |
+| `feature/*` | Historias de usuario del sprint. | `develop` | `develop` |
+| `fix/*` | Correcciones de bugs. | `develop` | `develop` |
+| `refactor/*` | Refactors de código. | `develop` | `develop` |
+
+## Product Backlog y Sprint Backlog
+
+- **Product Backlog**: Issues de GitHub con label `backlog`
+- **Sprint Backlog**: Issues asignados al milestone del sprint activo
+- Cada issue debe tener: título descriptivo, criterios de aceptación, estimación (si aplica)
 
 ## Convenciones de commits
 
 Usamos [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
-feat: nueva funcionalidad
-fix: corrección de error
+feat(#123): nueva funcionalidad
+fix(#123): corrección de error
 refactor: cambio que no agrega funcionalidad ni corrige error
 perf: mejora de rendimiento
 test: agregar o modificar tests
@@ -51,23 +84,25 @@ docs: cambios en documentación
 chore: tareas de mantenimiento
 ```
 
+Incluir el número de issue cuando aplique: `feat(#123): ...`
+
 ## Pull Requests
 
-- Título descriptivo con prefijo del tipo de cambio
+- Título descriptivo con prefijo y número de issue: `feat(#123): ...`
 - CI debe pasar (tests + build)
-- Incluir descripción de qué y por qué
-- Referenciar issues relacionados con `Closes #123`
+- Incluir descripción de qué, por qué y cómo se probó
+- Referenciar el issue: `Closes #123`
 
 ## Testing
 
 ```bash
-npm test         # Ejecutar tests
-npm run test:watch   # Modo watch
-npm run test:coverage # Reporte de cobertura
+npm test                # Ejecutar tests
+npm run test:watch      # Modo watch
+npm run test:coverage   # Reporte de cobertura
 ```
 
 ## Code review
 
-- Todos los PRs deben ser revisados antes de mergear
+- Todo PR debe ser revisado antes de mergear
 - Buscar: lógica correcta, casos borde, tipos, rendimiento, seguridad
-- Preferir PRs pequeños y enfocados
+- PRs pequeños y enfocados en una sola historia

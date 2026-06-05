@@ -6,29 +6,24 @@ El proyecto (Atlas Edu) no tenía una estrategia de branching formal. Todo se co
 
 ## Decisión
 
-Adoptar un flujo **trunk-based simplificado** con dos ramas principales:
+Adoptar **Scrum** como marco de trabajo ágil con sprints de 2 semanas, y un flujo de branching **trunk-based simplificado** con dos ramas principales:
 
-- **`main`**: Rama de producción. Solo recibe merges vía Pull Request desde `develop`.
-- **`develop`**: Rama de integración. Las funcionalidades se desarrollan en ramas `feature/*` y se mergean aquí.
-  - `feature/<nombre>`: Ramas temporales para funcionalidades nuevas.
+- **`main`**: Rama de producción. Solo recibe merges vía Pull Request desde `develop` al final de cada sprint.
+- **`develop`**: Rama de integración diaria. Las funcionalidades se desarrollan en ramas `feature/*` y se mergean aquí.
+  - `feature/<numero-issue>-<nombre>`: Ramas para historias de usuario del sprint actual.
   - `fix/<nombre>`: Ramas temporales para correcciones.
   - `refactor/<nombre>`: Ramas temporales para refactors.
 
 ### Flujo de trabajo
 
 ```
-feature/login → PR → develop → PR → main
-                        ↑
-              fix/crash-login
+Product Backlog (GitHub Issues)
+  → Sprint Planning → Sprint Backlog (Milestone)
+    → feature/123-login → PR → develop → CI → merge
+    → fix/crash → PR → develop → CI → merge
+      → Fin de sprint: Review + Retro
+        → develop → PR → main → tag v1.2.3
 ```
-
-1. Crear rama desde `develop`: `feature/mi-funcionalidad`
-2. Desarrollar y commitear con [Conventional Commits](https://www.conventionalcommits.org/)
-3. Abrir Pull Request a `develop`
-4. CI debe pasar (tests + build)
-5. Mergear a `develop`
-6. Periódicamente, abrir PR de `develop` a `main`
-7. Versionar con tags semánticos (`v1.2.3`)
 
 ### CI
 
@@ -38,5 +33,5 @@ El pipeline de CI se ejecuta en:
 
 ## Consecuencias
 
-- **Positivas**: `main` siempre estable, trazabilidad de cambios, oportunidad de code review, CI atrapa errores temprano.
-- **Negativas**: Overhead de gestión de ramas, necesidad de mantener `develop` actualizada.
+- **Positivas**: `main` siempre estable, trazabilidad de cambios, oportunidad de code review, CI atrapa errores temprano, cada sprint produce un incremento potencialmente entregable.
+- **Negativas**: Overhead de gestión de ramas, necesidad de mantener `develop` actualizada, disciplina para mantener las ceremonias.
