@@ -240,21 +240,36 @@ export default function StudentDashboard() {
               )}
             </div>
 
-            {/* AI Assistant Card */}
-            <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl p-5 text-white relative overflow-hidden group cursor-pointer shadow-md">
-              <div className="absolute -right-6 -bottom-6 text-indigo-500/20 group-hover:scale-110 transition-transform duration-500">
+            {/* Tutor de Aprendizaje Card */}
+            <div className="bg-gradient-to-br from-violet-600 to-purple-700 rounded-2xl p-5 text-white relative overflow-hidden group cursor-pointer shadow-md">
+              <div className="absolute -right-6 -bottom-6 text-violet-400/20 group-hover:scale-110 transition-transform duration-500">
                 <Brain size={120} />
               </div>
+              <div className="absolute top-0 right-0 w-40 h-40 bg-purple-400/10 rounded-full blur-3xl" />
               <div className="relative z-10">
                 <div className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center mb-3 border border-white/20">
-                  <Brain size={22} className="text-indigo-200" />
+                  <Brain size={22} className="text-purple-200" />
                 </div>
-                <h3 className="font-bold text-lg">Tutor IA</h3>
-                <p className="text-indigo-200 text-sm mt-1 leading-relaxed">
-                  ¿Atascado en un problema? Pregúntale al asistente.
+                <h3 className="font-bold text-lg">Tutor de Aprendizaje</h3>
+                <p className="text-purple-200 text-sm mt-1 leading-relaxed">
+                  No te damos respuestas. Te guiamos paso a paso para que aprendas resolviéndolo tú.
                 </p>
-                <button className="mt-4 bg-white text-indigo-700 font-semibold py-2.5 px-5 rounded-xl text-sm hover:bg-indigo-50 transition-all shadow-md w-full text-center">
-                  Preguntar ahora
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white/10 backdrop-blur-sm px-2.5 py-1 text-[10px] font-medium text-purple-100 border border-white/10">
+                    🧮 Explicación paso a paso
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white/10 backdrop-blur-sm px-2.5 py-1 text-[10px] font-medium text-purple-100 border border-white/10">
+                    💡 Pistas sin spoilers
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white/10 backdrop-blur-sm px-2.5 py-1 text-[10px] font-medium text-purple-100 border border-white/10">
+                    ✅ Validación de intentos
+                  </span>
+                </div>
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent("open-ai-assistant", { detail: { flow: "tutor" } }))}
+                  className="mt-4 bg-white text-violet-700 font-semibold py-2.5 px-5 rounded-xl text-sm hover:bg-purple-50 hover:scale-[1.02] transition-all shadow-md w-full text-center active:scale-95"
+                >
+                  Iniciar tutoría
                 </button>
               </div>
             </div>

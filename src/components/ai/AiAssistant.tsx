@@ -28,7 +28,7 @@ function stripMarkdown(text: string): string {
     .trim();
 }
 
-type FlowType = "none" | "create-assignment" | "my-courses" | "risk" | "message";
+type FlowType = "none" | "create-assignment" | "my-courses" | "risk" | "message" | "tutor";
 
 interface Course {
   id: number;
@@ -61,14 +61,19 @@ interface GeneratedData {
   questions: GeneratedQuestion[];
 }
 
-export function AiAssistant() {
+export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
   const [open, setOpen] = useState(false);
   const [inputText, setInputText] = useState("");
   const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sendingRef = useRef(false);
+
+  const [flow, setFlow] = useState<FlowType>("none");
+  const [flowLoading, setFlowLoading] = useState(false);
+  const [flowError, setFlowError] = useState<string | null>(null);
 
   const { messages, sendMessage, status, error, setMessages } = useChat({
     transport: new DefaultChatTransport({
@@ -79,17 +84,15 @@ export function AiAssistant() {
   const loading = status === "submitted" || status === "streaming";
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleActionClick = useCallback((msg: string) => {
     if (sendingRef.current || loading) return;
     sendingRef.current = true;
-    sendMessage({ text: msg });
+    sendMessage({ text: msg }, { body: { flow } });
     setTimeout(() => { sendingRef.current = false; }, 500);
-  }, [sendMessage, loading]);
+  }, [sendMessage, loading, flow]);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -126,15 +129,11 @@ export function AiAssistant() {
     if ((!text && !attachedFile)) return;
     if (attachedFile) text += `\n\n[Archivo Adjunto: ${attachedFile.name}]\n${attachedFile.content}`;
     sendingRef.current = true;
-    sendMessage({ text: text || "Revisa el archivo adjunto y haz lo que te pido con él." });
+    sendMessage({ text: text || "Revisa el archivo adjunto y haz lo que te pido con él." }, { body: { flow } });
     setInputText("");
     setAttachedFile(null);
     setTimeout(() => { sendingRef.current = false; }, 500);
   }, [inputText, attachedFile, loading, sendMessage]);
-
-  const [flow, setFlow] = useState<FlowType>("none");
-  const [flowLoading, setFlowLoading] = useState(false);
-  const [flowError, setFlowError] = useState<string | null>(null);
 
   const clearFlow = useCallback(() => {
     setFlow("none");
@@ -159,10 +158,22 @@ export function AiAssistant() {
   const [messageSent, setMessageSent] = useState(false);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      setTimeout(() => { scrollRef.current!.scrollTop = scrollRef.current!.scrollHeight; }, 100);
-    }
+    requestAnimationFrame(() => endRef.current?.scrollIntoView({ behavior: "smooth" }));
   }, [flow, generatedData, myCoursesData, riskData, messageSent]);
+
+  useEffect(() => {
+    const handler = (e: CustomEvent) => {
+      const detail = e.detail || {};
+      if (detail.flow === "tutor") {
+        clearFlow();
+        setFlow("tutor");
+        setOpen(true);
+        setMessages([]);
+      }
+    };
+    window.addEventListener("open-ai-assistant", handler as EventListener);
+    return () => window.removeEventListener("open-ai-assistant", handler as EventListener);
+  }, [clearFlow, setMessages]);
 
   const lastMsgIsAi = messages.length > 0 && messages[messages.length - 1]?.role !== "user";
 
@@ -605,7 +616,7 @@ export function AiAssistant() {
   return (
     <>
       {/* ── FAB ── */}
-      {!open && (
+      {showFab && !open && (
         <button
           onClick={() => setOpen(true)}
           className="fixed bottom-6 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-violet-600 text-white shadow-lg hover:bg-violet-700 transition-all hover:scale-105 active:scale-95"
@@ -647,7 +658,7 @@ export function AiAssistant() {
           {/* Header */}
           <div className="flex items-center justify-between bg-violet-600 px-4 py-3 text-white shrink-0">
             <div className="flex items-center gap-2.5">
-              {flow !== "none" ? (
+              {flow !== "none" && flow !== "tutor" ? (
                 <button
                   onClick={clearFlow}
                   className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 transition-colors"
@@ -666,6 +677,7 @@ export function AiAssistant() {
                     : flow === "my-courses" ? "Mis cursos"
                     : flow === "risk" ? "Estudiantes en riesgo"
                     : flow === "message" ? "Enviar mensaje"
+                    : flow === "tutor" ? "Tutor de aprendizaje"
                     : "Asistente virtual"}
                 </p>
               </div>
@@ -679,34 +691,61 @@ export function AiAssistant() {
           </div>
 
           {/* Scrollable content */}
-          <div className="flex flex-col flex-1 min-h-0">
-            <ScrollArea className="flex-1">
+          <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <ScrollArea className="flex-1 min-h-0">
               <div ref={scrollRef} className="space-y-3 p-4">
-                {flow !== "none" ? (
+                {flow !== "none" && flow !== "tutor" ? (
                   renderFlowContent()
                 ) : messages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center min-h-[260px] py-6">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-violet-100 mb-4">
-                      <Sparkles className="h-8 w-8 text-violet-600" />
+                  flow === "tutor" ? (
+                    <div className="flex flex-col items-center justify-center min-h-[260px] py-6">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-violet-100 mb-4">
+                        <Sparkles className="h-8 w-8 text-violet-600" />
+                      </div>
+                      <p className="text-base font-semibold text-slate-800 mb-1">Soy tu tutor de aprendizaje</p>
+                      <p className="text-xs text-slate-500 mb-6 text-center max-w-[280px] leading-relaxed">
+                        No te daré respuestas directas. Te guiaré con preguntas y pistas para que descubras la solución tú mismo.
+                      </p>
+                      <div className="flex flex-wrap justify-center gap-2 max-w-[300px]">
+                        {[
+                          { label: "📐 Problema matemático", msg: "Necesito ayuda con un problema de matemáticas, guíame paso a paso sin darme la respuesta" },
+                          { label: "📖 Explicar un tema", msg: "Explícame un tema académico, hazme preguntas para verificar mi comprensión" },
+                          { label: "🔬 Ejercicio práctico", msg: "Propónme un ejercicio práctico y guíame para resolverlo" },
+                          { label: "✏️ Revisar mi respuesta", msg: "Quiero que revises mi respuesta a un ejercicio, dime si voy bien sin corregirme directamente" },
+                        ].map((btn, i) => (
+                          <button
+                            key={i}
+                            onClick={() => handleActionClick(btn.msg)}
+                            className="rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-xs font-medium text-violet-700 hover:bg-violet-100 transition-colors flex items-center gap-1.5"
+                          >
+                            <span>{btn.msg}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <p className="text-base font-semibold text-slate-800 mb-1">Hola, soy Atlas IA</p>
-                    <p className="text-xs text-slate-500 mb-6 text-center max-w-[260px]">
-                      Puedo ayudarte a consultar datos de la plataforma o crear contenido educativo.
-                    </p>
-                    <div className="flex flex-wrap justify-center gap-2 max-w-[300px]">
-                      {quickActions.map((btn, i) => (
-                        <button
-                          key={i}
-                          onClick={btn.action}
-                          className="rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-xs font-medium text-violet-700 hover:bg-violet-100 transition-colors flex items-center gap-1.5"
-                        >
-                          <span>{btn.icon}</span>
-                          <span>{btn.label}</span>
-                        </button>
-                      ))}
+                  ) : (
+                    <div className="flex flex-col items-center justify-center min-h-[260px] py-6">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-violet-100 mb-4">
+                        <Sparkles className="h-8 w-8 text-violet-600" />
+                      </div>
+                      <p className="text-base font-semibold text-slate-800 mb-1">Hola, soy Atlas IA</p>
+                      <p className="text-xs text-slate-500 mb-6 text-center max-w-[260px]">
+                        Puedo ayudarte a consultar datos de la plataforma o crear contenido educativo.
+                      </p>
+                      <div className="flex flex-wrap justify-center gap-2 max-w-[300px]">
+                        {quickActions.map((btn, i) => (
+                          <button
+                            key={i}
+                            onClick={btn.action}
+                            className="rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-xs font-medium text-violet-700 hover:bg-violet-100 transition-colors flex items-center gap-1.5"
+                          >
+                            <span>{btn.icon}</span>
+                            <span>{btn.label}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ) : (
+                  )) : (
                   <>
                     {messages.map((m, i) => (
                       <div key={i}>
@@ -763,6 +802,7 @@ export function AiAssistant() {
                         </div>
                       </div>
                     )}
+                    <div ref={endRef} />
                   </>
                 )}
               </div>
@@ -820,25 +860,29 @@ export function AiAssistant() {
               />
 
               {/* Paperclip — desktop only */}
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="hidden sm:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 transition-colors"
-              >
-                <Paperclip className="h-4 w-4" />
-              </button>
+              {showFab && (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="hidden sm:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 transition-colors"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </button>
+              )}
 
               {/* Mic — desktop only */}
-              <button
-                type="button"
-                onClick={toggleRecording}
-                className={cn(
-                  "hidden sm:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors",
-                  isRecording ? "bg-red-100 text-red-600 animate-pulse" : "text-slate-400 hover:bg-slate-100"
-                )}
-              >
-                <Mic className="h-4 w-4" />
-              </button>
+              {showFab && (
+                <button
+                  type="button"
+                  onClick={toggleRecording}
+                  className={cn(
+                    "hidden sm:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors",
+                    isRecording ? "bg-red-100 text-red-600 animate-pulse" : "text-slate-400 hover:bg-slate-100"
+                  )}
+                >
+                  <Mic className="h-4 w-4" />
+                </button>
+              )}
 
               {/* Text input — flex-1 takes remaining space */}
               <input
@@ -846,7 +890,7 @@ export function AiAssistant() {
                 type="text"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                placeholder="Escribe un mensaje..."
+                placeholder={flow === "tutor" ? "Escribe tu duda o tema..." : "Escribe un mensaje..."}
                 className="flex-1 min-w-0 h-11 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400/30 focus:border-violet-400 transition-colors"
                 disabled={loading}
                 autoComplete="off"
@@ -866,6 +910,7 @@ export function AiAssistant() {
             </form>
 
             {/* Mobile-only: attach + mic as text links below the input */}
+            {showFab && (
             <div className="sm:hidden flex items-center gap-4 mt-2 px-1">
               <button
                 type="button"
@@ -887,6 +932,7 @@ export function AiAssistant() {
                 <span>{isRecording ? "Grabando..." : "Voz"}</span>
               </button>
             </div>
+            )}
           </div>
         </div>
       )}

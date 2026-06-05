@@ -1,6 +1,7 @@
 "use client";
 
 import { AppLayout } from "@/components/layout/AppLayout";
+import { AiAssistant } from "@/components/ai/AiAssistant";
 import { Home, Award, Calendar, User, BookOpen, ClipboardList, Clock } from "lucide-react";
 
 const studentLinks = [
@@ -17,6 +18,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   return (
     <AppLayout role="student" links={studentLinks} title="Panel del Estudiante">
       {children}
+      <AiAssistant showFab={false} />
     </AppLayout>
   );
 }
