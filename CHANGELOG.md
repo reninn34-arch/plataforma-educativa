@@ -4,7 +4,25 @@ Todas las cambios notables en Atlas Edu serán documentados aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/), y el proyecto usa [Semantic Versioning](https://semver.org/).
 
-## [0.3.0] - 2026-06-06 — Sprint 3 🔄 (tracking completado)
+## [0.4.0] - 2026-06-06 — Sprint 4 🔄 (tracking completado)
+
+### Agregado
+- Sistema multi-proveedor IA con fallback automático y embeddings (#41)
+- Generación de exámenes y tareas completas con IA (#42)
+- Asistente IA conversacional completo con 20+ herramientas, voz y archivos (#43)
+- Arquitectura de rutas de aprendizaje estilo Duolingo (#44)
+- Sistema de examen estructurado con auto-grading (#45)
+- Ejercicios individuales por estudiante con datos cacheados (#46)
+- React Query, sistema de fetch con CSRF y caché global (#47)
+- Documentación Swagger/OpenAPI de la API (#48)
+- Optimización de performance: índices, consultas batch y bcrypt paralelo (#49)
+- Estadísticas académicas detalladas para docentes (#50)
+- Gestión de ciclo de vida de períodos lectivos (#51)
+- Sistema de sonidos con Web Audio API (#52)
+- Monitor de API y herramientas de desarrollo (#53)
+- Vista de asistencia para administradores (#54)
+
+## [0.3.0] - 2026-06-06 — Sprint 3 ✅ (100% completado)
 
 ### Agregado
 - Experiencia gamificada al practicar (#26): sonidos, vidas, combo, estrellas, confetti, animaciones, módulos colapsables
@@ -18,6 +36,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/), y el proyecto 
 - Boletines de calificaciones por curso (#34): desglose materia + trimestre
 - Regeneración masiva de PINs e impresión de credenciales (#35)
 - Diseño responsive completo y tema visual por materia (#36)
+- Recuperación de PIN sin ayuda del administrador (#37)
+- Coach IA con pistas Socráticas al practicar (#38)
+- Semáforo de riesgo de estudiantes (#39)
+- Rate limiting para endpoints críticos (#40)
 
 ## [0.2.0] - 2026-06-06 — Sprint 2 ✅ (100% completado)
 
