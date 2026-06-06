@@ -21,6 +21,9 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/), y el proyecto 
 - Sistema de sonidos con Web Audio API (#52)
 - Monitor de API y herramientas de desarrollo (#53)
 - Vista de asistencia para administradores (#54)
+- PWA: Service Worker y manifest para soporte offline (#55)
+- Interfaz completa de configuración SMTP (#56)
+- Métricas de estudiante: racha, precisión y errores frecuentes (#57)
 
 ## [0.3.0] - 2026-06-06 — Sprint 3 ✅ (100% completado)
 
