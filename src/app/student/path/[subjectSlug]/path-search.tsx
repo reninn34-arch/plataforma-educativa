@@ -37,7 +37,21 @@ export function PathSearch({ subjectSlug, suggestedTopics }: PathSearchProps) {
         setError(data.error);
       } else {
         setTopic("");
+        const moduleId = data.module?.id;
         router.refresh();
+        if (moduleId) {
+          requestAnimationFrame(() => {
+            const tryScroll = () => {
+              const el = document.getElementById("module-" + moduleId);
+              if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "center" });
+              } else {
+                requestAnimationFrame(tryScroll);
+              }
+            };
+            requestAnimationFrame(tryScroll);
+          });
+        }
       }
     } catch {
       setError("Error de conexion. Intenta de nuevo.");

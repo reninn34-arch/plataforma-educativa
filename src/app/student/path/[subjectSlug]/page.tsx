@@ -6,6 +6,7 @@ import { ArrowLeft, Lock, Star, Play, Check, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { getUser } from "@/lib/auth";
 import { PathSearch } from "./path-search";
+import { ModuleCard } from "@/components/practice/ModuleCard";
 
 export default async function PathPage({ params }: { params: Promise<{ subjectSlug: string }> }) {
   const session = await getUser();
@@ -98,8 +99,11 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
               const isModLocked = mod.generated ? mod.requiredPoints > totalStars : false;
 
               return (
-                <div key={mod.id} className="relative">
-                  <div className={`
+                <ModuleCard
+                  key={mod.id}
+                  id={`module-${mod.id}`}
+                  defaultOpen={true}
+                  className={`
                     rounded-2xl p-5 mb-8 border shadow-md
                     ${isModLocked
                       ? 'bg-slate-50 border-slate-200 opacity-60'
@@ -107,43 +111,43 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                         ? 'bg-gradient-to-r from-indigo-50 to-white border-indigo-200 shadow-indigo-100/50'
                         : 'bg-white border-slate-200 shadow-slate-100'
                     }
-                  `}>
-                    <div className="flex justify-between items-center">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          {mod.generated ? (
-                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700">
-                              <Sparkles className="h-3 w-3" />
-                              IA
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">
-                              Unidad {modIndex + 1}
-                            </span>
-                          )}
-                          {isModLocked && (
-                            <span className="flex items-center gap-1 text-[10px] font-bold text-slate-500">
-                              <Lock size={10} />
-                              {mod.requiredPoints} ★ requeridas
-                            </span>
-                          )}
-                        </div>
-                        <h2 className="text-xl font-bold text-slate-800 mt-1">{mod.title}</h2>
-                        {mod.topic && (
-                          <p className="text-xs text-indigo-600 mt-0.5">Tema: {mod.topic}</p>
+                  `}
+                  header={
+                    <>
+                      <div className="flex items-center gap-2">
+                        {mod.generated ? (
+                          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700">
+                            <Sparkles className="h-3 w-3" />
+                            IA
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">
+                            Unidad {modIndex + 1}
+                          </span>
                         )}
-                        <div className="flex items-center gap-3 mt-3">
-                          <div className="flex-1 max-w-[200px] h-2 bg-slate-200 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-500"
-                              style={{ width: `${modPct}%` }}
-                            />
-                          </div>
-                          <p className="text-[11px] text-slate-500">{modCompleted}/{modNodes.length} nodos</p>
-                        </div>
+                        {isModLocked && (
+                          <span className="flex items-center gap-1 text-[10px] font-bold text-slate-500">
+                            <Lock size={10} />
+                            {mod.requiredPoints} ★ requeridas
+                          </span>
+                        )}
                       </div>
-                    </div>
-                  </div>
+                      <h2 className="text-xl font-bold text-slate-800 mt-1">{mod.title}</h2>
+                      {mod.topic && (
+                        <p className="text-xs text-indigo-600 mt-0.5">Tema: {mod.topic}</p>
+                      )}
+                      <div className="flex items-center gap-3 mt-3">
+                        <div className="flex-1 max-w-[200px] h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-500"
+                            style={{ width: `${modPct}%` }}
+                          />
+                        </div>
+                        <p className="text-[11px] text-slate-500">{modCompleted}/{modNodes.length} nodos</p>
+                      </div>
+                    </>
+                  }
+                >
 
                   <div className="flex flex-col items-center gap-6 py-4">
                     {modNodes.map((node, i) => {
@@ -220,7 +224,7 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                       );
                     })}
                   </div>
-                </div>
+                </ModuleCard>
               );
             })}
 
