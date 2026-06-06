@@ -52,7 +52,9 @@ export function LoginForm({ redirect }: Props) {
       queryClient.clear();
       clearCache();
       if (data.user.themePreference) {
-        localStorage.setItem("theme", data.user.themePreference);
+        const resolved = data.user.themePreference === "dark" ? "dark" : "light";
+        localStorage.setItem("theme", resolved);
+        setTheme(resolved);
       }
       const safeRedirect = redirect && redirect.startsWith("/") ? redirect : null;
       if (data.user.role === "teacher") {
