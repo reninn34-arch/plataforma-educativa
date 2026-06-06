@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
   try {
     const cursoIdParam = request.nextUrl.searchParams.get("cursoId");
     const search = request.nextUrl.searchParams.get("search") || "";
+    const riesgo = request.nextUrl.searchParams.get("riesgo") === "true";
 
     const allIds = await getTeacherCourseIds(teacher.id);
 
@@ -185,6 +186,39 @@ export async function GET(request: NextRequest) {
         progress: progressByStudent[s.id] || [],
         grades: gradesByStudent[s.id] || { average: null, pending: 0, lastSubmission: null },
       }));
+
+    if (riesgo) {
+      const now = Date.now();
+      const estudiantes = enriched
+        .filter(s => {
+          const g = s.grades;
+          const isFailing = g.average !== null && g.average < 7;
+          const hasPending = g.pending >= 3;
+          const daysSinceSub = g.lastSubmission
+            ? Math.floor((now - new Date(g.lastSubmission).getTime()) / (1000 * 60 * 60 * 24))
+            : 999;
+          const isInactive = daysSinceSub >= 14;
+          return isFailing || hasPending || isInactive;
+        })
+        .map(s => {
+          const daysSinceSub = s.grades.lastSubmission
+            ? Math.floor((now - new Date(s.grades.lastSubmission).getTime()) / (1000 * 60 * 60 * 24))
+            : 999;
+
+          const worstSubject = (s.progress || []).reduce<{ subjectName: string; percentage: number } | null>((worst, p) =>
+            (p.percentage < (worst?.percentage ?? 101)) ? p : worst, null);
+
+          return {
+            id: s.id,
+            fullName: s.fullName,
+            cedula: s.cedula,
+            consecutiveFailures: s.grades.pending,
+            daysInactive: daysSinceSub,
+            subjectName: worstSubject?.subjectName || (s.grades.average !== null && s.grades.average < 7 ? "Bajo rendimiento" : "General"),
+          };
+        });
+      return NextResponse.json({ estudiantes });
+    }
 
     return NextResponse.json({ students: enriched });
   } catch (error) {

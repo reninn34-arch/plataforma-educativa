@@ -12,6 +12,8 @@ import { eq, and, sql, desc, inArray } from "drizzle-orm";
 import { opencodeGoModel, logAiCall, DEFAULT_MODEL_ID, tryParseJson } from "@/lib/ai";
 import { generateText } from "ai";
 import { getSmtpConfig } from "@/lib/smtp-config";
+import { notifyUser, notifyStudentsInCourse } from "@/lib/notifications";
+import { getTeacherCourseIds } from "@/lib/course-helpers";
 
 function generatePin(): string {
   return String(Math.floor(1000 + Math.random() * 9000));
@@ -152,22 +154,78 @@ function createTeacherTools(userId: number, userFullName: string) {
   });
 
   const getStudentRisk = tool({
-    description: "Identifica estudiantes en riesgo: 3+ fallos consecutivos o 7+ dias inactivos",
+    description: "Identifica estudiantes en riesgo academico segun sus calificaciones, tareas pendientes y actividad. Criterios: promedio menor a 7, 3+ tareas sin entregar, o 14+ dias inactivo.",
     inputSchema: z.object({
       cursoId: z.number().optional().describe("ID del curso. Si se omite, busca en todos los cursos del docente"),
     }),
     execute: async ({ cursoId }) => {
-      let studentIds: number[] = [];
+      let courseIds: number[];
       if (cursoId) {
-        const enrolled = await db.select({ estudianteId: cursoEstudiantes.estudianteId }).from(cursoEstudiantes).where(eq(cursoEstudiantes.cursoId, cursoId));
-        studentIds = enrolled.map(e => e.estudianteId);
+        courseIds = [cursoId];
+      } else {
+        courseIds = await getTeacherCourseIds(userId);
       }
-      const riskData = await db
-        .select({ id: users.id, fullName: users.fullName, cedula: users.cedula, consecutiveFailures: progress.consecutiveFailures, daysInactive: progress.daysInactive, subjectName: subjects.name, subjectEmoji: subjects.emoji })
-        .from(progress).innerJoin(users, eq(users.id, progress.userId)).innerJoin(subjects, eq(subjects.id, progress.subjectId))
-        .where(and(eq(users.role, "student"), eq(users.activo, true), sql`(${progress.consecutiveFailures} >= 3 OR ${progress.daysInactive} >= 7)`));
-      const filtered = studentIds.length > 0 ? riskData.filter(r => studentIds.includes(r.id)) : riskData;
-      return { en_riesgo: filtered, total: filtered.length, criterio: "3+ fallos consecutivos o 7+ dias inactivos" };
+
+      if (courseIds.length === 0) return { en_riesgo: [], total: 0, criterio: "Promedio < 7, 3+ pendientes, o 14+ inactivo" };
+
+      const enrolled = await db
+        .select({ id: users.id, fullName: users.fullName, cedula: users.cedula })
+        .from(users)
+        .innerJoin(cursoEstudiantes, eq(cursoEstudiantes.estudianteId, users.id))
+        .where(and(eq(users.role, "student"), eq(users.activo, true), inArray(cursoEstudiantes.cursoId, courseIds)));
+
+      const studentIds = [...new Set(enrolled.map(e => e.id))];
+      if (studentIds.length === 0) return { en_riesgo: [], total: 0, criterio: "Promedio < 7, 3+ pendientes, o 14+ inactivo" };
+
+      const teacherAssignments = await db
+        .select({ id: assignments.id, subjectName: subjects.name, subjectEmoji: subjects.emoji })
+        .from(assignments)
+        .innerJoin(subjects, eq(subjects.id, assignments.subjectId))
+        .where(and(eq(assignments.teacherId, userId), inArray(assignments.cursoId, courseIds)));
+
+      const assignmentIds = teacherAssignments.map(a => a.id);
+      const totalAssignments = assignmentIds.length;
+
+      const submissions = assignmentIds.length > 0 ? await db
+        .select({ studentId: assignmentSubmissions.studentId, grade: assignmentSubmissions.grade, status: assignmentSubmissions.status, submittedAt: assignmentSubmissions.submittedAt, assignmentId: assignmentSubmissions.assignmentId })
+        .from(assignmentSubmissions)
+        .where(and(inArray(assignmentSubmissions.studentId, studentIds), inArray(assignmentSubmissions.assignmentId, assignmentIds))) : [];
+
+      const subsByStudent = new Map<number, typeof submissions>();
+      for (const sub of submissions) {
+        const arr = subsByStudent.get(sub.studentId) ?? [];
+        arr.push(sub);
+        subsByStudent.set(sub.studentId, arr);
+      }
+
+      const now = Date.now();
+      const enRiesgo = [];
+
+      for (const s of enrolled) {
+        const subs = subsByStudent.get(s.id) ?? [];
+        const graded = subs.filter(sub => sub.grade !== null);
+        const pending = totalAssignments - subs.length;
+        const lastSub = subs.reduce<string | null>((latest, sub) =>
+          sub.submittedAt && (!latest || new Date(sub.submittedAt) > new Date(latest)) ? new Date(sub.submittedAt).toISOString() : latest, null);
+        const daysInactive = lastSub ? Math.floor((now - new Date(lastSub).getTime()) / (1000 * 60 * 60 * 24)) : 999;
+        const avgGrade = graded.length > 0 ? graded.reduce((sum, sub) => sum + (sub.grade ?? 0), 0) / graded.length : null;
+        const isFailing = avgGrade !== null && avgGrade < 7;
+        const hasPending = pending >= 3;
+        const isInactive = daysInactive >= 14;
+
+        if (isFailing || hasPending || isInactive) {
+          enRiesgo.push({
+            id: s.id,
+            fullName: s.fullName,
+            cedula: s.cedula,
+            consecutiveFailures: pending,
+            daysInactive,
+            subjectName: totalAssignments > 0 ? teacherAssignments[0].subjectName : "General",
+          });
+        }
+      }
+
+      return { en_riesgo: enRiesgo, total: enRiesgo.length, criterio: "Promedio < 7, 3+ pendientes, o 14+ inactivo" };
     },
   });
 
@@ -695,7 +753,7 @@ Puedo ayudarte de muchas formas:
    "cómo están los estudiantes esta semana?"
 
 🔧 ACCIONES RÁPIDAS
-   "registra présents a los de hoy"
+   "registra presentes a los de hoy"
    "marca ausentes a los que no entregaron"
    "genera un examen de química para 3ro BGU"
 
@@ -826,12 +884,56 @@ FORMATO:
         sent++;
       }
 
+      await notifyStudentsInCourse({
+        cursoId,
+        type: "message",
+        title: `Nuevo mensaje de ${userFullName || "tu profesor"}`,
+        message: message.slice(0, 120),
+        excludeUserId: userId,
+      });
+
       const cursoData = await db.select({ nombre: cursos.nombre }).from(cursos).where(eq(cursos.id, cursoId)).limit(1);
       return {
         enviados: sent,
         estudiantes: students.map(s => s.fullName),
         curso: cursoData[0]?.nombre || "",
         mensaje: `Mensaje enviado a ${sent} estudiantes de ${cursoData[0]?.nombre || "el curso"}.`,
+      };
+    },
+  });
+
+  const sendMessageToStudent = tool({
+    description: "Envia un mensaje directo a un estudiante especifico. Usala cuando el docente pida enviar un mensaje a un estudiante en particular (no a todo el curso).",
+    inputSchema: z.object({
+      studentId: z.number().describe("ID del estudiante que recibira el mensaje"),
+      message: z.string().min(1).describe("Contenido del mensaje a enviar"),
+    }),
+    execute: async ({ studentId, message }) => {
+      const [student] = await db
+        .select({ id: users.id, fullName: users.fullName })
+        .from(users)
+        .where(and(eq(users.id, studentId), eq(users.activo, true)))
+        .limit(1);
+
+      if (!student) return { error: "Estudiante no encontrado o inactivo" };
+
+      await db.insert(directMessages).values({
+        senderId: userId,
+        receiverId: student.id,
+        content: message,
+      } as any);
+
+      await notifyUser({
+        userId: student.id,
+        type: "message",
+        title: `Nuevo mensaje de ${userFullName || "tu profesor"}`,
+        message: message.slice(0, 120),
+      });
+
+      return {
+        enviado: true,
+        estudiante: student.fullName,
+        mensaje: `Mensaje enviado a ${student.fullName}.`,
       };
     },
   });
@@ -1197,6 +1299,7 @@ FORMATO:
     getPendingGrades,
     generateAndCreateAssignment,
     sendMessageToStudents,
+    sendMessageToStudent,
     markStudentsAbsent,
     checkAcademicLoad,
     recordPhysicalGrades,

@@ -71,6 +71,20 @@ export function NotificationBell() {
     },
   });
 
+  const markOneRead = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiFetch("/api/notificaciones/read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [id] }),
+      });
+      if (!res.ok) throw new Error("Error");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notificaciones"] });
+    },
+  });
+
   const notificaciones = (data?.notificaciones || []).filter((n) => !n.read);
   const unreadCount = data?.unreadCount || 0;
 
@@ -124,10 +138,14 @@ export function NotificationBell() {
             )}
 
             {!isLoading && notificaciones.map((n) => {
+              const handleClick = () => {
+                markOneRead.mutate(n.id);
+                setOpen(false);
+              };
+
               const content = (
                 <div
-                  key={n.id}
-                  className={`flex items-start gap-3 px-4 py-3 transition-colors ${
+                  className={`flex items-start gap-3 px-4 py-3 transition-colors cursor-pointer ${
                     !n.read ? "bg-accent/50 dark:bg-accent/20" : "hover:bg-accent"
                   }`}
                 >
@@ -157,11 +175,13 @@ export function NotificationBell() {
               );
 
               return n.link ? (
-                <Link key={n.id} href={n.link} onClick={() => setOpen(false)}>
+                <Link key={n.id} href={n.link} onClick={handleClick}>
                   {content}
                 </Link>
               ) : (
-                <div key={n.id}>{content}</div>
+                <button key={n.id} onClick={handleClick} className="w-full text-left">
+                  {content}
+                </button>
               );
             })}
           </div>

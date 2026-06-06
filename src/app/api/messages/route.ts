@@ -88,7 +88,6 @@ export async function POST(request: NextRequest) {
     type: "message",
     title: `Nuevo mensaje de ${user.role === "teacher" ? "tu profesor" : "un estudiante"}`,
     message: content.slice(0, 120),
-    link: `/messages?contact=${user.id}`,
   });
 
   return NextResponse.json({ message: msg });

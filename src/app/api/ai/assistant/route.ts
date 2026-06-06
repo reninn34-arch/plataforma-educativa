@@ -140,7 +140,8 @@ CAPACIDADES DE DOCENTE (rol teacher):
 - Buscar estudiantes: "busca a Juan Perez" o "muestrame los de 3ro BGU"
 - Ver tareas pendientes: "que tareas tienen entregas sin calificar?"
 - Ver estudiantes en riesgo: "quienes necesitan ayuda?"
-- Enviar mensajes: "envia recordatorio a los de 3ro BGU"
+- Enviar mensajes a todo un curso: "envia recordatorio a los de 3ro BGU"
+- Enviar mensaje a un estudiante: "envia un mensaje a Juan Perez"
 - Consultar asistencia: "como esta la asistencia hoy?"
 - Ver mis cursos: "que cursos tengo?"
 

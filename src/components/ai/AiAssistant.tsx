@@ -284,7 +284,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
     if (!messageCourse || !messageText.trim()) return;
     setFlowLoading(true); setFlowError(null);
     try {
-      const res = await apiFetch("/api/chat", {
+      const res = await apiFetch("/api/messages/course", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -292,7 +292,8 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
           message: messageText.trim(),
         }),
       });
-      if (!res.ok) throw new Error("Error al enviar mensaje");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al enviar mensaje");
       setMessageSent(true);
     } catch (e: any) {
       setFlowError(e.message || "Error al enviar mensaje");
@@ -523,7 +524,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                     <p className="font-semibold text-sm text-red-800">{s.fullName}</p>
                     <div className="flex gap-3 mt-1 text-xs text-red-600">
                       {s.consecutiveFailures >= 3 && <span>⚠️ {s.consecutiveFailures} fallos consecutivos</span>}
-                      {s.daysInactive >= 7 && <span>📅 {s.daysInactive} días inactivo</span>}
+                      {s.daysInactive >= 7 && <span>📅 {s.daysInactive >= 999 ? "Sin entregas registradas" : `${s.daysInactive} días inactivo`}</span>}
                     </div>
                     <p className="text-[10px] text-red-400 mt-0.5">{s.subjectName}</p>
                   </div>
