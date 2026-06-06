@@ -67,10 +67,11 @@ export function NotificationBell() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notificaciones"] });
+      setOpen(false);
     },
   });
 
-  const notificaciones = data?.notificaciones || [];
+  const notificaciones = (data?.notificaciones || []).filter((n) => !n.read);
   const unreadCount = data?.unreadCount || 0;
 
   return (
