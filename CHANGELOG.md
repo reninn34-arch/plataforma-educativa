@@ -4,6 +4,20 @@ Todas las cambios notables en Atlas Edu serán documentados aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/), y el proyecto usa [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] - 2026-06-06 — Sprint 5 🔧
+
+### Corregido
+- Mensajería a cursos: botón "Mensaje" del frontend llamaba a `/api/chat` (endpoint incorrecto) — ahora usa `POST /api/messages/course`
+- Notificaciones de mensaje navegaban a `/messages` (página inexistente) — ahora solo se marcan como leídas al hacer clic
+- Riesgo académico (`getStudentRisk` y botón "En riesgo"): usaba datos de práctica con IA (tabla `progress`, siempre vacío) — ahora usa calificaciones del profesor, tareas pendientes y actividad real
+- Estudiantes sin entregas mostraban "999 días inactivo" — ahora muestra "Sin entregas registradas"
+
+### Agregado
+- Nueva herramienta `sendMessageToStudent` para enviar mensajes individuales a estudiantes
+- Nuevo endpoint `POST /api/messages/course` para enviar mensajes a todo un curso
+- Notificaciones en `sendMessageToStudents` para avisar a estudiantes al enviar mensajes por IA
+- Marcado individual de notificaciones como leídas al hacer clic (`markOneRead`)
+
 ## [0.4.0] - 2026-06-06 — Sprint 4 🔄 (tracking completado)
 
 ### Agregado
