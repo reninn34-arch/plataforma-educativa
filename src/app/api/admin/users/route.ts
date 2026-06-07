@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 
 /**
  * @swagger
@@ -52,8 +51,9 @@ import bcrypt from "bcryptjs";
  */
 import { db } from "@/lib/db";
 import { users, cursoProfesores, subjects } from "@/lib/db/schema";
-import { eq, desc, and, inArray, type SQL } from "drizzle-orm";
+import { eq, desc, and, inArray, sql, type SQL } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
+import { hashPin } from "@/lib/hash-utils";
 import type { UserRole } from "@/lib/types";
 
 function generatePin(): string {
@@ -139,15 +139,15 @@ export async function POST(request: NextRequest) {
       if (!existing.activo) {
         await db.update(users).set({ activo: true, fullName, role: role as UserRole, email: email || null }).where(eq(users.id, existing.id));
         const pin = generatePin();
-        const hashed = await bcrypt.hash(pin, 10);
-        await db.update(users).set({ pin: hashed }).where(eq(users.id, existing.id));
+        const hashed = await hashPin(pin);
+        await db.update(users).set({ pin: hashed, pinUpdatedAt: sql`now()` }).where(eq(users.id, existing.id));
         return NextResponse.json({ user: { id: existing.id, cedula, fullName, role, pin }, pin, reactivado: true }, { status: 200 });
       }
       return NextResponse.json({ error: "Ya existe un usuario con esa cedula" }, { status: 400 });
     }
 
     const pin = generatePin();
-    const hashed = await bcrypt.hash(pin, 10);
+    const hashed = await hashPin(pin);
 
     const [created] = await db.insert(users).values({
       cedula,

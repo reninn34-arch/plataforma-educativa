@@ -24,20 +24,21 @@ export default function TeacherProfilePage() {
 
   const [currentPin, setCurrentPin] = useState("");
   const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
   const [showPin, setShowPin] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
   const [saving, setSaving] = useState(false);
 
   const handleChangePin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentPin || !newPin || newPin.length !== 4) return;
+    if (!currentPin || !newPin || newPin.length !== 4 || newPin !== confirmPin) return;
     setSaving(true);
     setFeedback(null);
     try {
       const res = await apiFetch("/api/user/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ currentPin, newPin }) });
       const data = await res.json();
       setFeedback({ ok: res.ok, msg: res.ok ? "PIN actualizado correctamente" : data.error });
-      if (res.ok) { setCurrentPin(""); setNewPin(""); }
+      if (res.ok) { setCurrentPin(""); setNewPin(""); setConfirmPin(""); }
     } catch { setFeedback({ ok: false, msg: "Error de conexión" }); }
     setSaving(false);
   };
@@ -131,13 +132,18 @@ export default function TeacherProfilePage() {
               <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Nuevo PIN (4 dígitos)</label>
               <input type={showPin ? "text" : "password"} value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4))} maxLength={4} className="w-full h-11 rounded-xl border border-border bg-card px-4 text-sm font-bold tracking-[0.3em] placeholder:tracking-normal focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" placeholder="····" />
             </div>
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Confirmar Nuevo PIN</label>
+              <input type={showPin ? "text" : "password"} value={confirmPin} onChange={e => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4))} maxLength={4} className={`w-full h-11 rounded-xl border bg-card px-4 text-sm font-bold tracking-[0.3em] placeholder:tracking-normal focus:outline-none transition-all ${confirmPin && confirmPin !== newPin ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-100" : "border-border focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"}`} placeholder="····" />
+              {confirmPin && confirmPin !== newPin && <p className="text-xs text-red-500 mt-1">Los PINs no coinciden</p>}
+            </div>
             {feedback && (
               <div className={`flex items-center gap-2 text-sm p-3 rounded-xl ${feedback.ok ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
                 {feedback.ok ? <CheckCircle size={16} /> : <span>⚠️</span>}
                 {feedback.msg}
               </div>
             )}
-            <Button type="submit" disabled={saving || currentPin.length !== 4 || newPin.length !== 4} className="w-full gap-2 h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold disabled:opacity-50">
+            <Button type="submit" disabled={saving || currentPin.length !== 4 || newPin.length !== 4 || newPin !== confirmPin} className="w-full gap-2 h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold disabled:opacity-50">
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Shield size={16} />}
               {saving ? "Actualizando..." : "Actualizar PIN"}
             </Button>

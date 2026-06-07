@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { parseCSV, generatePin } from "@/lib/csv-utils";
 import { hashPin } from "@/lib/hash-utils";
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
       }
       for (const r of toReactivate) {
         await tx.update(users)
-          .set({ activo: true, fullName: r.nombre, role: "student", email: r.email || null, pin: r.hashed })
+          .set({ activo: true, fullName: r.nombre, role: "student", email: r.email || null, pin: r.hashed, pinUpdatedAt: sql`now()` })
           .where(eq(users.id, r.id));
       }
     });

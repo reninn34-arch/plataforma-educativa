@@ -4,6 +4,21 @@ Todas las cambios notables en Atlas Edu serán documentados aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/), y el proyecto usa [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] - 2026-06-06 — Sprint 6 🔐
+
+### Agregado
+- Campo "Confirmar Nuevo PIN" en perfiles de estudiantes y docentes para evitar errores de tipeo
+- Validación de complejidad de PIN: rechaza dígitos repetidos (1111), secuencias (1234, 4321) y +40 PINs comunes
+- Columna `pin_updated_at` en usuarios para audit trail de cambios de PIN
+
+### Cambiado
+- `profileSchema`: `currentPin` y `newPin` ahora son requeridos (no opcionales)
+- Todas las rutas de PIN migradas a `hashPin`/`comparePin` de `hash-utils.ts` (consistencia)
+- Cambio de PIN desde perfil ahora re-emite JWT y actualiza `pin_updated_at`
+
+### Corregido
+- Perfiles de estudiante y docente ahora muestran el email correctamente (select incluía solo cedula, fullName, role)
+
 ## [0.5.0] - 2026-06-06 — Sprint 5 🔧
 
 ### Corregido

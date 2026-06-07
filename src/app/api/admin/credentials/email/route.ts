@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { cursoEstudiantes, users, cursos } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
+import { hashPin } from "@/lib/hash-utils";
 import { getSmtpConfig } from "@/lib/smtp-config";
 
 export async function POST(request: NextRequest) {
@@ -43,11 +43,11 @@ export async function POST(request: NextRequest) {
       }));
 
       // Hash all pins concurrently
-      const hashedPins = await Promise.all(updates.map(u => bcrypt.hash(u.pin, 10)));
+      const hashedPins = await Promise.all(updates.map(u => hashPin(u.pin)));
 
       // Update all users concurrently
       await Promise.all(updates.map((u, i) =>
-        db.update(users).set({ pin: hashedPins[i] }).where(eq(users.id, u.id))
+        db.update(users).set({ pin: hashedPins[i], pinUpdatedAt: sql`now()` }).where(eq(users.id, u.id))
       ));
 
       for (const u of updates) {

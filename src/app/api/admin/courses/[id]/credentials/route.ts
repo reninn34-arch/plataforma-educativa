@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { cursoEstudiantes, users, cursos } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
+import { hashPin } from "@/lib/hash-utils";
 
 export async function GET(
   request: NextRequest,
@@ -79,8 +79,8 @@ export async function POST(
     for (const s of enrollments) {
       if (!s.id) continue;
       const pin = String(Math.floor(1000 + Math.random() * 9000));
-      const hashed = await bcrypt.hash(pin, 10);
-      await db.update(users).set({ pin: hashed }).where(eq(users.id, s.id));
+      const hashed = await hashPin(pin);
+      await db.update(users).set({ pin: hashed, pinUpdatedAt: sql`now()` }).where(eq(users.id, s.id));
       studentsWithNewPins.push({
         cedula: s.cedula || "",
         fullName: s.fullName || "",

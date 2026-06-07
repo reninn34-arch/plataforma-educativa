@@ -107,8 +107,41 @@ export const assignmentSchema = z.object({
   })).optional(),
 });
 
+const COMMON_PINS = [
+  "0000","1111","2222","3333","4444","5555","6666","7777","8888","9999",
+  "0123","1234","2345","3456","4567","5678","6789","7890",
+  "1122","2233","3344","4455","5566","6677","7788","8899",
+  "3210","4321","5432","6543","7654","8765","9876",
+  "0101","1010","1212","2020","2525","3636","4545",
+  "0001","0007","0010","0100","1000","1110","1234","2000","2001",
+  "2222","2580","3333","4444","5555","6666","7777","8888","9999",
+  "abcd","admin","pass","0007","0000","1234","1","1111","11","1212",
+  "123456","12345678","12345","password","qwerty","abc123",
+];
+
+export function isValidPin(pin: string): { valid: boolean; reason?: string } {
+  if (!/^\d{4}$/.test(pin)) {
+    return { valid: false, reason: "El PIN debe tener exactamente 4 dígitos" };
+  }
+  if (COMMON_PINS.includes(pin)) {
+    return { valid: false, reason: "Este PIN es demasiado común. Elige uno más seguro." };
+  }
+  if (/(\d)\1{3}/.test(pin)) {
+    return { valid: false, reason: "El PIN no debe tener todos los dígitos iguales" };
+  }
+  if (/^(\d)\1{2,}/.test(pin)) {
+    return { valid: false, reason: "Evita dígitos repetidos en tu PIN" };
+  }
+  const asc = /^0?1?2?3?4?5?6?7?8?9?$/.test(pin);
+  const desc = /^9?8?7?6?5?4?3?2?1?0?$/.test(pin);
+  if (asc || desc) {
+    return { valid: false, reason: "Evita secuencias numéricas (ej: 1234, 4321)" };
+  }
+  return { valid: true };
+}
+
 export const profileSchema = z.object({
   fullName: z.string().min(1).optional(),
-  currentPin: z.string().regex(/^\d{4}$/).optional(),
-  newPin: z.string().regex(/^\d{4}$/).optional(),
+  currentPin: z.string().regex(/^\d{4}$/, "PIN actual debe tener 4 dígitos"),
+  newPin: z.string().regex(/^\d{4}$/, "Nuevo PIN debe tener 4 dígitos"),
 });
