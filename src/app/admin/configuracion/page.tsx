@@ -13,7 +13,7 @@ const PROVIDERS: Record<string, { host: string; port: string; label: string; ins
     label: "Gmail / Google Workspace",
     instructions: `1. Activa la verificación en 2 pasos en tu cuenta de Google
 2. Ve a https://myaccount.google.com/apppasswords
-3. Selecciona "Correo" y "Otra (nombre personalizado)"
+3. Selecciona "Correo" y "Otro (nombre personalizado)"
 4. Pon "Atlas Edu" y copia la contraseña generada (16 caracteres)
 5. Pega esa contraseña en el campo "Contraseña SMTP"`,
   },
@@ -217,7 +217,15 @@ export default function ConfiguracionPage() {
             <h2 className="text-base font-bold text-foreground">Cómo configurar {PROVIDERS[provider].label}</h2>
           </div>
           <div className="p-5">
-            <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-sans leading-relaxed">{currentInstructions}</pre>
+            <div className="text-sm text-muted-foreground leading-relaxed space-y-1">
+              {currentInstructions.split("\n").map((line, i) => {
+                const withLinks = line.replace(
+                  /https?:\/\/[^\s]+/g,
+                  (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#4f46e5;text-decoration:underline">${url}</a>`
+                );
+                return <p key={i} dangerouslySetInnerHTML={{ __html: withLinks }} />;
+              })}
+            </div>
           </div>
         </div>
       </div>

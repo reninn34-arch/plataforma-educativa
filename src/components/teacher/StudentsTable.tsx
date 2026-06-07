@@ -7,15 +7,13 @@ import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/fetch-utils";
 import {
   Search, ArrowDownUp, ChevronUp, ChevronDown,
-  Users, AlertTriangle, CheckCircle2, BarChart3, Loader2, TrendingDown,
+  Users, AlertTriangle, CheckCircle2, BarChart3, Loader2, TrendingDown, Smartphone,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { SemaforoRiesgo } from "@/components/SemaforoRiesgo";
-
 interface StudentGrades {
   average: number | null;
   pending: number;
@@ -27,6 +25,7 @@ interface StudentData {
   fullName: string;
   cedula: string;
   email: string | null;
+  whatsapp: string | null;
   cursoId: number;
   cursoNombre: string;
   grades: StudentGrades;
@@ -212,10 +211,6 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
             sorted.map((s) => {
               const avg = s.grades.average;
               const gradePercent = avg !== null ? Math.round(avg * 10) : 0;
-              const riskDaysInactive = s.grades.lastSubmission
-                ? Math.floor((Date.now() - new Date(s.grades.lastSubmission).getTime()) / (1000 * 60 * 60 * 24))
-                : 999;
-              const riskFailures = avg !== null && avg < 7 ? 5 : 0;
 
               return (
                 <div key={s.id + "-" + s.cursoId} className="p-4 hover:bg-muted transition-colors">
@@ -249,7 +244,13 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
                       {s.grades.pending > 0 ? `${s.grades.pending} pend.` : "Al dia"}
                     </span>
                     <span className="text-slate-300 hidden xs:inline">|</span>
-                    <SemaforoRiesgo daysInactive={riskDaysInactive} consecutiveFailures={riskFailures} />
+                    {s.whatsapp ? (
+                      <a href={`https://wa.me/${s.whatsapp}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-medium">
+                        <Smartphone className="h-3 w-3" />+{s.whatsapp}
+                      </a>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                   </div>
                 </div>
               );
@@ -285,7 +286,7 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
                     Pend. <SortIcon column="pending" />
                   </span>
                 </TableHead>
-                <TableHead><span className="text-xs font-semibold uppercase tracking-wider">Riesgo</span></TableHead>
+                <TableHead><span className="text-xs font-semibold uppercase tracking-wider">WhatsApp</span></TableHead>
                 <TableHead className="hidden md:table-cell"><span className="text-xs font-semibold uppercase tracking-wider">Ult. Entrega</span></TableHead>
               </TableRow>
             </TableHeader>
@@ -293,10 +294,6 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
               {sorted.map((s) => {
                 const avg = s.grades.average;
                 const gradePercent = avg !== null ? Math.round(avg * 10) : 0;
-                const riskDaysInactive = s.grades.lastSubmission
-                  ? Math.floor((Date.now() - new Date(s.grades.lastSubmission).getTime()) / (1000 * 60 * 60 * 24))
-                  : 999;
-                const riskFailures = avg !== null && avg < 7 ? 5 : 0;
 
                 return (
                   <TableRow key={s.id + "-" + s.cursoId}>
@@ -331,7 +328,19 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <SemaforoRiesgo daysInactive={riskDaysInactive} consecutiveFailures={riskFailures} />
+                      {s.whatsapp ? (
+                        <a
+                          href={`https://wa.me/${s.whatsapp}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 font-medium text-sm"
+                        >
+                          <Smartphone className="h-3.5 w-3.5" />
+                          +{s.whatsapp}
+                        </a>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
                       {daysAgo(s.grades.lastSubmission)}

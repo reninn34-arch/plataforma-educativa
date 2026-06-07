@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
         fullName: users.fullName,
         cedula: users.cedula,
         email: users.email,
+        whatsapp: users.whatsapp,
         cursoId: cursoEstudiantes.cursoId,
         cursoNombre: cursos.nombre,
       })
@@ -181,6 +182,7 @@ export async function GET(request: NextRequest) {
         fullName: s.fullName,
         cedula: s.cedula,
         email: s.email,
+        whatsapp: s.whatsapp,
         cursoId: s.cursoId,
         cursoNombre: s.cursoNombre,
         progress: progressByStudent[s.id] || [],
@@ -212,6 +214,7 @@ export async function GET(request: NextRequest) {
             id: s.id,
             fullName: s.fullName,
             cedula: s.cedula,
+            whatsapp: s.whatsapp,
             consecutiveFailures: s.grades.pending,
             daysInactive: daysSinceSub,
             subjectName: worstSubject?.subjectName || (s.grades.average !== null && s.grades.average < 7 ? "Bajo rendimiento" : "General"),

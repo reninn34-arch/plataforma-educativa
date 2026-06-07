@@ -33,6 +33,10 @@ export async function PUT(
       updateData.email = body.email || null;
     }
 
+    if (body.whatsapp !== undefined) {
+      updateData.whatsapp = body.whatsapp || null;
+    }
+
     if (body.cedula && body.cedula.length === 10) {
       const [dup] = await db.select({ id: users.id }).from(users).where(eq(users.cedula, body.cedula)).limit(1);
       if (dup && dup.id !== userId) {

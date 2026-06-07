@@ -4,12 +4,17 @@ Todas las cambios notables en Atlas Edu serán documentados aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/), y el proyecto usa [Semantic Versioning](https://semver.org/).
 
-## [0.6.0] - 2026-06-06 — Sprint 6 🔐
+## [0.6.1] - 2026-06-06 — Sprint 6 🔐
 
 ### Agregado
 - Campo "Confirmar Nuevo PIN" en perfiles de estudiantes y docentes para evitar errores de tipeo
 - Validación de complejidad de PIN: rechaza dígitos repetidos (1111), secuencias (1234, 4321) y +40 PINs comunes
 - Columna `pin_updated_at` en usuarios para audit trail de cambios de PIN
+- Columna `whatsapp` en usuarios para número de contacto
+- `POST /api/admin/users/[id]/send-credentials` para enviar credenciales a un usuario individual
+- Botón "Enviar credenciales por correo" en el modal de editar usuario
+- Campo WhatsApp en crear/editar usuarios (admin) y columna en tabla con link clickeable
+- Columna WhatsApp en tabla de estudiantes (docente) reemplaza la columna Riesgo, con link a wa.me
 
 ### Cambiado
 - `profileSchema`: `currentPin` y `newPin` ahora son requeridos (no opcionales)
@@ -18,6 +23,8 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/), y el proyecto 
 
 ### Corregido
 - Perfiles de estudiante y docente ahora muestran el email correctamente (select incluía solo cedula, fullName, role)
+- Al borrar WhatsApp/email en admin y guardar, no se limpiaba (enviaba `undefined` ignorado por el backend)
+- Instrucciones SMTP: link a App Passwords ahora es clickeable; texto "Otra" corregido a "Otro"
 
 ## [0.5.0] - 2026-06-06 — Sprint 5 🔧
 

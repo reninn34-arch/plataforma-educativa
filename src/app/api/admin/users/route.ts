@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(users.activo, true));
     }
     const data = await db
-      .select({ id: users.id, cedula: users.cedula, fullName: users.fullName, role: users.role, email: users.email, activo: users.activo, createdAt: users.createdAt })
+      .select({ id: users.id, cedula: users.cedula, fullName: users.fullName, role: users.role, email: users.email, whatsapp: users.whatsapp, activo: users.activo, createdAt: users.createdAt })
       .from(users)
       .where(and(...conditions))
       .orderBy(desc(users.createdAt));
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
   if (!user || user.role !== "admin") return NextResponse.json({ error: "Solo admin" }, { status: 403 });
 
   try {
-    const { cedula, fullName, role, email } = await request.json();
+    const { cedula, fullName, role, email, whatsapp } = await request.json();
 
     if (!cedula || cedula.length !== 10 || !fullName || !role) {
       return NextResponse.json({ error: "Cedula (10 digitos), nombre y rol requeridos" }, { status: 400 });
@@ -137,11 +137,11 @@ export async function POST(request: NextRequest) {
     const [existing] = await db.select({ id: users.id, activo: users.activo }).from(users).where(eq(users.cedula, cedula)).limit(1);
     if (existing) {
       if (!existing.activo) {
-        await db.update(users).set({ activo: true, fullName, role: role as UserRole, email: email || null }).where(eq(users.id, existing.id));
+        await db.update(users).set({ activo: true, fullName, role: role as UserRole, email: email || null, whatsapp: whatsapp || null }).where(eq(users.id, existing.id));
         const pin = generatePin();
         const hashed = await hashPin(pin);
         await db.update(users).set({ pin: hashed, pinUpdatedAt: sql`now()` }).where(eq(users.id, existing.id));
-        return NextResponse.json({ user: { id: existing.id, cedula, fullName, role, pin }, pin, reactivado: true }, { status: 200 });
+        return NextResponse.json({ user: { id: existing.id, cedula, fullName, role, email, whatsapp, pin }, pin, reactivado: true }, { status: 200 });
       }
       return NextResponse.json({ error: "Ya existe un usuario con esa cedula" }, { status: 400 });
     }
@@ -154,10 +154,11 @@ export async function POST(request: NextRequest) {
       fullName,
       role: role as UserRole,
       email: email || null,
+      whatsapp: whatsapp || null,
       pin: hashed,
     }).returning();
 
-    return NextResponse.json({ user: { id: created.id, cedula, fullName, role, pin }, pin }, { status: 201 });
+    return NextResponse.json({ user: { id: created.id, cedula, fullName, role, email, whatsapp, pin }, pin }, { status: 201 });
   } catch (error) {
     console.error("Admin create user error:", error);
     return NextResponse.json({ error: "Error al crear usuario" }, { status: 500 });

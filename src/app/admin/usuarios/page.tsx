@@ -2,12 +2,12 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { RefreshCw, Pencil, Search, Loader2, X, Copy, Check, UserPlus, Upload, Download, Power, PowerOff, AlertTriangle, ShieldCheck, GraduationCap } from "lucide-react";
+import { RefreshCw, Pencil, Search, Loader2, X, Copy, Check, UserPlus, Upload, Download, Power, PowerOff, AlertTriangle, ShieldCheck, GraduationCap, Send, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/fetch-utils";
 
-interface UserData { id: number; cedula: string; fullName: string; role: string; email: string | null; activo: boolean; createdAt: string; subjects?: { subjectId: number; subjectName: string; subjectEmoji: string }[]; }
+interface UserData { id: number; cedula: string; fullName: string; role: string; email: string | null; whatsapp: string | null; activo: boolean; createdAt: string; subjects?: { subjectId: number; subjectName: string; subjectEmoji: string }[]; }
 interface BulkResultItem { cedula: string; nombre: string; pin: string; status: "creado" | "reactivado" | "omitido" | "error"; razon?: string; }
 interface UsersData { users: UserData[]; }
 
@@ -20,6 +20,7 @@ export default function AdminUsersPage() {
   const [newCedula, setNewCedula] = useState("");
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
+  const [newWhatsapp, setNewWhatsapp] = useState("");
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState("");
@@ -32,8 +33,11 @@ export default function AdminUsersPage() {
   const [editCedula, setEditCedula] = useState("");
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
+  const [editWhatsapp, setEditWhatsapp] = useState("");
   const [editResetPin, setEditResetPin] = useState(false);
   const [editError, setEditError] = useState("");
+  const [sendingCreds, setSendingCreds] = useState(false);
+  const [credsFeedback, setCredsFeedback] = useState("");
 
   const [deactivateUser, setDeactivateUser] = useState<UserData | null>(null);
   const [reactivateUser, setReactivateUser] = useState<UserData | null>(null);
@@ -69,7 +73,7 @@ export default function AdminUsersPage() {
   const filteredUsers = users.filter(u => {
     if (!search) return true;
     const s = search.toLowerCase();
-    return u.fullName.toLowerCase().includes(s) || u.cedula.includes(s) || (u.email?.toLowerCase().includes(s) ?? false);
+    return u.fullName.toLowerCase().includes(s) || u.cedula.includes(s) || (u.email?.toLowerCase().includes(s) ?? false) || (u.whatsapp?.toLowerCase().includes(s) ?? false);
   });
 
   const invalidateUsers = useCallback(() => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); }, [queryClient]);
@@ -79,25 +83,37 @@ export default function AdminUsersPage() {
     if (!newCedula || newCedula.length !== 10 || !newName) return;
     setSaving(true); setError("");
     try {
-      const res = await apiFetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cedula: newCedula, fullName: newName, role: tab, email: newEmail || undefined }) });
+      const res = await apiFetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cedula: newCedula, fullName: newName, role: tab, email: newEmail || null, whatsapp: newWhatsapp || null }) });
       const d = await res.json();
       if (!res.ok) { setError(d.error || "Error al crear usuario"); }
       else {
         const pin = d.pin || d.user?.pin;
         if (pin) { setCreatedPin(pin); setCreatedCedula(newCedula); }
-        setShowCreate(false); setNewCedula(""); setNewName(""); setNewEmail(""); invalidateUsers();
+        setShowCreate(false); setNewCedula(""); setNewName(""); setNewEmail(""); setNewWhatsapp(""); invalidateUsers();
         setFeedback("Usuario creado exitosamente"); setTimeout(() => setFeedback(""), 3000);
       }
     } catch { setError("Error de conexión"); }
     setSaving(false);
   };
 
-  const startEdit = (u: UserData) => { setEditUser(u); setEditCedula(u.cedula); setEditName(u.fullName); setEditEmail(u.email || ""); setEditResetPin(false); setEditError(""); };
+  const handleSendCredentials = async () => {
+    if (!editUser) return;
+    setSendingCreds(true); setCredsFeedback("");
+    try {
+      const res = await apiFetch(`/api/admin/users/${editUser.id}/send-credentials`, { method: "POST" });
+      const d = await res.json();
+      setCredsFeedback(res.ok ? "Credenciales enviadas por correo" : d.error || "Error");
+    } catch { setCredsFeedback("Error de conexión"); }
+    setSendingCreds(false);
+    setTimeout(() => setCredsFeedback(""), 4000);
+  };
+
+  const startEdit = (u: UserData) => { setEditUser(u); setEditCedula(u.cedula); setEditName(u.fullName); setEditEmail(u.email || ""); setEditWhatsapp(u.whatsapp || ""); setEditResetPin(false); setEditError(""); };
   const handleEdit = async () => {
     if (!editUser) return;
     setSaving(true); setEditError("");
     try {
-      const res = await apiFetch(`/api/admin/users/${editUser.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cedula: editCedula, fullName: editName, email: editEmail || undefined, resetPin: editResetPin }) });
+      const res = await apiFetch(`/api/admin/users/${editUser.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cedula: editCedula, fullName: editName, email: editEmail || null, whatsapp: editWhatsapp || null, resetPin: editResetPin }) });
       const d = await res.json();
       if (!res.ok) { setEditError(d.error || "Error al actualizar"); }
       else {
@@ -202,6 +218,7 @@ export default function AdminUsersPage() {
                 <th className="text-left p-3 font-semibold text-muted-foreground">Nombre</th>
                 <th className="text-left p-3 font-semibold text-muted-foreground">Cédula</th>
                 <th className="text-left p-3 font-semibold text-muted-foreground">Email</th>
+                <th className="text-left p-3 font-semibold text-muted-foreground">WhatsApp</th>
                 <th className="text-left p-3 font-semibold text-muted-foreground">Estado</th>
                 <th className="text-right p-3 font-semibold text-muted-foreground">Acciones</th>
               </tr>
@@ -212,6 +229,7 @@ export default function AdminUsersPage() {
                   <td className="p-3 font-medium text-foreground">{u.fullName}</td>
                   <td className="p-3 text-muted-foreground">{u.cedula}</td>
                   <td className="p-3 text-muted-foreground">{u.email || "—"}</td>
+                  <td className="p-3">{u.whatsapp ? <a href={`https://wa.me/${u.whatsapp}`} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:text-emerald-700 font-medium text-sm">+{u.whatsapp}</a> : "—"}</td>
                   <td className="p-3"><Badge variant={u.activo ? "default" : "secondary"} className="text-[10px] rounded-lg">{u.activo ? "Activo" : "Inactivo"}</Badge></td>
                   <td className="p-3 text-right">
                     <div className="flex justify-end gap-1">
@@ -246,6 +264,10 @@ export default function AdminUsersPage() {
                 <label className="text-xs font-semibold text-muted-foreground mb-1 block">Email (opcional)</label>
                 <input value={newEmail} onChange={e => setNewEmail(e.target.value)} type="email" className="w-full h-10 rounded-xl border border-border bg-card px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" placeholder="juan@ejemplo.com" />
               </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground mb-1 block">WhatsApp (opcional, ej: 593999999999)</label>
+                <input value={newWhatsapp} onChange={e => setNewWhatsapp(e.target.value.replace(/\D/g, ""))} className="w-full h-10 rounded-xl border border-border bg-card px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" placeholder="593999999999" />
+              </div>
               {error && <p className="text-xs text-red-500">{error}</p>}
               <Button type="submit" disabled={saving || newCedula.length !== 10 || !newName} className="w-full h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200 gap-2">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}Crear Usuario</Button>
             </form>
@@ -273,11 +295,24 @@ export default function AdminUsersPage() {
                 <label className="text-xs font-semibold text-muted-foreground mb-1 block">Email</label>
                 <input value={editEmail} onChange={e => setEditEmail(e.target.value)} type="email" className="w-full h-10 rounded-xl border border-border bg-card px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" />
               </div>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground mb-1 block">WhatsApp</label>
+                <input value={editWhatsapp} onChange={e => setEditWhatsapp(e.target.value.replace(/\D/g, ""))} className="w-full h-10 rounded-xl border border-border bg-card px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" placeholder="593999999999" />
+              </div>
               <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
                 <input type="checkbox" checked={editResetPin} onChange={e => setEditResetPin(e.target.checked)} className="rounded border-border text-indigo-600 focus:ring-indigo-300" />
                 Regenerar PIN
               </label>
               {editError && <p className="text-xs text-red-500">{editError}</p>}
+              {editUser?.email && (
+                <>
+                  {credsFeedback && <p className={`text-xs ${credsFeedback.includes("Error") ? "text-red-500" : "text-emerald-600"}`}>{credsFeedback}</p>}
+                  <Button variant="outline" onClick={handleSendCredentials} disabled={sendingCreds} className="w-full rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50 gap-2">
+                    {sendingCreds ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    {sendingCreds ? "Enviando..." : "Enviar credenciales por correo"}
+                  </Button>
+                </>
+              )}
             </div>
             <div className="flex justify-end gap-2 p-4 border-t border-slate-100">
               <Button variant="outline" onClick={() => { setEditUser(null); setEditError(""); }} className="rounded-xl border-border">Cancelar</Button>
