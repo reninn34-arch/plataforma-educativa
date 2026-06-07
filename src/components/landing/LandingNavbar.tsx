@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { GraduationCap, Menu, X } from "lucide-react";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 export function LandingNavbar() {
   const [open, setOpen] = useState(false);
@@ -33,7 +32,6 @@ export function LandingNavbar() {
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <ThemeToggle />
           <Link
             href="/login"
             className="hidden sm:inline-flex h-9 items-center justify-center rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200/50 px-5 text-sm font-semibold transition-all hover:-translate-y-0.5"
