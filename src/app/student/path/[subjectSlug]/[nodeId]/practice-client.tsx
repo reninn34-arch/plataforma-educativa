@@ -494,7 +494,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
       </header>
 
       <main className={cn(
-        "flex-1 px-4 py-6 w-full min-w-0 relative",
+        "flex-1 px-4 py-2 sm:py-4 w-full min-w-0 relative",
         isDarkState ? "w-full" : "max-w-2xl mx-auto"
       )}>
 
@@ -568,21 +568,21 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
 
             {/* Coach Tooltip - Kahoot style */}
             {showCoach && (
-              <div className="mt-4 animate-fade-in-up z-50">
-                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5 flex gap-3 relative">
-                  <button onClick={() => setShowCoach(false)} className="absolute top-3 right-3 text-white/40 hover:text-white/80">
+              <div className="mt-2 sm:mt-3 animate-fade-in-up z-50 flex justify-center">
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-3 sm:p-4 flex gap-3 relative max-w-md w-full">
+                  <button onClick={() => setShowCoach(false)} className="absolute top-2 right-2 text-white/40 hover:text-white/80">
                     <X size={16} />
                   </button>
-                  <div className="h-12 w-12 bg-white/15 text-white rounded-full flex items-center justify-center shrink-0">
+                  <div className="h-10 w-10 bg-white/15 text-white rounded-full flex items-center justify-center shrink-0">
                     {coachLoading ? (
-                      <Loader2 size={22} className="animate-spin" />
+                      <Loader2 size={18} className="animate-spin" />
                     ) : (
-                      <MessageCircle size={22} />
+                      <MessageCircle size={18} />
                     )}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 pr-6">
                     <h4 className="text-sm font-bold text-white/90">Coach IA</h4>
-                    <p className="text-sm text-white/60 mt-0.5 leading-snug" dangerouslySetInnerHTML={{ __html: formatNotation(coachMessage) }} />
+                    <p className="text-xs sm:text-sm text-white/60 mt-0.5 leading-snug" dangerouslySetInnerHTML={{ __html: formatNotation(coachMessage) }} />
                   </div>
                 </div>
               </div>

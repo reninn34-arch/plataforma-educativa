@@ -96,7 +96,7 @@ export function QuestionCard({
   const showCorrectMCQ = answered && exercise.type === "mcq";
 
   return (
-    <div className="flex flex-col min-h-[70dvh]">
+    <div className="flex flex-col w-full">
       {/* Top bar: Question number + difficulty */}
       <div className="flex items-center justify-between mb-4">
         <div className="text-white/60 text-sm font-bold tracking-wider uppercase">
@@ -121,7 +121,7 @@ export function QuestionCard({
       <div className="space-y-2 w-full max-w-2xl mx-auto">
         {/* MCQ Options - Kahoot style colored rectangles */}
         {exercise.type === "mcq" && exercise.options && (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {exercise.options.map((opt, i) => {
               const isSelected = selected === i;
               const isCorrectOpt = i === exercise.correctIndex;
@@ -155,7 +155,7 @@ export function QuestionCard({
                   disabled={disabled}
                   onClick={() => handleMCQSelect(i)}
                   className={cn(
-                    "flex items-center gap-3 w-full rounded-2xl p-3 sm:p-4 text-left transition-all duration-200",
+                    "flex items-center gap-3 w-full h-full rounded-2xl p-3 sm:p-4 text-left transition-all duration-200",
                     "animate-kahoot-slide-up",
                     classes
                   )}
@@ -192,7 +192,7 @@ export function QuestionCard({
 
         {/* True/False - Kahoot style */}
         {exercise.type === "true_false" && (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             {[
               { val: true, label: "Verdadero", color: "#22C55E" },
               { val: false, label: "Falso", color: "#E21B3C" },
@@ -221,7 +221,7 @@ export function QuestionCard({
                   disabled={answered}
                   onClick={() => handleTFSelect(val)}
                   className={cn(
-                    "rounded-2xl p-4 sm:p-5 text-center text-lg sm:text-xl font-black text-white transition-all duration-200 animate-kahoot-slide-up",
+                    "rounded-2xl p-4 sm:p-5 text-center text-lg sm:text-xl font-black text-white transition-all duration-200 animate-kahoot-slide-up h-full",
                     classes
                   )}
                   style={{ backgroundColor: bg, animationDelay: val ? "0ms" : "100ms" }}
@@ -275,12 +275,12 @@ export function QuestionCard({
       {/* Feedback panel */}
       {answered && feedback && (
         <div className={cn(
-          "mt-4 rounded-2xl p-4 space-y-3 animate-kahoot-feedback-slide border",
+          "mt-4 rounded-2xl p-4 animate-kahoot-feedback-slide border flex flex-col sm:flex-row sm:items-center justify-between gap-4 max-w-2xl mx-auto w-full",
           isCorrect
             ? "bg-green-500/20 border-green-400/30"
             : "bg-red-500/20 border-red-400/30"
         )}>
-          <div className="flex items-start gap-3">
+          <div className="flex items-start sm:items-center gap-3 flex-1 w-full">
             <div className={cn(
               "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
               isCorrect ? "bg-green-500" : "bg-red-500"
@@ -289,18 +289,18 @@ export function QuestionCard({
             </div>
             <div>
               <p className={cn(
-                "font-bold text-lg mb-1",
+                "font-bold text-lg mb-0.5",
                 isCorrect ? "text-green-400" : "text-red-400"
               )}>
                 {isCorrect ? "Correcto!" : "Incorrecto"}
               </p>
-              <p className="text-white/80 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: formatNotation(feedback.feedback) }} />
+              <p className="text-white/80 text-sm leading-snug" dangerouslySetInnerHTML={{ __html: formatNotation(feedback.feedback) }} />
             </div>
           </div>
 
           <button
             onClick={onContinue}
-            className="flex items-center justify-center gap-2 w-full rounded-2xl bg-white text-slate-900 py-3 text-sm font-black hover:bg-white/90 transition-all active:scale-[0.98]"
+            className="flex items-center justify-center gap-2 w-full sm:w-auto sm:min-w-[140px] rounded-2xl bg-white text-slate-900 py-3 px-6 text-sm font-black hover:bg-white/90 transition-all active:scale-[0.98] shrink-0"
           >
             Continuar <ArrowRight className="h-5 w-5" />
           </button>
