@@ -5,6 +5,9 @@ import { cn, formatNotation } from "@/lib/utils";
 import { Check, X, ArrowRight, Lightbulb } from "lucide-react";
 import { sounds } from "@/lib/sounds";
 
+const KAHOOT_COLORS = ["#E21B3C", "#1368CE", "#D89E00", "#26890C"];
+const KAHOOT_COLORS_HOVER = ["#C41A33", "#1058B0", "#C08A00", "#1F7A0A"];
+
 interface Exercise {
   id: number;
   type: "mcq" | "fill_blank" | "true_false";
@@ -38,6 +41,20 @@ export function QuestionCard({
   const [textAnswer, setTextAnswer] = useState("");
   const [boolAnswer, setBoolAnswer] = useState<boolean | null>(null);
   const [answered, setAnswered] = useState(false);
+  const [entered, setEntered] = useState(false);
+
+  useEffect(() => {
+    setSelected(null);
+    setTextAnswer("");
+    setBoolAnswer(null);
+    setAnswered(false);
+    setEntered(false);
+  }, [exercise.id]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setEntered(true), 50);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     if (answered && feedback) {
@@ -46,17 +63,27 @@ export function QuestionCard({
     }
   }, [answered, feedback]);
 
-  const handleSubmit = () => {
-    if (exercise.type === "mcq" && selected !== null) {
-      setAnswered(true);
-      onAnswer(selected);
-    } else if (exercise.type === "true_false" && boolAnswer !== null) {
-      setAnswered(true);
-      onAnswer(boolAnswer);
-    } else if (exercise.type === "fill_blank" && textAnswer.trim()) {
-      setAnswered(true);
-      onAnswer(textAnswer.trim());
-    }
+  const handleSubmit = (answer: string | number | boolean) => {
+    if (answered) return;
+    setAnswered(true);
+    onAnswer(answer);
+  };
+
+  const handleMCQSelect = (i: number) => {
+    if (answered) return;
+    setSelected(i);
+    handleSubmit(i);
+  };
+
+  const handleTFSelect = (val: boolean) => {
+    if (answered) return;
+    setBoolAnswer(val);
+    handleSubmit(val);
+  };
+
+  const handleTextSubmit = () => {
+    if (!textAnswer.trim() || answered) return;
+    handleSubmit(textAnswer.trim());
   };
 
   const getCorrectAnswer = () => {
@@ -65,176 +92,217 @@ export function QuestionCard({
     return exercise.acceptedAnswers?.[0] || "";
   };
 
-  const feedbackColor = feedback?.isCorrect
-    ? "border-emerald-500 bg-emerald-50"
-    : "border-red-400 bg-red-50";
+  const isCorrect = feedback?.isCorrect ?? false;
+  const showCorrectMCQ = answered && exercise.type === "mcq";
 
   return (
-    <div className="animate-scale-in space-y-4">
-      {/* Progress bar */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span className="font-semibold text-primary">Pregunta {questionNumber} de {totalQuestions}</span>
+    <div className="flex flex-col min-h-[70dvh]">
+      {/* Top bar: Question number + difficulty */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-white/60 text-sm font-bold tracking-wider uppercase">
+          Pregunta {questionNumber}/{totalQuestions}
+        </div>
         {exercise.difficulty === "hard" && (
-          <span className="ml-auto rounded-full bg-purple-100 text-purple-700 px-2 py-0.5 text-[10px] font-bold border border-purple-200">
+          <span className="rounded-full bg-white/15 text-white/80 px-3 py-1 text-[10px] font-bold border border-white/20">
             SIN TIEMPO
           </span>
         )}
       </div>
 
       {/* Question */}
-      <div className="rounded-2xl border bg-card p-4 sm:p-6 shadow-sm">
-        <h3
-          className="text-lg font-bold text-foreground leading-relaxed"
+      <div className="flex-1 flex items-center justify-center mb-6">
+        <h2
+          className="text-white text-xl sm:text-2xl font-extrabold text-center leading-snug max-w-2xl"
           dangerouslySetInnerHTML={{ __html: formatNotation(exercise.question) }}
         />
       </div>
 
-      {/* MCQ Options */}
-      {exercise.type === "mcq" && exercise.options && (
-        <div className="grid gap-2.5">
-          {exercise.options.map((opt, i) => {
-            let stateClass = "border-border bg-card hover:border-primary/50 hover:bg-accent/50";
-            if (answered) {
-              if (i === exercise.correctIndex) {
-                stateClass = "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500/20";
-              } else if (i === selected && i !== exercise.correctIndex) {
-                stateClass = "border-red-400 bg-red-50 ring-1 ring-red-400/20";
-              } else {
-                stateClass = "border-border/50 bg-muted/30 opacity-50";
+      {/* Answers */}
+      <div className="space-y-2 w-full max-w-2xl mx-auto">
+        {/* MCQ Options - Kahoot style colored rectangles */}
+        {exercise.type === "mcq" && exercise.options && (
+          <div className="space-y-2">
+            {exercise.options.map((opt, i) => {
+              const isSelected = selected === i;
+              const isCorrectOpt = i === exercise.correctIndex;
+              let bgColor = KAHOOT_COLORS[i];
+              let hoverColor = KAHOOT_COLORS_HOVER[i];
+              let classes = "";
+              let disabled = false;
+
+              if (answered) {
+                disabled = true;
+                if (isCorrectOpt) {
+                  bgColor = "#22C55E";
+                  hoverColor = "#22C55E";
+                  classes = "ring-2 ring-white/50 shadow-[0_0_20px_rgba(34,197,94,0.5)] scale-[1.02]";
+                } else if (isSelected && !isCorrectOpt) {
+                  bgColor = "#DC2626";
+                  hoverColor = "#DC2626";
+                  classes = "opacity-50 scale-95";
+                } else {
+                  classes = "opacity-30";
+                }
+              } else if (isSelected) {
+                classes = "scale-[0.97] brightness-90";
               }
-            } else if (i === selected) {
-              stateClass = "border-primary bg-accent ring-1 ring-primary/20";
-            }
 
-            return (
-              <button
-                key={i}
-                disabled={answered}
-                onClick={() => setSelected(i)}
-                className={cn(
-                  "flex items-center gap-3 w-full rounded-xl border-2 p-3 sm:p-4 text-left transition-all duration-200 active:scale-[0.98] animate-fade-in-up",
-                  stateClass
-                )}
-                style={{ animationDelay: `${i * 80}ms` }}
-              >
-                <span className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold transition-colors",
-                  answered && i === exercise.correctIndex
-                    ? "bg-emerald-500 text-white"
-                    : answered && i === selected
-                    ? "bg-red-500 text-white"
-                    : selected === i
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
-                )}>
-                  {answered && i === exercise.correctIndex ? <Check className="h-4 w-4" /> :
-                   answered && i === selected ? <X className="h-4 w-4" /> :
-                   String.fromCharCode(65 + i)}
-                </span>
-                <span className="text-sm font-medium text-foreground" dangerouslySetInnerHTML={{ __html: formatNotation(opt) }} />
-              </button>
-            );
-          })}
-        </div>
-      )}
+              const letter = String.fromCharCode(65 + i);
 
-      {/* True/False */}
-      {exercise.type === "true_false" && (
-        <div className="grid grid-cols-2 gap-3">
-          {[true, false].map((val) => {
-            let stateClass = "border-border bg-card hover:border-primary/50";
-            if (answered) {
-              if (val === exercise.correctAnswer) {
-                stateClass = "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500/20";
-              } else if (val === boolAnswer && val !== exercise.correctAnswer) {
-                stateClass = "border-red-400 bg-red-50 ring-1 ring-red-400/20";
-              } else {
-                stateClass = "border-border/50 bg-muted/30 opacity-50";
+              return (
+                <button
+                  key={i}
+                  disabled={disabled}
+                  onClick={() => handleMCQSelect(i)}
+                  className={cn(
+                    "flex items-center gap-3 w-full rounded-2xl p-3 sm:p-4 text-left transition-all duration-200",
+                    "animate-kahoot-slide-up",
+                    classes
+                  )}
+                  style={{
+                    backgroundColor: bgColor,
+                    animationDelay: `${i * 100}ms`,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!answered && !disabled) {
+                      e.currentTarget.style.backgroundColor = KAHOOT_COLORS_HOVER[i];
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!answered && !disabled) {
+                      e.currentTarget.style.backgroundColor = KAHOOT_COLORS[i];
+                    }
+                  }}
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-black/20 text-white text-sm font-black">
+                    {answered && isCorrectOpt ? (
+                      <Check className="h-4 w-4" />
+                    ) : answered && isSelected && !isCorrectOpt ? (
+                      <X className="h-4 w-4" />
+                    ) : (
+                      letter
+                    )}
+                  </span>
+                  <span className="text-white text-sm sm:text-base font-bold" dangerouslySetInnerHTML={{ __html: formatNotation(opt) }} />
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* True/False - Kahoot style */}
+        {exercise.type === "true_false" && (
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { val: true, label: "Verdadero", color: "#22C55E" },
+              { val: false, label: "Falso", color: "#E21B3C" },
+            ].map(({ val, label, color }) => {
+              const isSelected = boolAnswer === val;
+              const isCorrectAns = val === exercise.correctAnswer;
+              let bg = color;
+              let classes = "";
+
+              if (answered) {
+                if (isCorrectAns) {
+                  classes = "ring-2 ring-white/50 shadow-[0_0_20px_rgba(34,197,94,0.5)]";
+                } else if (isSelected && !isCorrectAns) {
+                  bg = "#DC2626";
+                  classes = "opacity-50";
+                } else {
+                  classes = "opacity-30";
+                }
+              } else if (isSelected) {
+                classes = "scale-[0.95] brightness-90";
               }
-            } else if (val === boolAnswer) {
-              stateClass = "border-primary bg-accent ring-1 ring-primary/20";
-            }
 
-            return (
+              return (
+                <button
+                  key={String(val)}
+                  disabled={answered}
+                  onClick={() => handleTFSelect(val)}
+                  className={cn(
+                    "rounded-2xl p-4 sm:p-5 text-center text-lg sm:text-xl font-black text-white transition-all duration-200 animate-kahoot-slide-up",
+                    classes
+                  )}
+                  style={{ backgroundColor: bg, animationDelay: val ? "0ms" : "100ms" }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Fill in the blank */}
+        {exercise.type === "fill_blank" && (
+          <div className="space-y-4">
+            <input
+              type="text"
+              value={textAnswer}
+              onChange={(e) => setTextAnswer(e.target.value)}
+              disabled={answered}
+              onKeyDown={(e) => { if (e.key === "Enter") handleTextSubmit(); }}
+              placeholder="Escribe tu respuesta aqui..."
+              className={cn(
+                "w-full rounded-2xl border-2 px-5 py-4 text-base text-white placeholder:text-white/40 font-bold focus:outline-none transition-all duration-200",
+                answered
+                  ? isCorrect
+                    ? "border-green-400 bg-green-500/20"
+                    : "border-red-400 bg-red-500/20"
+                  : "border-white/20 bg-white/10 focus:border-white/50 focus:bg-white/15"
+              )}
+              autoComplete="off"
+              autoFocus
+            />
+            {!answered && (
               <button
-                key={String(val)}
-                disabled={answered}
-                onClick={() => setBoolAnswer(val)}
-                className={cn(
-                  "rounded-xl border-2 p-3 sm:p-5 text-center text-lg font-bold transition-all active:scale-95 animate-fade-in-up",
-                  stateClass
-                )}
-                style={{ animationDelay: `${val ? 0 : 80}ms` }}
+                onClick={handleTextSubmit}
+                disabled={!textAnswer.trim()}
+                className="w-full rounded-2xl bg-white/15 text-white font-bold text-sm py-3 hover:bg-white/25 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-[0.98] border border-white/20"
               >
-                {val ? "Verdadero" : "Falso"}
+                Enviar respuesta
               </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Fill in the blank */}
-      {exercise.type === "fill_blank" && (
-        <div className="space-y-3">
-          <input
-            type="text"
-            value={textAnswer}
-            onChange={(e) => setTextAnswer(e.target.value)}
-            disabled={answered}
-            onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }}
-            placeholder="Escribe tu respuesta aqui..."
-            className={cn(
-              "w-full rounded-xl border-2 bg-card px-5 py-4 text-lg text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors",
-              answered
-                ? feedback?.isCorrect
-                  ? "border-emerald-500 bg-emerald-50"
-                  : "border-red-400 bg-red-50"
-                : "border-input focus:border-primary focus:ring-2 focus:ring-primary/20"
             )}
-            autoComplete="off"
-            autoFocus
-          />
-          {answered && (
-            <p className="text-sm text-muted-foreground">
-              Respuesta esperada: <span className="font-semibold text-foreground" dangerouslySetInnerHTML={{ __html: formatNotation(String(getCorrectAnswer())) }} />
-            </p>
-          )}
-        </div>
-      )}
+            {answered && !isCorrect && (
+              <p className="text-white/60 text-sm text-center">
+                Respuesta esperada: <span className="font-bold text-white" dangerouslySetInnerHTML={{ __html: formatNotation(String(getCorrectAnswer())) }} />
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
-      {/* Submit button (before answering) */}
-      {!answered && (
-        <button
-          onClick={handleSubmit}
-          disabled={
-            (exercise.type === "mcq" && selected === null) ||
-            (exercise.type === "true_false" && boolAnswer === null) ||
-            (exercise.type === "fill_blank" && !textAnswer.trim())
-          }
-          className="w-full rounded-xl bg-primary py-3.5 sm:py-4 text-base font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-sm"
-        >
-          Comprobar respuesta
-        </button>
-      )}
-
-      {/* Feedback + Continue */}
+      {/* Feedback panel */}
       {answered && feedback && (
-        <div className={cn("rounded-2xl border-2 p-4 sm:p-5 space-y-4 animate-scale-in", feedbackColor, !feedback.isCorrect && "animate-shake")}>
+        <div className={cn(
+          "mt-4 rounded-2xl p-4 space-y-3 animate-kahoot-feedback-slide border",
+          isCorrect
+            ? "bg-green-500/20 border-green-400/30"
+            : "bg-red-500/20 border-red-400/30"
+        )}>
           <div className="flex items-start gap-3">
             <div className={cn(
-              "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-              feedback.isCorrect ? "bg-emerald-500 text-white" : "bg-red-500 text-white"
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+              isCorrect ? "bg-green-500" : "bg-red-500"
             )}>
-              {feedback.isCorrect ? <Check className="h-4 w-4" /> : <Lightbulb className="h-4 w-4" />}
+              {isCorrect ? <Check className="h-5 w-5 text-white" /> : <Lightbulb className="h-5 w-5 text-white" />}
             </div>
-            <p className="text-sm font-medium text-foreground leading-relaxed" dangerouslySetInnerHTML={{ __html: formatNotation(feedback.feedback) }} />
+            <div>
+              <p className={cn(
+                "font-bold text-lg mb-1",
+                isCorrect ? "text-green-400" : "text-red-400"
+              )}>
+                {isCorrect ? "Correcto!" : "Incorrecto"}
+              </p>
+              <p className="text-white/80 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: formatNotation(feedback.feedback) }} />
+            </div>
           </div>
 
           <button
             onClick={onContinue}
-            className="flex items-center justify-center gap-2 w-full rounded-xl bg-primary py-3 sm:py-3.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-all active:scale-[0.98] shadow-sm"
+            className="flex items-center justify-center gap-2 w-full rounded-2xl bg-white text-slate-900 py-3 text-sm font-black hover:bg-white/90 transition-all active:scale-[0.98]"
           >
-            Continuar <ArrowRight className="h-4 w-4" />
+            Continuar <ArrowRight className="h-5 w-5" />
           </button>
         </div>
       )}

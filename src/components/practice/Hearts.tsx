@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 function HeartIcon({ filled, breaking }: { filled: boolean; breaking: boolean }) {
@@ -10,7 +10,7 @@ function HeartIcon({ filled, breaking }: { filled: boolean; breaking: boolean })
       height="22"
       viewBox="0 0 24 24"
       fill={filled ? "#EF4444" : "none"}
-      stroke={filled ? "#EF4444" : "#D1D5DB"}
+      stroke={filled ? "#EF4444" : "rgba(255,255,255,0.3)"}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -27,12 +27,12 @@ function HeartIcon({ filled, breaking }: { filled: boolean; breaking: boolean })
 
 export function Hearts({ lives, maxLives }: { lives: number; maxLives: number }) {
   const prevLives = useRef(lives);
-  const [breakingIndex, setBreakingIndex] = useState<number | null>(null);
+  const breakingIndexRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (lives < prevLives.current) {
-      setBreakingIndex(lives);
-      const timer = setTimeout(() => setBreakingIndex(null), 500);
+      breakingIndexRef.current = lives;
+      const timer = setTimeout(() => { breakingIndexRef.current = null; }, 500);
       prevLives.current = lives;
       return () => clearTimeout(timer);
     }
@@ -45,13 +45,13 @@ export function Hearts({ lives, maxLives }: { lives: number; maxLives: number })
     <div className="flex items-center gap-1">
       {Array.from({ length: maxLives }).map((_, i) => {
         const filled = i < lives;
-        const breaking = i === breakingIndex;
+        const breaking = i === breakingIndexRef.current;
         return (
           <span
             key={i}
             className={cn(
               "transition-all duration-300 inline-flex",
-              filled || breaking ? "opacity-100" : "opacity-30"
+              filled || breaking ? "opacity-100" : "opacity-25"
             )}
           >
             <HeartIcon filled={filled} breaking={breaking} />

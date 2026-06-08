@@ -319,7 +319,7 @@ const practiceResponseSchema = z.preprocess((val: any) => {
   return normalized;
 }, z.object({
   lesson: lessonSchema,
-  exercises: z.array(exerciseItemSchema).length(4),
+  exercises: z.array(exerciseItemSchema).length(8),
   videos: z.array(videoSchema).default([]),
 }));
 
@@ -343,7 +343,7 @@ const cachedLessonSchema = z.preprocess((val: any) => {
 
 const cachedPracticeResponseSchema = z.object({
   lesson: cachedLessonSchema,
-  exercises: z.array(exerciseItemSchema).length(4),
+  exercises: z.array(exerciseItemSchema).length(8),
   videos: z.array(videoSchema).default([]),
 });
 
@@ -467,7 +467,7 @@ COMPROBACION RAPIDA ("quickCheck"):
 - 1 pregunta con 4 opciones. Feedback util en 1 oracion.
 
 REGLAS EJERCICIOS:
-- EXACTAMENTE 4 ejercicios.
+- EXACTAMENTE 8 ejercicios.
 - Variar tipos: maximo 2 del mismo tipo (mcq, fill_blank, true_false).
 - Dificultad variada: al menos 1 easy, 1 medium, 1 hard.
 - MCQ: "options" con 4 strings, "correctIndex" (0-3). NO usar "correctAnswer".

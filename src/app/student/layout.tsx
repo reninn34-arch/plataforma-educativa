@@ -3,6 +3,7 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AiAssistant } from "@/components/ai/AiAssistant";
 import { Home, Award, Calendar, User, BookOpen, ClipboardList, Clock } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 const studentLinks = [
   { href: "/student/dashboard", label: "Inicio", icon: Home },
@@ -15,8 +16,12 @@ const studentLinks = [
 ];
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  // Check if we are inside a practice session node: /student/path/[slug]/[nodeId]
+  const isFullScreen = pathname?.includes("/path/") && pathname?.split("/").length >= 5;
+
   return (
-    <AppLayout role="student" links={studentLinks} title="Panel del Estudiante">
+    <AppLayout role="student" links={studentLinks} title="Panel del Estudiante" isFullScreen={!!isFullScreen}>
       {children}
       <AiAssistant showFab={false} />
     </AppLayout>

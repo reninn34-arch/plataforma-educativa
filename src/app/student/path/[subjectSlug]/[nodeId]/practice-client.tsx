@@ -107,6 +107,11 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
   const [flashRed, setFlashRed] = useState(false);
   const [showModuleComplete, setShowModuleComplete] = useState(false);
 
+  // Log game state changes for debugging
+  useEffect(() => {
+    console.log("[DEBUG] gameState:", gameState, "| lives:", lives, "| currentIndex:", currentIndex, "| correctCount:", correctCount, "| totalExercises:", exercises.length, "| gameOverRef:", gameOverRef.current, "| feedback:", !!feedback);
+  }, [gameState, lives, currentIndex, correctCount, exercises.length, feedback]);
+
   useEffect(() => {
     if (flashRed) {
       const timer = setTimeout(() => setFlashRed(false), 600);
@@ -135,10 +140,21 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     }
   }, [timerSeconds, gameState]);
 
+  // Oculta sidebar y sale de fullscreen
+  useEffect(() => {
+    const isPracticeActive = gameState === "countdown" || gameState === "playing" || gameState === "results";
+    document.body.classList.toggle("practice-active", isPracticeActive);
+    return () => {
+      document.body.classList.remove("practice-active");
+      document.exitFullscreen?.().catch(() => {});
+    };
+  }, [gameState]);
+
   const currentExercise = exercises[currentIndex];
 
   const fetchExercises = useCallback(async (isRetry = false) => {
     setGameState("loading");
+    console.log("[DEBUG] fetchExercises start | isRetry:", isRetry, "| nodeId:", nodeId, "| subject:", subjectSlug);
     try {
       const res = await apiFetch("/api/practice/generate", {
         method: "POST",
@@ -152,9 +168,12 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
         }),
       });
       const data = await res.json();
+      console.log("[DEBUG] fetchExercises response | status:", res.status, "| hasExercises:", !!data.exercises, "| hasLesson:", !!data.lesson, "| hasError:", !!data.error, "| isCached:", data.cached);
       if (data.exercises) {
         setExercises(data.exercises);
-        if (data.lesson) {
+        if (isRetry) {
+          setGameState("countdown");
+        } else if (data.lesson) {
           setLesson({ ...data.lesson, videos: data.videos || [], videoSearchUrl: data.videoSearchUrl });
           setGameState("lesson");
         } else if (data.concept_bites && data.concept_bites.length > 0) {
@@ -259,9 +278,10 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
 
   function handleTimeout() {
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    console.log("[DEBUG] handleTimeout | question:", currentIndex, "| timerSeconds:", timerSeconds);
     setLives((l) => {
       const newLives = l - 1;
-      if (newLives <= 0) gameOverRef.current = true;
+      if (newLives <= 0) { gameOverRef.current = true; console.log("[DEBUG] gameOverRef set to TRUE by timeout"); }
       return newLives;
     });
     setCombo(0);
@@ -274,6 +294,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
 
   const handleAnswer = async (answer: string | number | boolean) => {
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    console.log("[DEBUG] handleAnswer | question:", currentIndex, "| answerType:", typeof answer, "| answer:", answer);
 
     let correctAnswer: string | number | boolean | string[] = "";
     if (currentExercise.type === "mcq") correctAnswer = currentExercise.correctIndex ?? currentExercise.correctAnswer ?? 0;
@@ -303,13 +324,15 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
         setMaxCombo((m) => Math.max(m, newCombo));
         setXpEarned((x) => x + 100 + (newCombo >= 2 ? newCombo * 25 : 0));
         setShowCoach(false);
+        console.log("[DEBUG] answer CORRECT | newCombo:", newCombo, "| correctCount:", correctCount + 1);
       } else {
         setCombo(0);
         setLives((l) => {
           const newLives = l - 1;
-          if (newLives <= 0) gameOverRef.current = true;
+          if (newLives <= 0) { gameOverRef.current = true; console.log("[DEBUG] gameOverRef set to TRUE by wrong answer"); }
           return newLives;
         });
+        console.log("[DEBUG] answer INCORRECT | lives remaining:", lives - 1);
         triggerCoach(currentExercise.question, String(answer), false);
       }
 
@@ -331,6 +354,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
   };
 
   const handleContinue = () => {
+    console.log("[DEBUG] handleContinue | gameOverRef:", gameOverRef.current, "| currentIndex:", currentIndex, "| total:", exercises.length, "| correctCount:", correctCount, "| nextModuleFirstNodeId:", nextModuleFirstNodeId, "| showModuleComplete:", showModuleComplete);
     setFeedback(null);
     setShowCoach(false);
 
@@ -348,6 +372,9 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
   };
 
   const handleRetry = () => {
+    console.log("[DEBUG] handleRetry");
+    document.documentElement.requestFullscreen?.().catch(() => {});
+    setShowModuleComplete(false);
     setCurrentIndex(0);
     setLives(3);
     setCorrectCount(0);
@@ -356,7 +383,6 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     setFeedback(null);
     setXpEarned(0);
     setTimerSeconds(0);
-    setLesson(null);
     gameOverRef.current = false;
     sessionSavedRef.current = false;
     savePromiseRef.current = null;
@@ -366,6 +392,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
   };
 
   const handleStartPractice = () => {
+    document.documentElement.requestFullscreen?.().catch(() => {});
     setGameState("countdown");
   };
 
@@ -388,6 +415,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
   }, [subjectSlug, aiPromptContext, nodeTitle, nodeId]);
 
   const handleBackToStudy = async () => {
+    document.exitFullscreen?.().catch(() => {});
     if (savePromiseRef.current) {
       try { await savePromiseRef.current; } catch {}
     }
@@ -395,6 +423,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
   };
 
   const handleNextNode = async () => {
+    document.exitFullscreen?.().catch(() => {});
     if (savePromiseRef.current) {
       try { await savePromiseRef.current; } catch {}
     }
@@ -402,17 +431,39 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
   };
 
   const handleNextModule = async () => {
+    document.exitFullscreen?.().catch(() => {});
     if (savePromiseRef.current) {
       try { await savePromiseRef.current; } catch {}
     }
     if (nextModuleFirstNodeId) router.push(`/student/path/${subjectSlug}/${nextModuleFirstNodeId}`);
   };
 
+  const isDarkState = gameState === "playing" || gameState === "countdown" || gameState === "results";
+
   return (
-    <div className="flex min-h-screen flex-col bg-[#F8FAFC] min-w-0 overflow-x-hidden">
-      <header className={cn("sticky top-0 z-20 border-b bg-white/95 backdrop-blur shadow-sm", theme.border)}>
-        <div className="flex h-14 items-center justify-between px-4 max-w-2xl mx-auto w-full">
-          <button onClick={handleBackToStudy} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors">
+    <div className={cn(
+      "flex min-h-screen flex-col min-w-0 overflow-x-hidden transition-colors duration-300",
+      isDarkState ? "bg-[#1A0533]" : "bg-[#F8FAFC]"
+    )}>
+      {/* Header - adapts to Kahoot dark mode */}
+      <header className={cn(
+        "sticky top-0 z-20 transition-all duration-300",
+        isDarkState
+          ? "bg-[#1A0533]/95 backdrop-blur border-b border-white/10"
+          : "bg-white/95 backdrop-blur shadow-sm border-b",
+        !isDarkState && theme.border
+      )}>
+        <div className={cn(
+          "flex h-14 items-center justify-between px-4 mx-auto w-full",
+          isDarkState ? "max-w-none" : "max-w-2xl"
+        )}>
+          <button
+            onClick={handleBackToStudy}
+            className={cn(
+              "flex items-center gap-2 transition-colors",
+              isDarkState ? "text-white/50 hover:text-white" : "text-slate-500 hover:text-slate-800"
+            )}
+          >
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-3">
@@ -425,16 +476,32 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
             {gameState === "playing" && <Hearts lives={lives} maxLives={3} />}
           </div>
         </div>
+        {/* Timer bar - Kahoot style horizontal bar during playing */}
+        {gameState === "playing" && currentExercise && currentExercise.timeLimit && (
+          <div className={cn(
+            "px-4 pb-2 mx-auto w-full",
+            isDarkState ? "max-w-none" : "max-w-2xl"
+          )}>
+            <TimerRing
+              key={currentIndex}
+              seconds={timerSeconds}
+              total={currentExercise.timeLimit}
+              onTimeout={handleTimeout}
+              paused={!!feedback}
+            />
+          </div>
+        )}
       </header>
 
-      <main className="flex-1 px-4 py-6 max-w-2xl mx-auto w-full min-w-0 relative">
+      <main className={cn(
+        "flex-1 px-4 py-6 w-full min-w-0 relative",
+        isDarkState ? "w-full" : "max-w-2xl mx-auto"
+      )}>
 
         {/* LOADING */}
         {gameState === "loading" && (
           <div className="animate-fade-in-up space-y-6 py-8">
-            {/* Skeleton header */}
             <div className={cn("h-12 rounded-2xl bg-gradient-to-r animate-pulse", theme.header)} />
-            {/* Skeleton step cards */}
             {[0, 1, 2].map((i) => (
               <div key={i} className="rounded-2xl border bg-white p-5 shadow-sm space-y-3" style={{ animationDelay: `${i * 150}ms` }}>
                 <div className="flex items-center gap-2">
@@ -469,29 +536,24 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
           <Countdown onDone={() => setGameState("playing")} />
         )}
 
-        {/* PLAYING */}
+        {/* PLAYING - Kahoot style */}
         {gameState === "playing" && currentExercise && (
-          <div className="space-y-4 animate-fade-in-up relative">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
-                  <div
-                    className={cn("h-full rounded-full transition-all duration-500", theme.progress)}
-                    style={{ width: `${((currentIndex + (feedback ? 1 : 0)) / exercises.length) * 100}%` }}
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-3 ml-4">
-                {currentExercise.timeLimit && !feedback && (
-                  <TimerRing
-                    key={currentIndex}
-                    seconds={timerSeconds}
-                    total={currentExercise.timeLimit}
-                    onTimeout={handleTimeout}
-                    paused={!!feedback}
-                  />
-                )}
-              </div>
+          <div className="animate-fade-in-up relative">
+            {/* Progress dots */}
+            <div className="flex items-center justify-center gap-1.5 mb-6">
+              {exercises.map((_, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    "h-2 rounded-full transition-all duration-300",
+                    i === currentIndex
+                      ? "w-8 bg-white"
+                      : i < currentIndex
+                      ? "w-2 bg-green-400"
+                      : "w-2 bg-white/20"
+                  )}
+                />
+              ))}
             </div>
 
             <QuestionCard
@@ -504,23 +566,23 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
               totalQuestions={exercises.length}
             />
 
-            {/* Coach Tooltip */}
+            {/* Coach Tooltip - Kahoot style */}
             {showCoach && (
               <div className="mt-4 animate-fade-in-up z-50">
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 shadow-lg flex gap-3 relative">
-                  <button onClick={() => setShowCoach(false)} className="absolute top-2 right-2 text-slate-400 hover:text-slate-600">
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5 flex gap-3 relative">
+                  <button onClick={() => setShowCoach(false)} className="absolute top-3 right-3 text-white/40 hover:text-white/80">
                     <X size={16} />
                   </button>
-                  <div className="h-10 w-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center shrink-0">
+                  <div className="h-12 w-12 bg-white/15 text-white rounded-full flex items-center justify-center shrink-0">
                     {coachLoading ? (
-                      <Loader2 size={20} className="animate-spin" />
+                      <Loader2 size={22} className="animate-spin" />
                     ) : (
-                      <MessageCircle size={20} />
+                      <MessageCircle size={22} />
                     )}
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-blue-900">Coach IA</h4>
-                    <p className="text-sm text-blue-800 mt-0.5 leading-snug" dangerouslySetInnerHTML={{ __html: formatNotation(coachMessage) }} />
+                  <div className="flex-1">
+                    <h4 className="text-sm font-bold text-white/90">Coach IA</h4>
+                    <p className="text-sm text-white/60 mt-0.5 leading-snug" dangerouslySetInnerHTML={{ __html: formatNotation(coachMessage) }} />
                   </div>
                 </div>
               </div>
@@ -553,12 +615,13 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
             maxCombo={maxCombo}
             moduleTitle={nextModuleTitle || ""}
             onNextModule={handleNextModule}
+            onRetry={handleRetry}
             onBack={handleBackToStudy}
           />
         )}
 
         {/* Red flash overlay */}
-        {flashRed && <div className="fixed inset-0 z-50 animate-flash-red" />}
+        {flashRed && <div className="fixed inset-0 z-50 animate-flash-red pointer-events-none" />}
       </main>
     </div>
   );

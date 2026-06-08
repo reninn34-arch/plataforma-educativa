@@ -14,9 +14,10 @@ interface AppLayoutProps {
   role: "student" | "teacher" | "parent" | "admin";
   links: { href: string; label: string; icon: any }[];
   title: string;
+  isFullScreen?: boolean;
 }
 
-export function AppLayout({ children, role, links, title }: AppLayoutProps) {
+export function AppLayout({ children, role, links, title, isFullScreen }: AppLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -46,7 +47,7 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
   return (
     <div className="flex min-h-screen bg-muted text-foreground overflow-x-hidden">
       {/* Mobile Overlay */}
-      {mobileMenuOpen && (
+      {mobileMenuOpen && !isFullScreen && (
         <div
           className="fixed inset-0 bg-slate-900/40 z-40 lg:hidden backdrop-blur-sm"
           onClick={() => setMobileMenuOpen(false)}
@@ -54,7 +55,8 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
       )}
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 bg-card dark:bg-slate-900 border-r border-border dark:border-slate-800 fixed inset-y-0 z-40 shadow-sm">
+      {!isFullScreen && (
+        <aside className="hidden lg:flex flex-col w-64 bg-card dark:bg-slate-900 border-r border-border dark:border-slate-800 fixed inset-y-0 z-40 shadow-sm">
         {/* Logo */}
         <div className="h-16 flex items-center gap-3 px-5 border-b border-slate-100 dark:border-slate-800">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold shadow-sm">
@@ -105,9 +107,11 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
           </button>
         </div>
       </aside>
+      )}
 
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-card/90 backdrop-blur-md border-b border-border z-40 flex items-center justify-between px-4">
+      {!isFullScreen && (
+        <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-card/90 backdrop-blur-md border-b border-border z-40 flex items-center justify-between px-4">
         <button
           className="text-muted-foreground hover:bg-muted p-2 rounded-xl transition-colors"
           onClick={() => setMobileMenuOpen(true)}
@@ -123,9 +127,10 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
           </div>
         </div>
       </div>
+      )}
 
       {/* Mobile Menu Panel */}
-      {mobileMenuOpen && (
+      {mobileMenuOpen && !isFullScreen && (
         <div className="lg:hidden fixed inset-y-0 left-0 w-72 bg-card z-50 shadow-2xl animate-fade-in-up border-r border-border flex flex-col">
           <div className="h-16 flex items-center justify-between px-5 border-b border-slate-100">
             <div className="flex items-center gap-3">
@@ -182,12 +187,14 @@ export function AppLayout({ children, role, links, title }: AppLayoutProps) {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-screen lg:pl-64 pt-16 lg:pt-0 w-full min-w-0 overflow-x-hidden">
+      <div className={`flex-1 flex flex-col min-h-screen w-full min-w-0 overflow-x-hidden ${isFullScreen ? "" : "lg:pl-64 pt-16 lg:pt-0"}`}>
         {/* Desktop Top Bar */}
-        <div className="hidden lg:flex items-center justify-end gap-1 px-6 py-3 border-b border-slate-100 dark:border-slate-800 bg-card/80 dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-30">
-          <ThemeToggle />
-          <NotificationBell />
-        </div>
+        {!isFullScreen && (
+          <div className="hidden lg:flex items-center justify-end gap-1 px-6 py-3 border-b border-slate-100 dark:border-slate-800 bg-card/80 dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-30">
+            <ThemeToggle />
+            <NotificationBell />
+          </div>
+        )}
         {children}
       </div>
     </div>

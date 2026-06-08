@@ -27,10 +27,10 @@ export function Countdown({ onDone }: { onDone: () => void }) {
   if (hidden) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A0533]">
       <div
         key={count}
-        className="text-[80px] sm:text-[120px] font-extrabold text-primary select-none animate-scale-in"
+        className="text-[100px] sm:text-[140px] font-extrabold text-white select-none animate-scale-in drop-shadow-[0_4px_20px_rgba(255,255,255,0.15)]"
         style={{ animationDuration: "500ms", animationIterationCount: "1" }}
       >
         {count}
