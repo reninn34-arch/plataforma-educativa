@@ -3,7 +3,7 @@ import { join } from "path";
 config({ path: join(process.cwd(), ".env.local") });
 
 import { drizzle } from "drizzle-orm/postgres-js";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import postgres from "postgres";
 import bcrypt from "bcryptjs";
 import * as schema from "../src/lib/db/schema";
@@ -16,24 +16,29 @@ async function seed() {
   console.log("🌱 Sembrando base de datos Atlas Edu...\n");
 
   // Delete in dependency order (children first)
-  await db.delete(schema.submissionAnswers);
-  await db.delete(schema.assignmentQuestions);
-  await db.delete(schema.directMessages);
-  await db.delete(schema.assignmentSubmissions);
-  await db.delete(schema.assignments);
-  await db.delete(schema.practiceAnswers);
-  await db.delete(schema.practiceSessions);
-  await db.delete(schema.studentExercises);
-  await db.delete(schema.cursoEstudiantes);
-  await db.delete(schema.cursos);
-  await db.delete(schema.chatMessages);
-  await db.delete(schema.chatSessions);
-  await db.delete(schema.progress);
-  await db.delete(schema.userProgress);
-  await db.delete(schema.nodes);
-  await db.delete(schema.modules);
-  await db.delete(schema.subjects);
-  await db.delete(schema.users);
+  // Truncate all tables in dependency order using CASCADE
+  await db.execute(sql`TRUNCATE TABLE
+    submission_answers,
+    assignment_questions,
+    direct_messages,
+    assignment_submissions,
+    assignments,
+    practice_answers,
+    practice_sessions,
+    student_exercises,
+    asistencia,
+    curso_estudiantes,
+    curso_profesores,
+    cursos,
+    chat_messages,
+    chat_sessions,
+    progress,
+    user_progress,
+    nodes,
+    modules,
+    subjects,
+    users
+  RESTART IDENTITY CASCADE`);
   console.log("🧹 Datos anteriores eliminados");
 
   const users = await db
