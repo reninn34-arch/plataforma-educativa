@@ -68,10 +68,15 @@ const diagramSchema = z.object({
   caption: z.string(),
 });
 
-const exampleStepSchema = z.object({
+const exampleStepSchema = z.preprocess((val: any) => {
+  if (val && typeof val === "object" && !val.text && val.description) {
+    return { ...val, text: val.description };
+  }
+  return val;
+}, z.object({
   text: z.string(),
   svg: z.string().optional(),
-});
+}));
 
 const baseLessonSchema = z.object({
   title: z.string(),
@@ -122,7 +127,7 @@ const baseLessonSchema = z.object({
       };
     }
     if (val && typeof val === "object") {
-      const desc = val.description ?? val.descripcion ?? val.error ?? "Error conceptual común.";
+      const desc = val.description ?? val.descripcion ?? val.text ?? val.error ?? "Error conceptual común.";
       const corr = val.correction ?? val.correccion ?? val.explicacion ?? "Forma correcta de resolver.";
       return {
         description: desc,
@@ -237,7 +242,7 @@ const videoSchema = z.object({
 const practiceResponseSchema = z.preprocess((val: any) => {
   if (val && typeof val === "object") {
     // 1. If it's a flat structure (e.g. title/explanation/ejercicios at root level)
-    const hasLessonKeys = val.title || val.titulo || val.explanation || val.explicacion || val.teoria;
+    const hasLessonKeys = val.title || val.titulo || val.explanation || val.explicacion || val.teoria || val.introduction || val.intro;
     const outerLessonKey = Object.keys(val).find(k => {
       const clean = k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/_/g, "");
       return (clean === "leccion" || clean === "lesson" || clean === "teoria" || clean === "theory") && typeof val[k] === "object";
@@ -246,7 +251,7 @@ const practiceResponseSchema = z.preprocess((val: any) => {
     if (!outerLessonKey && hasLessonKeys) {
       val.lesson = {
         title: val.title ?? val.titulo,
-        explanation: val.explanation ?? val.explicacion ?? (typeof val.teoria === "string" ? val.teoria : undefined),
+        explanation: val.explanation ?? val.explicacion ?? val.introduction ?? val.intro ?? (typeof val.teoria === "string" ? val.teoria : undefined),
         example: val.example ?? val.ejemplo,
         commonMistake: val.commonMistake ?? val.errorcomun ?? val.error_comun ?? val.error,
         quickCheck: val.quickCheck ?? val.comprobacionrapida ?? val.comprobacion_rapida ?? val.comprobacion,
