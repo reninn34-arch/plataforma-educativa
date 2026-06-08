@@ -20,7 +20,7 @@ export function RecuperarPinContent({ token }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPin.length !== 4 || confirmPin.length !== 4) {
-      setError("El PIN debe tener 4 digitos");
+      setError("El PIN debe tener 4 dígitos");
       return;
     }
     if (newPin !== confirmPin) {
@@ -45,7 +45,7 @@ export function RecuperarPinContent({ token }: Props) {
       }
       setSuccess(true);
     } catch {
-      setError("Error de conexion");
+      setError("Error de conexión");
     }
     setLoading(false);
   };
@@ -55,7 +55,7 @@ export function RecuperarPinContent({ token }: Props) {
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <Card className="max-w-sm w-full shadow-lg">
           <CardContent className="p-8 text-center space-y-4">
-            <p className="text-muted-foreground">Enlace invalido o faltante.</p>
+            <p className="text-muted-foreground">Enlace inválido o faltante.</p>
             <Button onClick={() => router.push("/login")} className="w-full">
               Volver al inicio
             </Button>
@@ -72,9 +72,9 @@ export function RecuperarPinContent({ token }: Props) {
           <CardContent className="p-8 text-center space-y-4">
             <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
             <h2 className="text-xl font-bold text-foreground">PIN actualizado</h2>
-            <p className="text-sm text-muted-foreground">Tu nuevo PIN ha sido guardado. Ya puedes iniciar sesion.</p>
+            <p className="text-sm text-muted-foreground">Tu nuevo PIN ha sido guardado.           Ya puedes iniciar sesión.</p>
             <Button onClick={() => router.push("/login")} className="w-full">
-              Ir al inicio de sesion
+              Ir al inicio de sesión
             </Button>
           </CardContent>
         </Card>
@@ -91,7 +91,7 @@ export function RecuperarPinContent({ token }: Props) {
               <span className="text-2xl">🔐</span>
             </div>
             <h2 className="mt-4 text-xl font-bold text-foreground">Nuevo PIN</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Ingresa tu nuevo PIN de 4 digitos</p>
+            <p className="mt-1 text-sm text-muted-foreground">          Ingresa tu nuevo PIN de 4 dígitos</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

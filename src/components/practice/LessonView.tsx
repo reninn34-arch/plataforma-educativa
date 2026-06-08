@@ -199,7 +199,7 @@ function VideoSlide({ videos, videoSearchUrl }: { videos: VideoData[]; videoSear
             className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
           >
             <ExternalLink className="h-3 w-3" />
-            Ver mas videos en YouTube sobre este tema
+            Ver más videos en YouTube sobre este tema
           </a>
         </div>
       )}
@@ -348,7 +348,7 @@ function QuickCheck({ data, onComplete }: { data: LessonData["quickCheck"]; onCo
     <div className="rounded-2xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm space-y-4">
       <div className="flex items-center gap-2">
         <Target className="h-5 w-5 text-amber-600" />
-        <h3 className="text-sm font-bold text-amber-800 uppercase tracking-wider">Comprobacion rapida</h3>
+        <h3 className="text-sm font-bold text-amber-800 uppercase tracking-wider">Comprobación rápida</h3>
       </div>
       <p
         className="text-base font-semibold text-foreground leading-relaxed"
@@ -404,7 +404,7 @@ function QuickCheck({ data, onComplete }: { data: LessonData["quickCheck"]; onCo
             )}
             <div className="space-y-2 w-full">
               <p className="text-sm font-semibold text-foreground">
-                {isCorrect ? "Correcto! Muy bien." : "No te preocupes, es parte del aprendizaje."}
+                {isCorrect ? "¡Correcto! Muy bien." : "No te preocupes, es parte del aprendizaje."}
               </p>
               <p
                 className="text-sm text-muted-foreground leading-relaxed"
@@ -619,7 +619,7 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
             <div className="rounded-2xl border bg-card shadow-sm">
               <div className="bg-gradient-to-r from-red-600 to-red-500 px-5 py-3">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Play className="h-4 w-4" /> Video explicativo
+                  <Play className="h-4 w-4" /> Vídeo explicativo
                 </h3>
               </div>
               <div className="p-4">
@@ -647,7 +647,7 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
             <div className="rounded-2xl border-2 border-red-200 bg-gradient-to-br from-red-50 to-white p-5 shadow-sm space-y-3">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-red-500" />
-                <h3 className="text-sm font-bold text-red-700 uppercase tracking-wider">Error comun</h3>
+                <h3 className="text-sm font-bold text-red-700 uppercase tracking-wider">Error común</h3>
               </div>
               <div className="rounded-xl bg-red-100/50 border border-red-200 px-4 py-3">
                 <p
@@ -681,7 +681,7 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
               <div>
                 <h3 className="text-xl font-bold text-foreground">Listo para practicar</h3>
                 <p className="text-sm text-muted-foreground mt-2 max-w-xs mx-auto">
-                  Has visto la teoria y los ejemplos. Ahora pon a prueba lo que aprendiste con ejercicios interactivos.
+                  Has visto la teoría y los ejemplos. Ahora pon a prueba lo que aprendiste con ejercicios interactivos.
                 </p>
               </div>
               <Button
@@ -689,7 +689,7 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
                 size="lg"
                 className="gap-2 px-8 text-base bg-emerald-600 hover:bg-emerald-700"
               >
-                <Play className="h-5 w-5" /> Empezar practica
+                <Play className="h-5 w-5" /> Empezar práctica
               </Button>
               <button
                 onClick={onStartPractice}

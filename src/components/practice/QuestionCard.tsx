@@ -242,7 +242,7 @@ export function QuestionCard({
               onChange={(e) => setTextAnswer(e.target.value)}
               disabled={answered}
               onKeyDown={(e) => { if (e.key === "Enter") handleTextSubmit(); }}
-              placeholder="Escribe tu respuesta aqui..."
+              placeholder="Escribe tu respuesta aquí..."
               className={cn(
                 "w-full rounded-2xl border-2 px-5 py-4 text-base text-white placeholder:text-white/40 font-bold focus:outline-none transition-all duration-200",
                 answered
@@ -292,7 +292,7 @@ export function QuestionCard({
                 "font-bold text-lg mb-0.5",
                 isCorrect ? "text-green-400" : "text-red-400"
               )}>
-                {isCorrect ? "Correcto!" : "Incorrecto"}
+                {isCorrect ? "¡Correcto!" : "Incorrecto"}
               </p>
               <p className="text-white/80 text-sm leading-snug" dangerouslySetInnerHTML={{ __html: formatNotation(feedback.feedback) }} />
             </div>

@@ -48,8 +48,8 @@ export async function POST(request: NextRequest) {
       try {
         result = await generateText({
           model: getChatModel(candidate),
-          system: "Eres un profesor experto en educacion acelerada para adultos (PCEI). Genera contenido educativo claro, con ejemplos practicos y lenguaje sencillo. Usa maximo 250 palabras.",
-          prompt: `AREA: ${ctx}${topic ? `\n\nTema especifico: ${topic}.` : ""}\n\nGenera un resumen teorico con:\n- Concepto clave (1 oracion)\n- Explicacion sencilla (2-3 oraciones)\n- 2 ejemplos practicos\n- Dato curioso o aplicacion en la vida real`,
+          system: "Eres un profesor experto en educación acelerada para adultos (PCEI). Genera contenido educativo claro, con ejemplos prácticos y lenguaje sencillo. Usa máximo 250 palabras.",
+          prompt: `AREA: ${ctx}${topic ? `\n\nTema específico: ${topic}.` : ""}\n\nGenera un resumen teórico con:\n- Concepto clave (1 oración)\n- Explicación sencilla (2-3 oraciones)\n- 2 ejemplos prácticos\n- Dato curioso o aplicación en la vida real`,
           maxOutputTokens: 400,
           temperature: 0.7,
           abortSignal: abortController.signal,

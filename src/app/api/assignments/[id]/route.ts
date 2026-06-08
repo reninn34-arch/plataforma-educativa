@@ -267,7 +267,7 @@ export async function PUT(
     const { title, description, dueDate, trimester, subjectId, cursoId, puntos, questions, fileUrl } = body;
 
     if (!title || !description) {
-      return NextResponse.json({ error: "Titulo y descripcion requeridos" }, { status: 400 });
+      return NextResponse.json({ error: "Título y descripción requeridos" }, { status: 400 });
     }
 
     const [existing] = await db

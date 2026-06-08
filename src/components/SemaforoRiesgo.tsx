@@ -19,7 +19,7 @@ function getRiskLabel(level: RiskLevel): string {
   switch (level) {
     case "green": return "Activo";
     case "yellow": return "En Riesgo";
-    case "red": return "Desercion";
+    case "red": return "Deserción";
   }
 }
 

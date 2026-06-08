@@ -268,9 +268,9 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
         }),
       });
       const data = await res.json();
-      setCoachMessage(data.coachMessage || "Sigue intentandolo, cada error es una oportunidad para aprender.");
+      setCoachMessage(data.coachMessage || "Sigue intentándolo, cada error es una oportunidad para aprender.");
     } catch {
-      setCoachMessage("Cada intento te acerca mas a dominar el tema. Sigue practicando.");
+      setCoachMessage("Cada intento te acerca más a dominar el tema. Sigue practicando.");
     } finally {
       setCoachLoading(false);
     }
@@ -287,7 +287,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     setCombo(0);
     setFeedback({
       isCorrect: false,
-      feedback: "Se acabo el tiempo. No te preocupes, en la siguiente pregunta lo haras mejor.",
+      feedback: "Se acabó el tiempo. No te preocupes, en la siguiente pregunta lo harás mejor.",
     });
     triggerCoach(currentExercise.question, "", true);
   }
@@ -348,7 +348,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     } catch {
       setFeedback({
         isCorrect: false,
-        feedback: "Error de conexion. Intentalo de nuevo en la siguiente pregunta.",
+        feedback: "Error de conexión. Inténtalo de nuevo en la siguiente pregunta.",
       });
     }
   };
@@ -518,8 +518,8 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
             <div className="text-center pt-4">
               <p className="text-sm font-medium text-slate-500 animate-pulse">
                 {retryGenerating
-                  ? "La IA esta generando nuevos ejercicios..."
-                  : "La IA esta diseniando tu camino..."
+                  ? "La IA está generando nuevos ejercicios..."
+                  : "La IA está diseñando tu camino..."
                 }
               </p>
             </div>

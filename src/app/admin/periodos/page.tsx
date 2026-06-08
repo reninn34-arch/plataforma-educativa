@@ -88,7 +88,7 @@ export default function AdminPeriodosPage() {
           <h1 className="text-2xl font-bold text-foreground">Períodos Lectivos</h1>
           <p className="text-sm text-muted-foreground mt-1">{periodos.length} períodos registrados</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200"><Plus className="h-4 w-4" />Nuevo Periodo</Button>
+        <Button onClick={() => setShowCreate(true)} className="gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200"><Plus className="h-4 w-4" />Nuevo Período</Button>
       </div>
 
       {feedback && <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-700">{feedback}</div>}
@@ -131,7 +131,7 @@ export default function AdminPeriodosPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-card rounded-2xl shadow-xl shadow-slate-200/50 w-full max-w-md mx-4">
             <div className="flex items-center justify-between p-4 border-b border-slate-100">
-              <h2 className="font-bold text-foreground">Nuevo Periodo</h2>
+              <h2 className="font-bold text-foreground">Nuevo Período</h2>
               <Button variant="ghost" size="icon-sm" onClick={() => { setShowCreate(false); setError(""); }} className="text-slate-400 hover:text-muted-foreground"><X className="h-4 w-4" /></Button>
             </div>
             <form onSubmit={handleCreate} className="p-4 space-y-4">
@@ -150,7 +150,7 @@ export default function AdminPeriodosPage() {
                 </div>
               </div>
               {error && <p className="text-xs text-red-500">{error}</p>}
-              <Button type="submit" disabled={saving || !nombre} className="w-full h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200 gap-2">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}Crear Periodo</Button>
+              <Button type="submit" disabled={saving || !nombre} className="w-full h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200 gap-2">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}Crear Período</Button>
             </form>
           </div>
         </div>
@@ -160,7 +160,7 @@ export default function AdminPeriodosPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-card rounded-2xl shadow-xl shadow-slate-200/50 w-full max-w-md mx-4">
             <div className="flex items-center justify-between p-4 border-b border-slate-100">
-              <h2 className="font-bold text-foreground">Editar Periodo</h2>
+              <h2 className="font-bold text-foreground">Editar Período</h2>
               <Button variant="ghost" size="icon-sm" onClick={() => { setEditId(null); setError(""); }} className="text-slate-400 hover:text-muted-foreground"><X className="h-4 w-4" /></Button>
             </div>
             <div className="p-4 space-y-4">
@@ -191,7 +191,7 @@ export default function AdminPeriodosPage() {
       {deletePeriodo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-card rounded-2xl shadow-xl shadow-slate-200/50 w-full max-w-md mx-4 p-6">
-            <h2 className="font-bold text-foreground mb-2">Eliminar Periodo</h2>
+            <h2 className="font-bold text-foreground mb-2">Eliminar Período</h2>
             <p className="text-sm text-muted-foreground mb-6">¿Seguro que deseas eliminar <strong className="text-foreground">{deletePeriodo.nombre}</strong>?</p>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setDeletePeriodo(null)} className="rounded-xl border-border">Cancelar</Button>

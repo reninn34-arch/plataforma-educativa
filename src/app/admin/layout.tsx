@@ -9,7 +9,7 @@ const adminLinks = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/usuarios", label: "Usuarios", icon: Users },
   { href: "/admin/cursos", label: "Cursos", icon: BookOpen },
-  { href: "/admin/periodos", label: "Periodos", icon: Calendar },
+  { href: "/admin/periodos", label: "Períodos", icon: Calendar },
   { href: "/admin/reportes", label: "Reportes", icon: FileText },
   { href: "/admin/configuracion", label: "Configuración", icon: Settings },
 ];

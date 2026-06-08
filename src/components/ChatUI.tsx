@@ -61,9 +61,9 @@ export function ChatUI({ subject }: { subject: string }) {
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 mb-4 shadow-sm">
                 <Bot className="h-8 w-8 text-indigo-600" />
               </div>
-              <p className="text-lg font-bold text-foreground">Tutor Socratico</p>
+              <p className="text-lg font-bold text-foreground">Tutor Socrático</p>
               <p className="mt-1 text-sm text-muted-foreground max-w-xs">
-                Escribe &quot;hola&quot; o &quot;empecemos&quot; para comenzar un ejercicio practico de <strong>{subject}</strong>
+                Escribe &quot;hola&quot; o &quot;empecemos&quot; para comenzar un ejercicio práctico de <strong>{subject}</strong>
               </p>
             </div>
           )}

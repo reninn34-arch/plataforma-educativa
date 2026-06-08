@@ -1646,11 +1646,11 @@ FORMATO JSON:
         data = tryParseJson(text);
         data = normalizeAssignmentKeys(data);
       } catch {
-        return { error: "La IA no pudo generar el examen en formato valido. Intenta nuevamente o ajusta los parametros." };
+        return { error: "La IA no pudo generar el examen en formato válido. Intenta nuevamente o ajusta los parámetros." };
       }
 
       if (!data || typeof data !== "object") {
-        return { error: "La IA no pudo generar el examen en formato valido. Intenta nuevamente o ajusta los parametros." };
+        return { error: "La IA no pudo generar el examen en formato válido. Intenta nuevamente o ajusta los parámetros." };
       }
 
       const targetCourses = await db

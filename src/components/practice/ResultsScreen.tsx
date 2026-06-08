@@ -94,7 +94,7 @@ export function ResultsScreen({
           <Trophy className="h-14 w-14 text-white animate-bounce-in" />
         </div>
         <h2 className="text-3xl sm:text-4xl font-black text-center text-white">
-          {wasPerfect ? "PERFECTO!" : stars >= 2 ? "Buen trabajo!" : "Sigue intentando"}
+          {wasPerfect ? "¡PERFECTO!" : stars >= 2 ? "¡Buen trabajo!" : "Sigue intentando"}
         </h2>
         {starsEarned > 0 && (
           <p className="text-yellow-400/80 text-sm font-semibold mt-2">

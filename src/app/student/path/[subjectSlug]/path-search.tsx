@@ -54,7 +54,7 @@ export function PathSearch({ subjectSlug, suggestedTopics }: PathSearchProps) {
         }
       }
     } catch {
-      setError("Error de conexion. Intenta de nuevo.");
+      setError("Error de conexión. Intenta de nuevo.");
     } finally {
       setLoading(false);
     }
@@ -64,7 +64,7 @@ export function PathSearch({ subjectSlug, suggestedTopics }: PathSearchProps) {
     <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
       <div className="flex items-center gap-2">
         <Search className="h-5 w-5 text-slate-400 shrink-0" />
-        <h3 className="text-sm font-bold text-slate-700">Que quieres aprender hoy?</h3>
+        <h3 className="text-sm font-bold text-slate-700">¿Qué quieres aprender hoy?</h3>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-2">
@@ -73,7 +73,7 @@ export function PathSearch({ subjectSlug, suggestedTopics }: PathSearchProps) {
           value={topic}
           onChange={(e) => { setTopic(e.target.value); setError(""); }}
           onKeyDown={(e) => { if (e.key === "Enter") handleGenerate(); }}
-          placeholder={`Ej: derivadas, verbos irregulares, celula...`}
+          placeholder={`Ej: derivadas, verbos irregulares, célula...`}
           className="flex-1 rounded-xl border-2 border-slate-200 px-4 py-2.5 text-sm focus:border-primary focus:outline-none transition-colors"
           aria-label="Buscar tema"
           disabled={loading}
@@ -99,7 +99,7 @@ export function PathSearch({ subjectSlug, suggestedTopics }: PathSearchProps) {
 
       {suggestedTopics.length > 0 && (
         <div>
-          <p className="text-xs text-slate-400 mb-2">Sugerencias rapidas:</p>
+          <p className="text-xs text-slate-400 mb-2">Sugerencias rápidas:</p>
           <div className="flex flex-wrap gap-2">
             {suggestedTopics.slice(0, 8).map((t) => (
               <button

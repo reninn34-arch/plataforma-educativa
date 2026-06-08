@@ -192,7 +192,7 @@ export function CreateAssignmentForm() {
         setErrorMsg(d.error || "Error al marcar");
       }
     } catch {
-      setErrorMsg("Error de conexion");
+      setErrorMsg("Error de conexión");
     }
     setAbsentLoading(null);
   };
@@ -245,7 +245,7 @@ export function CreateAssignmentForm() {
       setFeedback("Tarea generada con IA. Revisa y edita antes de publicar.");
       setTimeout(() => setFeedback(""), 4000);
     } catch {
-      setAiError("Error de conexion");
+      setAiError("Error de conexión");
     }
     setAiGenerating(false);
   };
@@ -269,7 +269,7 @@ export function CreateAssignmentForm() {
       setGradingSub(null);
       queryClient.invalidateQueries({ queryKey: ["assignment-submissions", selectedAssignment] });
     } catch {
-      setErrorMsg("Error de conexion al calificar");
+      setErrorMsg("Error de conexión al calificar");
     }
   };
 
@@ -290,7 +290,7 @@ export function CreateAssignmentForm() {
       queryClient.invalidateQueries({ queryKey: ["assignments-list"] });
       setTimeout(() => setFeedback(""), 3000);
     } catch {
-      setErrorMsg("Error de conexion al eliminar");
+      setErrorMsg("Error de conexión al eliminar");
     }
   };
 
@@ -364,7 +364,7 @@ export function CreateAssignmentForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !description.trim()) {
-      setErrorMsg("El titulo y la descripcion son requeridos");
+      setErrorMsg("El título y la descripción son requeridos");
       setSaving(false);
       return;
     }
@@ -422,7 +422,7 @@ export function CreateAssignmentForm() {
         setErrorMsg(d.error || "Error al guardar");
       }
     } catch {
-      setErrorMsg("Error de conexion al guardar");
+      setErrorMsg("Error de conexión al guardar");
     }
   };
 
@@ -445,7 +445,7 @@ export function CreateAssignmentForm() {
             <div className="p-6 space-y-4 text-center">
               <Trash2 className="mx-auto h-10 w-10 text-red-600" />
               <p className="font-bold text-foreground">Eliminar tarea</p>
-              <p className="text-sm text-muted-foreground">Esta accion no se puede deshacer. Se eliminaran todas las entregas de estudiantes.</p>
+              <p className="text-sm text-muted-foreground">Esta acción no se puede deshacer. Se eliminarán todas las entregas de estudiantes.</p>
               <div className="flex gap-3">
                 <Button variant="destructive" onClick={() => handleDelete(deleteConfirm)} className="flex-1 rounded-xl">Eliminar</Button>
                 <Button variant="outline" onClick={() => setDeleteConfirm(null)} className="flex-1 rounded-xl border-border">Cancelar</Button>
@@ -741,14 +741,14 @@ export function CreateAssignmentForm() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-sm font-semibold text-foreground mb-1.5 block">Puntaje maximo</label>
+                      <label className="text-sm font-semibold text-foreground mb-1.5 block">Puntaje máximo</label>
                       <input type="number" value={puntos} min={1} onChange={(e) => setPuntos(Math.max(1, parseInt(e.target.value) || 10))}
                         className="w-full h-10 rounded-xl border border-border bg-card px-3 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" />
-                      <p className="text-[10px] text-muted-foreground mt-0.5">Cuanto vale esta tarea sobre el total</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">¿Cuánto vale esta tarea sobre el total?</p>
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-semibold text-foreground mb-1.5 block">Descripcion / Instrucciones</label>
+                    <label className="text-sm font-semibold text-foreground mb-1.5 block">Descripción / Instrucciones</label>
                     <textarea value={description} onChange={(e) => setDescription(e.target.value)}
                       placeholder="Instrucciones generales..."
                       className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm min-h-[80px] resize-y focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" required />
@@ -800,7 +800,7 @@ export function CreateAssignmentForm() {
                         </button>
                       </div>
                       <p className="text-xs text-violet-600">
-                        La IA generara titulo, descripcion y preguntas en base a un tema. Podras editar todo antes de publicar.
+                        La IA generará título, descripción y preguntas en base a un tema. Podrás editar todo antes de publicar.
                       </p>
                       <div>
                         <label className="text-xs font-semibold text-foreground mb-1 block">
@@ -867,7 +867,7 @@ export function CreateAssignmentForm() {
                           </Button>
                         )}
                         <Button type="button" variant="outline" size="sm" onClick={() => addQuestion("mcq")} className="gap-1 text-xs h-9 rounded-xl border-border">
-                          <Pencil className="h-3 w-3" /> + Opcion multiple
+                          <Pencil className="h-3 w-3" /> + Opción múltiple
                         </Button>
                         <Button type="button" variant="outline" size="sm" onClick={() => addQuestion("file_upload")} className="gap-1 text-xs h-9 rounded-xl border-border">
                           <FileUp className="h-3 w-3" /> + Subir archivo
@@ -878,7 +878,7 @@ export function CreateAssignmentForm() {
                     {questions.length === 0 && (
                       <div className="rounded-lg border-2 border-dashed border-slate-500/20 p-6 text-center">
                         <ListChecks className="mx-auto h-6 w-6 text-muted-foreground/30" />
-                        <p className="mt-2 text-sm text-muted-foreground">Sin preguntas. Agrega opcion multiple o de subir archivo.</p>
+                        <p className="mt-2 text-sm text-muted-foreground">Sin preguntas. Agrega opción múltiple o de subir archivo.</p>
                       </div>
                     )}
 
@@ -887,7 +887,7 @@ export function CreateAssignmentForm() {
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold text-muted-foreground bg-muted rounded-full h-6 w-6 flex items-center justify-center">{qi + 1}</span>
                           <Badge variant={q.type === "mcq" ? "default" : "secondary"} className="text-xs rounded-lg">
-                            {q.type === "mcq" ? "Opcion multiple" : "Subir archivo"}
+                            {q.type === "mcq" ? "Opción múltiple" : "Subir archivo"}
                           </Badge>
                           <input type="number" value={q.points} min={1} max={20} onChange={(e) => updateQuestion(q.id, "points", parseInt(e.target.value) || 1)}
                             className="ml-auto w-14 h-9 text-sm text-center rounded-xl border border-border bg-card focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" title="Puntos" />
@@ -897,7 +897,7 @@ export function CreateAssignmentForm() {
                           </button>
                         </div>
                         <input type="text" value={q.question} onChange={(e) => updateQuestion(q.id, "question", e.target.value)}
-                          placeholder={q.type === "mcq" ? "Escribe la pregunta..." : "Describe que debe subir el estudiante..."}
+                          placeholder={q.type === "mcq" ? "Escribe la pregunta..." : "Describe qué debe subir el estudiante..."}
                           className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" />
                         {q.type === "mcq" && (
                           <div className="space-y-2">
@@ -907,7 +907,7 @@ export function CreateAssignmentForm() {
                                 <input type="radio" name={`correct_${q.id}`} checked={q.correctIndex === oi} onChange={() => updateQuestion(q.id, "correctIndex", oi)} className="h-4 w-4 text-indigo-600" />
                                 <span className="text-[11px] font-medium text-muted-foreground w-5">{String.fromCharCode(65 + oi)}</span>
                                 <input type="text" value={opt} onChange={(e) => updateOption(q.id, oi, e.target.value)}
-                                  placeholder={`Opcion ${String.fromCharCode(65 + oi)}`}
+                                  placeholder={`Opción ${String.fromCharCode(65 + oi)}`}
                                   className="flex-1 h-9 rounded-xl border border-border bg-card px-3 text-xs focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all" />
                               </div>
                             ))}

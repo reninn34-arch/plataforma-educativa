@@ -92,7 +92,7 @@ export function ModuleComplete({
             <Trophy className="h-12 w-12 text-white animate-bounce-in" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black mb-1 text-white">
-            {wasPerfect ? "MODULO COMPLETADO!" : "Modulo completado"}
+            {wasPerfect ? "¡MÓDULO COMPLETADO!" : "Módulo completado"}
           </h1>
           <p className="text-base text-white/50 font-medium">
             {moduleTitle}
@@ -146,7 +146,7 @@ export function ModuleComplete({
             onClick={onNextModule}
             className="group w-full rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 py-4 text-white font-black text-lg shadow-xl hover:from-green-600 hover:to-emerald-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
-            Siguiente modulo
+            Siguiente módulo
             <ChevronRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
           </button>
 

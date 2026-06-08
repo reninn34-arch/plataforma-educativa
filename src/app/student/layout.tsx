@@ -10,7 +10,7 @@ const studentLinks = [
   { href: "/student/horario", label: "Horario", icon: Clock },
   { href: "/student/assignments", label: "Tareas", icon: ClipboardList },
   { href: "/student/grades", label: "Calificaciones", icon: Award },
-  { href: "/student/practice", label: "Practica IA", icon: BookOpen },
+  { href: "/student/practice", label: "Práctica IA", icon: BookOpen },
   { href: "/student/calendar", label: "Calendario", icon: Calendar },
   { href: "/student/profile", label: "Mi Perfil", icon: User },
 ];

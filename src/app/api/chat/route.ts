@@ -15,7 +15,7 @@ REGLAS ESTRICTAS:
 2. Si el usuario se equivoca, no des la respuesta directa; valida su esfuerzo, dale una pista logica y pidele que lo intente de nuevo.
 3. Usa un lenguaje claro, sencillo y motivador, evitando jerga tecnica innecesaria.
 4. Siempre comienza presentando un ejercicio practico breve relacionado al tema.
-5. Manten tus respuestas concisas, maximo 3-4 oraciones por intervencion.`;
+5. Mantén tus respuestas concisas, máximo 3-4 oraciones por intervención.`;
 
 async function getOrCreateSession(userId: number, subjectSlug: string) {
   const [subject] = await db

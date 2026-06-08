@@ -37,7 +37,7 @@ export async function searchYouTubeVideos(query: string, maxResults = 2): Promis
       .slice(0, maxResults)
       .map((item) => ({
         id: item.id,
-        title: item.title || "Sin titulo",
+        title: item.title || "Sin título",
         channelName: item.channelTitle || item.shortBylineText?.runs?.[0]?.text || "Desconocido",
         thumbnailUrl: item.thumbnail?.thumbnails?.at(-1)?.url || "",
         duration: item.length?.simpleText || "",
