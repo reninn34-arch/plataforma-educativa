@@ -43,14 +43,16 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
   const subjectProgress = totalNodes > 0 ? Math.round((completedNodes / totalNodes) * 100) : 0;
   const totalStars = progressRecords.reduce((sum, p) => sum + (p.starsEarned || 0), 0);
 
-  const staticModules = subjectModules.filter(m => !m.generated);
-  const staticModuleIds = staticModules.map(m => m.id);
-  const staticNodes = allNodes.filter(n => staticModuleIds.includes(n.moduleId));
-  const suggestedTopics = [...new Set(staticNodes.map(n => n.title))];
+  const suggestedTopicsBySubject: Record<string, string[]> = {
+    matematicas: ["Sumas y restas", "Multiplicación", "Fracciones", "Ecuaciones lineales", "Porcentajes", "Geometría"],
+    fisica: ["Leyes de Newton", "Movimiento rectilíneo", "Caída libre", "Energía cinética", "Circuito eléctrico", "Ondas"],
+    ingles: ["Verbo to be", "Presente simple", "Pasado simple", "Vocabulario básico", "Preposiciones", "Futuro con will"],
+    quimica: ["El átomo", "Tabla periódica", "Enlaces químicos", "Balanceo de ecuaciones", "Ácidos y bases", "Compuestos orgánicos"],
+  };
+  const suggestedTopics = suggestedTopicsBySubject[subject.slug] || [];
 
   const generatedModules = subjectModules.filter(m => m.generated);
   const orderedModules = [
-    ...staticModules,
     ...generatedModules.sort((a, b) => b.order - a.order),
   ];
 

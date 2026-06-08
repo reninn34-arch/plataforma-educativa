@@ -482,9 +482,9 @@ AREA: ${ctx.area}
 Tema: ${topicContext}${materialBlock}
 
 REGLAS:
-- Usa graph TD con nodos A, B, C, D conectados con flechas --> .
-- Texto de cada nodo: solo letras, numeros y espacios. SIN parentesis (), corchetes [] ni comillas dentro del texto.
-- Si necesitas incluir caracteres especiales, usa comillas dobles: A["texto aqui"]
+- Usa graph TD con nodos conectados con flechas --> .
+- Texto de cada nodo: solo letras, numeros y espacios. SIN comillas.
+- Nodo simple: A[texto del nodo]
 - Ejemplo correcto: A[Suma de vectores] --> B[Resultante]
 - caption: maximo 6 palabras descriptivas.`
       : null;
@@ -543,20 +543,27 @@ REGLAS:
               return { object: r.object, usage: r.usage };
             } catch (objError) {
               console.warn(`[practice-generate] generateObject falló para ${candidate.modelId}, intentando fallback con generateText... Error:`, objError);
-              const r = await generateText({
-                model: aiModel,
-                prompt: lessonPrompt + "\n\nResponde UNICAMENTE con un objeto JSON valido estructurado de acuerdo al esquema esperado, sin usar bloques de markdown ni texto adicional.",
-                ...(isReasoning ? {} : { temperature: 0.6 }),
-                maxOutputTokens: 8000,
-                abortSignal: lessonAbort.signal,
-              });
-              const parsedJson = tryParseJson(r.text);
+              clearTimeout(lessonTimeoutId);
+              const fallbackAbort = new AbortController();
+              const fallbackTimeout = setTimeout(() => fallbackAbort.abort(), 30_000);
               try {
-                return { object: practiceResponseSchema.parse(parsedJson), usage: r.usage };
-              } catch (zodErr) {
-                console.error("[practice-generate] Zod parsing error (generateObject catch block). Raw text:", r.text);
-                console.error("[practice-generate] parsedJson:", JSON.stringify(parsedJson, null, 2));
-                throw zodErr;
+                const r = await generateText({
+                  model: aiModel,
+                  prompt: lessonPrompt + "\n\nResponde UNICAMENTE con un objeto JSON valido estructurado de acuerdo al esquema esperado, sin usar bloques de markdown ni texto adicional.",
+                  ...(isReasoning ? {} : { temperature: 0.6 }),
+                  maxOutputTokens: 8000,
+                  abortSignal: fallbackAbort.signal,
+                });
+                const parsedJson = tryParseJson(r.text);
+                try {
+                  return { object: practiceResponseSchema.parse(parsedJson), usage: r.usage };
+                } catch (zodErr) {
+                  console.error("[practice-generate] Zod parsing error (generateObject catch block). Raw text:", r.text);
+                  console.error("[practice-generate] parsedJson:", JSON.stringify(parsedJson, null, 2));
+                  throw zodErr;
+                }
+              } finally {
+                clearTimeout(fallbackTimeout);
               }
             }
           }
@@ -585,10 +592,9 @@ REGLAS:
                 } : undefined,
               });
               try {
-                const parsed = tryParseJson(r.text);
-                let mermaidStr = parsed.mermaid || "";
-                mermaidStr = mermaidStr.replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
-                return { mermaid: sanitizeMermaid(mermaidStr), caption: parsed.caption || "" };
+                const parsed = extractDiagramFromText(r.text);
+                if (!parsed) throw new Error("No se pudo extraer diagrama");
+                return { mermaid: sanitizeMermaid(parsed.mermaid), caption: parsed.caption };
               } catch {
                 console.error("[diagram] failed to parse JSON from generateText");
                 return null;
@@ -618,9 +624,8 @@ REGLAS:
                   caption: r.object.caption,
                 };
               } catch (err) {
-                const msg = String((err as any)?.message ?? err ?? "");
-                if (msg.includes("response_format") || msg.includes("unavailable")) {
-                  console.log("[diagram] response_format not supported, falling back to generateText");
+                console.warn("[diagram] generateObject failed, intentando fallback generateText...", (err as any)?.message || err);
+                try {
                   const r = await generateText({
                     model: aiModel,
                     prompt: diagramPrompt + "\n\nResponde SOLO con un JSON valido con dos campos: \"mermaid\" (string con el diagrama) y \"caption\" (string corta).",
@@ -638,24 +643,19 @@ REGLAS:
                       totalTokens: (r.usage.inputTokens ?? 0) + (r.usage.outputTokens ?? 0),
                     } : undefined,
                   });
-                  try {
-                    const parsed = tryParseJson(r.text);
-                    let mermaidStr = parsed.mermaid || "";
-                    mermaidStr = mermaidStr.replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
-                    return { mermaid: sanitizeMermaid(mermaidStr), caption: parsed.caption || "" };
-                  } catch {
-                    console.error("[diagram] failed to parse JSON from generateText");
-                    return null;
-                  }
+                  const parsed = extractDiagramFromText(r.text);
+                  if (!parsed) throw new Error("No se pudo extraer diagrama");
+                  return { mermaid: sanitizeMermaid(parsed.mermaid), caption: parsed.caption };
+                } catch (textErr) {
+                  console.error("[diagram] generateText tambien fallo:", (textErr as any)?.message || textErr);
+                  logAiCall({
+                    route: "practice-diagram-text",
+                    model: candidate.modelId,
+                    durationMs: Math.round(performance.now() - diagramStart),
+                    error: (textErr as any)?.message || "unknown",
+                  });
+                  return null;
                 }
-                console.error("[diagram] failed:", (err as any)?.message || err);
-                logAiCall({
-                  route: "practice-diagram",
-                  model: candidate.modelId,
-                  durationMs: Math.round(performance.now() - diagramStart),
-                  error: (err as any)?.message || "unknown",
-                });
-                return null;
               }
             }
           })();
@@ -738,4 +738,29 @@ REGLAS:
       { status: 500 }
     );
   }
+}
+
+function extractDiagramFromText(raw: string): { mermaid: string; caption: string } | null {
+  try {
+    const parsed = tryParseJson(raw);
+    let mermaidStr = (parsed.mermaid || "").replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
+    return { mermaid: mermaidStr, caption: parsed.caption || "" };
+  } catch { /* fallback to raw extraction */ }
+
+  const blockMatch = raw.match(/```(?:mermaid)?\s*\n?([\s\S]*?)```/i);
+  if (blockMatch) {
+    return { mermaid: blockMatch[1].trim(), caption: extractCaptionFromText(raw) };
+  }
+
+  const graphMatch = raw.match(/(graph\s+(?:TD|LR|TB|RL)[\s\S]*?)(?:\n{2,}|$)/i);
+  if (graphMatch) {
+    return { mermaid: graphMatch[1].trim(), caption: extractCaptionFromText(raw) };
+  }
+
+  return null;
+}
+
+function extractCaptionFromText(text: string): string {
+  const m = text.match(/caption[:\s]+(.+)/i);
+  return m ? m[1].trim() : "";
 }
