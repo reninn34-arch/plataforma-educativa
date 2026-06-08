@@ -454,10 +454,10 @@ EXPLICACION INICIAL ("explanation"):
 
 EJEMPLO ("example"):
 - Plantea un problema practico y relevante para adultos.
-- Cada paso es un objeto con "text" (explicacion) y opcionalmente "svg".
-- El SVG debe ser MUY simple: maximo 6 elementos (rect, circle, text, line). viewBox="0 0 260 120".
-- Usa colores hexadecimales (#FF6B6B, #4ECDC4, #333). Nada complejo.
-- Importante: escapa las comillas dentro del SVG como comillas SIMPLES (comillas simples). Ejemplo: viewBox='0 0 260 120'.
+- CADA paso DEBE incluir un campo "svg" con un diagrama SVG que ilustre visualmente ese paso (numeros, rectas, formas geometricas, operaciones).
+- El SVG debe ser MUY simple: maximo 6 elementos (rect, circle, text, line). viewBox='0 0 260 120'.
+- Usa SOLO comillas SIMPLES dentro del SVG: viewBox='0 0 260 120', rect x='10' y='10', etc.
+- Colores: #FF6B6B, #4ECDC4, #333, #FFD93D. Nada complejo.
 - Incluye "answer" como conclusion clara del ejemplo.
 
 ERROR COMUN ("commonMistake"):

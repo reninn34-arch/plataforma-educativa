@@ -425,6 +425,20 @@ function QuickCheck({ data, onComplete }: { data: LessonData["quickCheck"]; onCo
   );
 }
 
+function generateFallbackSvg(stepIndex: number): string {
+  const palette = ['#FF6B6B', '#4ECDC4', '#FFD93D', '#6C5CE7', '#FF8A5C', '#45B7D1'];
+  const color = palette[stepIndex % palette.length];
+  return `<svg viewBox='0 0 260 120' xmlns='http://www.w3.org/2000/svg'>
+    <rect width='260' height='120' rx='12' fill='#f8f9fa'/>
+    <rect x='10' y='10' width='240' height='100' rx='8' fill='${color}' opacity='0.12'/>
+    <text x='130' y='52' text-anchor='middle' fill='${color}' font-size='28' font-weight='bold' font-family='system-ui'>Paso ${stepIndex + 1}</text>
+    <line x1='90' y1='66' x2='170' y2='66' stroke='${color}' stroke-width='2' opacity='0.3'/>
+    <circle cx='130' cy='82' r='4' fill='${color}' opacity='0.5'/>
+    <circle cx='118' cy='82' r='3' fill='${color}' opacity='0.35'/>
+    <circle cx='142' cy='82' r='3' fill='${color}' opacity='0.35'/>
+  </svg>`;
+}
+
 function ExampleSlide({ lesson, onNextSlide }: { lesson: LessonData; onNextSlide: () => void }) {
   const [revealedSteps, setRevealedSteps] = useState(0);
   const steps = lesson.example.steps;
@@ -454,12 +468,10 @@ function ExampleSlide({ lesson, onNextSlide }: { lesson: LessonData; onNextSlide
                 dangerouslySetInnerHTML={{ __html: formatNotation(step.text) }}
               />
             </div>
-            {step.svg && (
-              <div
-                className="ml-0 sm:ml-9 rounded-xl bg-card border border-emerald-100 p-3 flex justify-center overflow-x-auto [&_svg]:max-w-full [&_svg]:h-auto"
-                dangerouslySetInnerHTML={{ __html: step.svg }}
-              />
-            )}
+            <div
+              className="ml-0 sm:ml-9 rounded-xl bg-card border border-emerald-100 p-3 flex justify-center overflow-x-auto [&_svg]:max-w-full [&_svg]:h-auto"
+              dangerouslySetInnerHTML={{ __html: step.svg || generateFallbackSvg(i) }}
+            />
           </div>
         ))}
 

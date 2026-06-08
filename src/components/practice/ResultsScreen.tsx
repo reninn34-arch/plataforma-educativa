@@ -87,7 +87,7 @@ export function ResultsScreen({
   }, [starsEarned]);
 
   return (
-    <div className="animate-scale-in space-y-8">
+    <div className="animate-scale-in space-y-8 max-w-md mx-auto w-full px-4 sm:px-0">
       {/* Trophy / Header */}
       <div className="flex flex-col items-center py-6">
         <div className="flex h-24 w-24 sm:h-28 sm:w-28 items-center justify-center rounded-full mb-5 shadow-lg bg-gradient-to-br from-yellow-400 to-amber-500">
