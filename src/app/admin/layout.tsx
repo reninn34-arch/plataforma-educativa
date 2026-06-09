@@ -2,7 +2,6 @@
 
 import { AppLayout } from "@/components/layout/AppLayout";
 import { LayoutDashboard, Users, BookOpen, Calendar, Settings, FileText } from "lucide-react";
-import { AiAssistant } from "@/components/ai/AiAssistant";
 import { type ReactNode } from "react";
 
 const adminLinks = [
@@ -20,7 +19,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <AppLayout role="admin" links={adminLinks} title="Administración">
         {children}
       </AppLayout>
-      <AiAssistant />
     </>
   );
 }
