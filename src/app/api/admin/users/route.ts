@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
  *         name: role
  *         schema:
  *           type: string
- *           enum: [student, teacher, admin, parent]
+ *           enum: [student, teacher, admin]
  *         description: Filtrar por rol
  *     responses:
  *       200:
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
     if (!cedula || cedula.length !== 10 || !fullName || !role) {
       return NextResponse.json({ error: "Cedula (10 digitos), nombre y rol requeridos" }, { status: 400 });
     }
-    if (!["student", "teacher", "parent"].includes(role)) {
+    if (!["student", "teacher"].includes(role)) {
       return NextResponse.json({ error: "Rol invalido" }, { status: 400 });
     }
 

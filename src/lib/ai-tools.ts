@@ -1316,23 +1316,22 @@ function createAdminTools(userId: number, userFullName: string = "") {
   // ─── Consulta ───
 
   const getPlatformStats = tool({
-    description: "Obtiene estadisticas generales: estudiantes, docentes, padres, cursos",
+    description: "Obtiene estadisticas generales: estudiantes, docentes, cursos",
     inputSchema: z.object({}),
     execute: async () => {
-      const [s, t, p, c] = await Promise.all([
+      const [s, t, c] = await Promise.all([
         db.select({ count: sql<number>`count(*)` }).from(users).where(and(eq(users.role, "student"), eq(users.activo, true))),
         db.select({ count: sql<number>`count(*)` }).from(users).where(and(eq(users.role, "teacher"), eq(users.activo, true))),
-        db.select({ count: sql<number>`count(*)` }).from(users).where(and(eq(users.role, "parent"), eq(users.activo, true))),
         db.select({ count: sql<number>`count(*)` }).from(cursos).where(eq(cursos.activo, true)),
       ]);
-      return { estudiantes: s[0]?.count || 0, docentes: t[0]?.count || 0, padres: p[0]?.count || 0, cursos: c[0]?.count || 0 };
+      return { estudiantes: s[0]?.count || 0, docentes: t[0]?.count || 0, cursos: c[0]?.count || 0 };
     },
   });
 
   const getUsersByRole = tool({
     description: "Lista todos los usuarios de un rol especifico",
     inputSchema: z.object({
-      role: z.enum(["student", "teacher", "admin", "parent"]).describe("Rol a filtrar"),
+      role: z.enum(["student", "teacher", "admin"]).describe("Rol a filtrar"),
       activo: z.boolean().optional().default(true).describe("Solo activos"),
     }),
     execute: async ({ role, activo }) => {
@@ -2015,7 +2014,7 @@ FORMATO JSON:
           url: "/admin/usuarios",
           pasos: [
             "Ve a Admin > Usuarios",
-            "3 pestanas: Estudiantes | Docentes | Padres",
+            "2 pestanas: Estudiantes | Docentes",
             "Para crear: click 'Nuevo' + llenar cedula, nombre, email",
             "Para editar: click en el usuario",
             "Para desactivar: toggle 'Activo' (no elimina datos)",

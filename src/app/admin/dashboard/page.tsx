@@ -8,7 +8,7 @@ import { apiFetch } from "@/lib/fetch-utils";
 
 interface AdminDashboardData {
   profile: { id: number; fullName: string; cedula: string; role: string; email?: string } | null;
-  stats: { totalEstudiantes: number; totalProfesores: number; totalPadres: number; totalCursos: number };
+  stats: { totalEstudiantes: number; totalProfesores: number; totalCursos: number };
   courses: any[];
   teachers: any[];
   subjects: any[];
@@ -41,7 +41,7 @@ export default function AdminDashboard() {
     </div>
   );
 
-  const stats = data?.stats || { totalEstudiantes: 0, totalProfesores: 0, totalPadres: 0, totalCursos: 0 };
+  const stats = data?.stats || { totalEstudiantes: 0, totalProfesores: 0, totalCursos: 0 };
   const chartData = data?.chartData || { roles: [], activos: 0, inactivos: 0 };
   const firstName = data?.profile?.fullName?.split(" ")[0] || "Admin";
   const courses = data?.courses || [];
@@ -92,15 +92,6 @@ export default function AdminDashboard() {
               </div>
             </div>
             <p className="text-3xl font-extrabold text-foreground">{stats.totalProfesores}</p>
-          </div>
-          <div className="bg-card rounded-2xl border border-border p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Padres</p>
-              <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
-                <Users size={20} className="text-violet-500" />
-              </div>
-            </div>
-            <p className="text-3xl font-extrabold text-foreground">{stats.totalPadres}</p>
           </div>
           <div className="bg-card rounded-2xl border border-border p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
             <div className="flex items-center justify-between mb-3">

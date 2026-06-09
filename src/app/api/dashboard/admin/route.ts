@@ -63,15 +63,13 @@ export async function GET(request: NextRequest) {
     ]);
 
     const roleMap = new Map(rolesCount.map(r => [r.role, r.count]));
-    const [totalEstudiantes, totalProfesores, totalPadres] = [
+    const [totalEstudiantes, totalProfesores] = [
       roleMap.get("student") || 0,
       roleMap.get("teacher") || 0,
-      roleMap.get("parent") || 0,
     ];
     const stats = {
       totalEstudiantes,
       totalProfesores,
-      totalPadres,
       totalCursos: courseCount?.count || 0,
     };
 
@@ -79,7 +77,7 @@ export async function GET(request: NextRequest) {
       db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(users).where(eq(users.activo, true)),
     ]);
 
-    const totalUsers = totalEstudiantes + totalProfesores + totalPadres;
+    const totalUsers = totalEstudiantes + totalProfesores;
 
     const cursoIds = data.map(c => c.id);
     const allProfs = cursoIds.length > 0 ? await db
@@ -114,7 +112,6 @@ export async function GET(request: NextRequest) {
         roles: [
           { name: "Estudiantes", value: totalEstudiantes, color: "#3b82f6" },
           { name: "Docentes", value: totalProfesores, color: "#10b981" },
-          { name: "Padres", value: totalPadres, color: "#8b5cf6" },
         ],
         activos: activeCount?.count || totalUsers,
         inactivos: totalUsers - (activeCount?.count || 0),

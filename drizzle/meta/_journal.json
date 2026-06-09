@@ -169,6 +169,13 @@
       "when": 1780797868151,
       "tag": "0023_tearful_alex_wilder",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1780966761712,
+      "tag": "0024_bizarre_old_lace",
+      "breakpoints": true
     }
   ]
 }

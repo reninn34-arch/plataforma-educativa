@@ -12,7 +12,7 @@ interface BulkResultItem { cedula: string; nombre: string; pin: string; status: 
 interface UsersData { users: UserData[]; }
 
 export default function AdminUsersPage() {
-  const [tab, setTab] = useState<"student" | "teacher" | "parent">("student");
+  const [tab, setTab] = useState<"student" | "teacher">("student");
   const [search, setSearch] = useState("");
   const [showInactive, setShowInactive] = useState(false);
 
@@ -163,7 +163,7 @@ export default function AdminUsersPage() {
 
   const copyToClipboard = (text: string) => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
 
-  const tabs = [{ key: "student" as const, label: "Estudiantes", count: users.length }, { key: "teacher" as const, label: "Docentes", count: users.length }, { key: "parent" as const, label: "Padres", count: users.length }];
+  const tabs = [{ key: "student" as const, label: "Estudiantes", count: users.length }, { key: "teacher" as const, label: "Docentes", count: users.length }];
 
   return (
     <div className="p-6 sm:p-8 w-full max-w-6xl mx-auto space-y-6 animate-fade-in-up">

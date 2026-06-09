@@ -61,8 +61,6 @@ export function LoginForm({ redirect }: Props) {
         router.push("/teacher/dashboard");
       } else if (data.user.role === "admin") {
         router.push("/admin/dashboard");
-      } else if (data.user.role === "parent") {
-        router.push("/parent/dashboard");
       } else {
         router.push(safeRedirect || "/student/dashboard");
       }

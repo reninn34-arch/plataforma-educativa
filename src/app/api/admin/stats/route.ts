@@ -20,7 +20,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       totalEstudiantes: roleMap.get("student") || 0,
       totalProfesores: roleMap.get("teacher") || 0,
-      totalPadres: roleMap.get("parent") || 0,
       totalCursos: courseCount?.count || 0,
     });
   } catch (error) {

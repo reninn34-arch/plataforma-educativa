@@ -40,7 +40,7 @@ import { NextRequest, NextResponse } from "next/server";
  *                     id: { type: integer }
  *                     cedula: { type: string }
  *                     fullName: { type: string }
- *                     role: { type: string, enum: [student, teacher, admin, parent] }
+ *                     role: { type: string, enum: [student, teacher, admin] }
  *       401:
  *         description: Credenciales incorrectas
  *         schema:

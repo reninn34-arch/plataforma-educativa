@@ -82,9 +82,6 @@ export default async function middleware(request: NextRequest) {
   if (pathname.startsWith("/student") && user.role !== "student" && user.role !== "admin") {
     return NextResponse.redirect(new URL("/teacher/dashboard", request.url));
   }
-  if (pathname.startsWith("/parent") && user.role !== "parent" && user.role !== "admin") {
-    return NextResponse.redirect(new URL("/student/dashboard", request.url));
-  }
   if (pathname.startsWith("/admin") && user.role !== "admin") {
     return NextResponse.redirect(new URL("/teacher/dashboard", request.url));
   }

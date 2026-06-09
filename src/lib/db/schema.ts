@@ -12,7 +12,7 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 
-export const roleEnum = pgEnum("role", ["student", "teacher", "admin", "parent"]);
+export const roleEnum = pgEnum("role", ["student", "teacher", "admin"]);
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -365,18 +365,6 @@ export const asistencia = pgTable("asistencia", {
   estado: varchar("estado", { length: 20 }).notNull().default("presente"),
 }, (table) => ({
   uniqueAsistencia: unique("asistencia_unique").on(table.cursoId, table.studentId, table.fecha),
-}));
-
-export const parentStudents = pgTable("parent_students", {
-  id: serial("id").primaryKey(),
-  parentId: integer("parent_id")
-    .notNull()
-    .references(() => users.id),
-  studentId: integer("student_id")
-    .notNull()
-    .references(() => users.id),
-}, (table) => ({
-  uniqueParentStudent: unique("parent_student_unique").on(table.parentId, table.studentId),
 }));
 
 export const studyMaterials = pgTable("study_materials", {

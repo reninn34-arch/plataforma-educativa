@@ -53,7 +53,7 @@ describe("createToken", () => {
   }, 5000);
 
   it("creates tokens for all roles", async () => {
-    const roles = ["student", "teacher", "admin", "parent"] as const;
+    const roles = ["student", "teacher", "admin"] as const;
 
     for (const role of roles) {
       const user = { id: 1, cedula: "1234567890", fullName: "Test", role };

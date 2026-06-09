@@ -11,7 +11,7 @@ import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 interface AppLayoutProps {
   children: React.ReactNode;
-  role: "student" | "teacher" | "parent" | "admin";
+  role: "student" | "teacher" | "admin";
   links: { href: string; label: string; icon: any }[];
   title: string;
   isFullScreen?: boolean;

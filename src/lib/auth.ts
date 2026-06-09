@@ -9,7 +9,7 @@ export interface SessionUser {
   id: number;
   cedula: string;
   fullName: string;
-  role: "student" | "teacher" | "admin" | "parent";
+  role: "student" | "teacher" | "admin";
 }
 
 export async function createToken(user: SessionUser, expiresIn = "24h"): Promise<string> {
