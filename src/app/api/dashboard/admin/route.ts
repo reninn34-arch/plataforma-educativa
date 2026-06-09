@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
       db.select({ count: sql<number>`count(*)`.mapWith(Number) }).from(users).where(eq(users.activo, true)),
     ]);
 
-    const totalUsers = totalEstudiantes + totalProfesores;
+    const totalUsers = rolesCount.reduce((sum, r) => sum + r.count, 0);
 
     const cursoIds = data.map(c => c.id);
     const allProfs = cursoIds.length > 0 ? await db
