@@ -17,6 +17,9 @@ export const CACHED_EXERCISES_VERSION = 6;
 const SCHEMA_KEY_MAP: Record<string, string> = {
   leccion: "lesson",
   ejercicios: "exercises",
+  quiz: "exercises",
+  test: "exercises",
+  examen: "exercises",
   titulo: "title",
   explicacion: "explanation",
   ejemplo: "example",
@@ -278,6 +281,21 @@ const practiceResponseSchema = z.preprocess((val: any) => {
         delete val[outerLessonKey];
       }
     }
+
+    // If we still have no lesson but have exercises, create a default lesson
+    const hasExercises = Object.keys(val).some(k => {
+      const clean = k.toLowerCase().normalize("NFD").replace(/[\u0300-\u0300]/g, "").replace(/_/g, "");
+      return ["exercises", "ejercicios", "quiz", "test", "examen", "preguntas", "questions"].includes(clean) && Array.isArray(val[k]);
+    });
+    if (!val.lesson && !outerLessonKey && hasExercises) {
+      val.lesson = {
+        title: val.title ?? val.titulo ?? "Practica del tema",
+        explanation: val.explanation ?? val.explicacion ?? val.introduction ?? val.intro ?? "Repaso del tema",
+        example: val.example ?? val.ejemplo ?? { problem: "Ejemplo practico", steps: [{ text: "Paso a paso" }], answer: "Resultado" },
+        commonMistake: val.commonMistake ?? val.errorcomun ?? val.error ?? "Error comun",
+        quickCheck: val.quickCheck ?? val.comprobacionrapida ?? val.comprobacion ?? { question: "Pregunta rapida", options: ["A", "B", "C", "D"], correctIndex: 0, feedback: "Bien" },
+      };
+    }
   }
 
   const normalized = normalizeKeys(val);
@@ -443,6 +461,26 @@ export async function POST(request: NextRequest) {
       : "";
 
     const lessonPrompt = `Eres un tutor cercano, paciente y entusiasta. Ensenas a adultos en bachillerato acelerado (PCEI). Tu mision es explicar un tema de forma clara, visual y amigable.
+
+ESTRUCTURA JSON REQUERIDA (DEBES seguir exactamente este formato):
+{
+  "lesson": {
+    "title": "Titulo de la leccion",
+    "explanation": "Explicacion del tema...",
+    "example": {
+      "problem": "Enunciado del problema practico",
+      "steps": [{ "text": "Paso 1", "svg": "<svg>...</svg>" }, { "text": "Paso 2", "svg": "<svg>...</svg>" }],
+      "answer": "Resultado final del ejemplo"
+    },
+    "commonMistake": "Error tipico y como corregirlo",
+    "quickCheck": { "question": "Pregunta de verificacion", "options": ["A", "B", "C", "D"], "correctIndex": 0, "feedback": "Explicacion breve" }
+  },
+  "exercises": [
+    { "type": "mcq", "question": "...", "options": ["A", "B", "C", "D"], "correctIndex": 0, "difficulty": "easy", "timeLimit": 30 },
+    { "type": "fill_blank", "question": "...", "acceptedAnswers": ["respuesta"], "difficulty": "medium", "timeLimit": 35 },
+    { "type": "true_false", "question": "...", "correctAnswer": true, "difficulty": "hard", "timeLimit": null }
+  ]
+}
 
 AREA: ${ctx.area}
 Tema: ${topicContext}${materialBlock}
