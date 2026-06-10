@@ -7,6 +7,7 @@ import {
   cursoProfesores, assignments, assignmentSubmissions,
   assignmentQuestions, practiceSessions, asistencia,
   periodosLectivos, directMessages, modules,
+  cuestionarios, cuestionarioPreguntas, studyMaterials,
 } from "@/lib/db/schema";
 import { eq, and, sql, desc, inArray } from "drizzle-orm";
 import { opencodeGoModel, logAiCall, DEFAULT_MODEL_ID, tryParseJson } from "@/lib/ai";
@@ -60,7 +61,9 @@ function normalizeAssignmentKeys(obj: any): any {
 function normalizeQuestionItem(val: any): any {
   if (!val || typeof val !== "object") return val;
   let typeVal = String(val.type ?? "").toLowerCase();
-  if (typeVal.includes("opcion") || typeVal.includes("multiple") || typeVal.includes("mcq")) {
+  if (typeVal.includes("complet") || typeVal.includes("blanco") || typeVal.includes("llenar")) {
+    val.type = "completar";
+  } else if (typeVal.includes("opcion") || typeVal.includes("multiple") || typeVal.includes("mcq")) {
     val.type = "mcq";
   } else if (typeVal.includes("upload") || typeVal.includes("archivo") || typeVal.includes("subir")) {
     val.type = "file_upload";
@@ -742,6 +745,11 @@ Puedo ayudarte de muchas formas:
    "califica con 7 todos los pendientes de la tarea de fracciones"
    "qué tareas tienen entregas sin calificar?"
 
+📖 CUESTIONARIOS DE ESTUDIO (NUEVO)
+   "crea un cuestionario de estudio sobre ecuaciones para 3ro BGU"
+   "genera una guía de estudio para el examen de química"
+   Los estudiantes pueden verlo y descargarlo como PDF
+
 👥 GESTIÓN DE ESTUDIANTES
    "busca al estudiante Juan Pérez"
    "muestra los estudiantes en riesgo académico"
@@ -855,6 +863,153 @@ FORMATO:
         titulo: data.title || assignment.title,
         preguntas: questions.length,
         mensaje: `Tarea "${data.title || assignment.title}" creada exitosamente con ${questions.length} preguntas para ${subjectName}.`,
+      };
+    },
+  });
+
+  const generateCuestionarioEstudio = tool({
+    description: "Genera un cuestionario de estudio con IA basado en el material subido por el docente (studyMaterials). El cuestionario incluye preguntas con respuestas correctas y explicaciones para que los estudiantes estudien. Se guarda en la plataforma y los estudiantes pueden verlo y descargarlo como PDF. Usala cuando el docente pida 'crea un cuestionario de estudio', 'genera una guia de estudio', o 'prepara un cuestionario para el examen'. Primero usa getMyCourses y searchSubject si necesitas IDs.",
+    inputSchema: z.object({
+      cursoId: z.number().describe("ID del curso al que pertenece el cuestionario"),
+      subjectId: z.number().describe("ID de la materia"),
+      topic: z.string().describe("Tema del cuestionario, ej: 'Ecuaciones de primer grado', 'Simple Past', 'La celula'"),
+      questionCount: z.number().optional().default(10).describe("Cantidad de preguntas (5-20)"),
+      useStudyMaterial: z.boolean().optional().default(true).describe("Si es true, busca el material de estudio subido para esa materia/curso y lo usa como contexto"),
+    }),
+    execute: async ({ cursoId, subjectId, topic, questionCount, useStudyMaterial }) => {
+      const subjectData = await db.select({ name: subjects.name, slug: subjects.slug, emoji: subjects.emoji }).from(subjects).where(eq(subjects.id, subjectId)).limit(1);
+      const subjectName = subjectData[0]?.name || "materia";
+      const subjectEmoji = subjectData[0]?.emoji || "📚";
+
+      const courseData = await db.select({ nombre: cursos.nombre, nivel: cursos.nivel }).from(cursos).where(eq(cursos.id, cursoId)).limit(1);
+      const courseName = courseData[0]?.nombre || "";
+
+      const count = Math.min(Math.max(5, questionCount || 10), 20);
+
+      let studyContent = "";
+      let materialTruncated = false;
+      if (useStudyMaterial) {
+        const material = await db
+          .select({ title: studyMaterials.title, content: studyMaterials.content })
+          .from(studyMaterials)
+          .where(and(eq(studyMaterials.cursoId, cursoId), eq(studyMaterials.subjectId, subjectId)))
+          .limit(1);
+        if (material.length > 0) {
+          const rawContent = material[0].content;
+          if (rawContent.length > 5000) {
+            studyContent = `\n\nMATERIAL DE ESTUDIO DEL DOCENTE:\nTitulo: ${material[0].title}\nContenido (primeros 5000 caracteres):\n${rawContent.slice(0, 5000)}\n\n[... El material original tiene ${rawContent.length} caracteres. Se usaron los primeros 5000 para la generacion.]`;
+            materialTruncated = true;
+          } else {
+            studyContent = `\n\nMATERIAL DE ESTUDIO DEL DOCENTE:\nTitulo: ${material[0].title}\nContenido:\n${rawContent}`;
+          }
+        }
+      }
+
+      const aiPrompt = `Eres un docente experto en educacion secundaria acelerada de adultos (PCEI Ecuador). Genera un cuestionario de estudio en formato JSON.
+
+Materia: ${subjectName}
+Curso: ${courseName}
+Tema: ${topic}
+Cantidad de preguntas: ${count}${studyContent}
+
+REGLAS IMPORTANTES:
+1. Este cuestionario es para que los ESTUDIANTES ESTUDIEN, no es un examen. Debe incluir las respuestas correctas y explicaciones.
+2. MEZCLA los tipos de pregunta: usa "mcq" (opcion multiple con 4 opciones) y "completar" (completar el espacio en blanco con 4 opciones).
+3. Para type "completar": la pregunta debe contener "___" donde va el espacio en blanco. Las 4 opciones son posibles respuestas para llenar el blanco.
+4. Incluye "correctIndex" (0-3) indicando cual es la respuesta correcta.
+5. Incluye "explanation" (texto breve en español) explicando POR QUE esa es la respuesta correcta, para que el estudiante aprenda.
+6. Las preguntas deben ser claras, didacticas y cubrir los conceptos clave del tema.
+7. Si hay material de estudio, basa las preguntas ESTRICTAMENTE en ese contenido.
+8. Lenguaje claro y accesible para adultos.
+9. IMPORTANTISIMO: SOLO responde con JSON puro. Empieza con { y termina con }. Sin markdown.
+
+FORMATO JSON:
+{
+  "title": "Cuestionario de estudio: [tema]",
+  "description": "Descripcion del cuestionario con instrucciones para el estudiante (min 2 parrafos).",
+  "questions": [
+    {
+      "type": "mcq",
+      "question": "Pregunta clara sobre el tema?",
+      "options": ["Opcion A", "Opcion B", "Opcion C", "Opcion D"],
+      "correctIndex": 0,
+      "explanation": "Explicacion breve de por que esta es la respuesta correcta.",
+      "points": 1
+    },
+    {
+      "type": "completar",
+      "question": "La capital de Francia es ___",
+      "options": ["Paris", "Londres", "Berlin", "Madrid"],
+      "correctIndex": 0,
+      "explanation": "Paris es la capital de Francia.",
+      "points": 1
+    }
+  ]
+}`;
+
+      const start = Date.now();
+      const aiResult = await generateText({ model: opencodeGoModel, prompt: aiPrompt, temperature: 0.4, maxOutputTokens: 8000 });
+      logAiCall({ route: "ai-tool/generate-cuestionario", model: DEFAULT_MODEL_ID, durationMs: Date.now() - start, usage: aiResult.usage ? { inputTokens: aiResult.usage.inputTokens, outputTokens: aiResult.usage.outputTokens, totalTokens: (aiResult.usage.inputTokens ?? 0) + (aiResult.usage.outputTokens ?? 0) } : undefined });
+
+      let text = aiResult.text || "";
+      let data = tryParseJson(text);
+      data = normalizeAssignmentKeys(data);
+
+      if (!data || typeof data !== "object" || !data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
+        const rawPreview = (text || "").slice(0, 300);
+        return {
+          error: "La IA no pudo generar las preguntas del cuestionario. Intenta con un tema mas especifico o menos contenido.",
+          detalle: `Respuesta de la IA: ${rawPreview}${materialTruncated ? "\n\nNota: El material de estudio fue truncado porque era muy extenso (mas de 5000 caracteres)." : ""}`,
+        };
+      }
+
+      const [cuestionario] = await db.insert(cuestionarios).values({
+        teacherId: userId,
+        subjectId,
+        cursoId,
+        title: data.title?.slice(0, 200) || `Cuestionario: ${topic}`,
+        description: data.description || `Cuestionario de estudio sobre ${topic}`,
+        trimester: 1,
+      } as any).returning();
+
+      const rawQuestions = (data.questions || []).slice(0, 30);
+      const questions = [];
+      for (let i = 0; i < rawQuestions.length; i++) {
+        const q = normalizeQuestionItem(rawQuestions[i]);
+        if (!q || !q.question) continue;
+        const qType = q.type === "completar" ? "completar" : "mcq";
+        await db.insert(cuestionarioPreguntas).values({
+          cuestionarioId: cuestionario.id,
+          type: qType,
+          question: q.question || "",
+          options: q.options || [],
+          correctIndex: q.correctIndex ?? 0,
+          explanation: q.explanation || "",
+          points: q.points || 1,
+          orderIndex: i,
+        } as any);
+        questions.push(q);
+      }
+
+      if (cursoId) {
+        await notifyStudentsInCourse({
+          cursoId,
+          type: "study_material",
+          title: `Nuevo cuestionario de estudio: ${data.title || cuestionario.title}`,
+          message: `Se ha publicado un cuestionario de "${subjectName}" con ${questions.length} preguntas para que estudies. Puedes verlo y descargarlo como PDF en tu menú "Estudio".`,
+          excludeUserId: userId,
+          link: `/student/cuestionarios/${cuestionario.id}`,
+        }).catch(() => {});
+      }
+
+      return {
+        creado: true,
+        cuestionario_id: cuestionario.id,
+        titulo: data.title || cuestionario.title,
+        materia: subjectName,
+        preguntas: questions.length,
+        material_truncado: materialTruncated,
+        mensaje: `Cuestionario de estudio "${data.title || cuestionario.title}" creado exitosamente con ${questions.length} preguntas para ${subjectName}. Puedes verlo en Teacher > Cuestionarios.${materialTruncated ? "\n\nNota: El material de estudio era muy extenso y se truncó a 5000 caracteres. Si falta contenido, considera dividir el tema en varios cuestionarios mas pequeños." : ""}`,
       };
     },
   });
@@ -1298,6 +1453,7 @@ FORMATO:
     searchStudents,
     getPendingGrades,
     generateAndCreateAssignment,
+    generateCuestionarioEstudio,
     sendMessageToStudents,
     sendMessageToStudent,
     markStudentsAbsent,

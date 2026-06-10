@@ -242,7 +242,7 @@ export const practiceAnswers = pgTable("practice_answers", {
 
 // --- Assignment Questions (Exam / Mixed mode) ---
 
-export const questionTypeEnum = pgEnum("question_type", ["mcq", "file_upload"]);
+export const questionTypeEnum = pgEnum("question_type", ["mcq", "file_upload", "completar"]);
 
 export const assignmentQuestions = pgTable("assignment_questions", {
   id: serial("id").primaryKey(),
@@ -405,6 +405,43 @@ export const notificaciones = pgTable("notificaciones", {
   userIdIdx: index("idx_notificaciones_user_id").on(table.userId),
   readIdx: index("idx_notificaciones_read").on(table.read),
   userReadIdx: index("idx_notificaciones_user_read").on(table.userId, table.read),
+}));
+
+// --- Study Questionnaires (Cuestionarios de estudio) ---
+
+export const cuestionarios = pgTable("cuestionarios", {
+  id: serial("id").primaryKey(),
+  teacherId: integer("teacher_id")
+    .notNull()
+    .references(() => users.id),
+  subjectId: integer("subject_id")
+    .notNull()
+    .references(() => subjects.id),
+  cursoId: integer("curso_id").references(() => cursos.id),
+  title: varchar("title", { length: 200 }).notNull(),
+  description: text("description"),
+  trimester: integer("trimester").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  teacherIdIdx: index("idx_cuestionarios_teacher_id").on(table.teacherId),
+  subjectIdIdx: index("idx_cuestionarios_subject_id").on(table.subjectId),
+  cursoIdIdx: index("idx_cuestionarios_curso_id").on(table.cursoId),
+}));
+
+export const cuestionarioPreguntas = pgTable("cuestionario_preguntas", {
+  id: serial("id").primaryKey(),
+  cuestionarioId: integer("cuestionario_id")
+    .notNull()
+    .references(() => cuestionarios.id),
+  type: questionTypeEnum("type").notNull().default("mcq"),
+  question: text("question").notNull(),
+  options: jsonb("options"),
+  correctIndex: integer("correct_index"),
+  explanation: text("explanation"),
+  points: integer("points").notNull().default(1),
+  orderIndex: integer("order_index").notNull().default(0),
+}, (table) => ({
+  cuestionarioIdIdx: index("idx_cuestionario_preguntas_cuestionario_id").on(table.cuestionarioId),
 }));
 
 export const horarios = pgTable("horarios", {

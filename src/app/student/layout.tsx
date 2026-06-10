@@ -2,13 +2,14 @@
 
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AiAssistant } from "@/components/ai/AiAssistant";
-import { Home, Award, Calendar, User, BookOpen, ClipboardList, Clock } from "lucide-react";
+import { Home, Award, Calendar, User, BookOpen, ClipboardList, Clock, GraduationCap } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 const studentLinks = [
   { href: "/student/dashboard", label: "Inicio", icon: Home },
   { href: "/student/horario", label: "Horario", icon: Clock },
   { href: "/student/assignments", label: "Tareas", icon: ClipboardList },
+  { href: "/student/cuestionarios", label: "Estudio", icon: GraduationCap },
   { href: "/student/grades", label: "Calificaciones", icon: Award },
   { href: "/student/practice", label: "Práctica IA", icon: BookOpen },
   { href: "/student/calendar", label: "Calendario", icon: Calendar },

@@ -3,7 +3,7 @@ import { notificaciones } from "@/lib/db/schema";
 import { cursoEstudiantes } from "@/lib/db/schema";
 import { eq, inArray } from "drizzle-orm";
 
-type NotificationType = "assignment" | "message" | "deadline" | "grade" | "system";
+type NotificationType = "assignment" | "message" | "deadline" | "grade" | "system" | "study_material";
 
 export async function createNotification({
   userId,

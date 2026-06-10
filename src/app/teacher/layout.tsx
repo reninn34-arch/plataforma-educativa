@@ -1,7 +1,7 @@
 "use client";
 
 import { AppLayout } from "@/components/layout/AppLayout";
-import { BookOpen, Users, Clock, ClipboardList, Pencil, BarChart3, ClipboardCheck, User } from "lucide-react";
+import { BookOpen, Users, Clock, ClipboardList, Pencil, BarChart3, ClipboardCheck, User, GraduationCap } from "lucide-react";
 import { AiAssistant } from "@/components/ai/AiAssistant";
 import { type ReactNode } from "react";
 
@@ -11,6 +11,7 @@ const teacherLinks = [
   { href: "/teacher/horario", label: "Horario", icon: Clock },
   { href: "/teacher/asistencia", label: "Asistencia", icon: ClipboardList },
   { href: "/teacher/assignments", label: "Tareas", icon: Pencil },
+  { href: "/teacher/cuestionarios", label: "Cuestionarios", icon: GraduationCap },
   { href: "/teacher/analytics", label: "Analiticas IA", icon: BarChart3 },
   { href: "/teacher/grades", label: "Calificaciones", icon: ClipboardCheck },
   { href: "/teacher/profile", label: "Mi Perfil", icon: User },
