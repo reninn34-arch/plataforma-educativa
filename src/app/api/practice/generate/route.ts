@@ -562,7 +562,7 @@ REGLAS:
               model: aiModel,
               prompt: lessonPrompt + "\n\nResponde UNICAMENTE con un objeto JSON valido estructurado de acuerdo al esquema esperado, sin usar bloques de markdown ni texto adicional.",
               ...(isReasoning ? {} : { temperature: 0.6 }),
-              maxOutputTokens: 8000,
+              maxOutputTokens: 4096,
               abortSignal: lessonAbort.signal,
             });
             const parsedJson = tryParseJson(r.text);
@@ -580,7 +580,7 @@ REGLAS:
                 schema: practiceResponseSchema,
                 prompt: lessonPrompt,
                 ...(isReasoning ? {} : { temperature: 0.6 }),
-                maxOutputTokens: 8000,
+                maxOutputTokens: 4096,
                 abortSignal: lessonAbort.signal,
               });
               return { object: r.object, usage: r.usage };
@@ -594,7 +594,7 @@ REGLAS:
                   model: aiModel,
                   prompt: lessonPrompt + "\n\nResponde UNICAMENTE con un objeto JSON valido estructurado de acuerdo al esquema esperado, sin usar bloques de markdown ni texto adicional.",
                   ...(isReasoning ? {} : { temperature: 0.6 }),
-                  maxOutputTokens: 8000,
+                  maxOutputTokens: 4096,
                   abortSignal: fallbackAbort.signal,
                 });
                 const parsedJson = tryParseJson(r.text);
