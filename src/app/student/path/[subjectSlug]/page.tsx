@@ -53,7 +53,7 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
 
   const generatedModules = subjectModules.filter(m => m.generated);
   const orderedModules = [
-    ...generatedModules.sort((a, b) => b.order - a.order),
+    ...generatedModules.sort((a, b) => a.order - b.order),
   ];
 
   return (
@@ -104,7 +104,7 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                 <ModuleCard
                   key={mod.id}
                   id={`module-${mod.id}`}
-                  defaultOpen={true}
+                  defaultOpen={modPct < 100}
                   className={`
                     rounded-2xl p-5 mb-8 border shadow-md
                     ${isModLocked

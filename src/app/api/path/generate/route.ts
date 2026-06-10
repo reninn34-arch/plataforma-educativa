@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { subjects, modules, nodes } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, tryParseJson } from "@/lib/ai";
 import { generateObject, generateText } from "ai";
 import { z } from "zod/v4";
@@ -240,19 +240,15 @@ Responde SOLO con un JSON valido con la siguiente estructura:
       });
     }
 
-    // Insert module
-    const maxOrder = await db
-      .select({ max: modules.order })
-      .from(modules)
-      .where(eq(modules.subjectId, subject.id))
-      .then(rows => rows.length > 0 ? rows[0].max : 0);
+    // Push existing modules down and insert new module as #1
+    await db.update(modules).set({ order: sql`${modules.order} + 1` } as any).where(eq(modules.subjectId, subject.id));
 
     const [newModule] = await db
       .insert(modules)
       .values({
         subjectId: subject.id,
         title: moduleTitle,
-        order: (maxOrder ?? 0) + 1,
+        order: 1,
         requiredPoints: 0,
         topic: topic,
         generated: true,
