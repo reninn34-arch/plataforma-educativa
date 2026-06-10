@@ -28,7 +28,7 @@ function stripMarkdown(text: string): string {
     .trim();
 }
 
-type FlowType = "none" | "create-assignment" | "my-courses" | "risk" | "message" | "tutor";
+type FlowType = "none" | "create-assignment" | "create-cuestionario" | "my-courses" | "risk" | "message" | "tutor";
 
 interface Course {
   id: number;
@@ -139,6 +139,10 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
     setFlow("none");
     setFlowLoading(false);
     setFlowError(null);
+    setSelectedCourse(null);
+    setSelectedSubject(null);
+    setCuestionarioData(null);
+    setCreatedCuestionarioId(null);
   }, []);
 
   const [courses, setCourses] = useState<Course[]>([]);
@@ -151,6 +155,12 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
   const [generatedData, setGeneratedData] = useState<GeneratedData | null>(null);
   const [creating, setCreating] = useState(false);
   const [createdId, setCreatedId] = useState<number | null>(null);
+  const [cuestionarioTopic, setCuestionarioTopic] = useState("");
+  const [cuestionarioCount, setCuestionarioCount] = useState(5);
+  const [cuestionarioTypes, setCuestionarioTypes] = useState<string[]>(["mcq", "completar"]);
+  const [cuestionarioData, setCuestionarioData] = useState<any>(null);
+  const [creatingCuestionario, setCreatingCuestionario] = useState(false);
+  const [createdCuestionarioId, setCreatedCuestionarioId] = useState<number | null>(null);
   const [myCoursesData, setMyCoursesData] = useState<Course[] | null>(null);
   const [riskData, setRiskData] = useState<RiskStudent[] | null>(null);
   const [messageCourse, setMessageCourse] = useState<Course | null>(null);
@@ -180,6 +190,9 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
   const quickActions = [
     { label: "Crear tarea", icon: "📝", action: () => {
       clearFlow(); setFlow("create-assignment"); setCourses([]); setSelectedCourse(null); setSelectedSubject(null); setTopic(""); setQuestionCount(5); setTrimester(1); setDueDate(""); setGeneratedData(null); setCreatedId(null);
+    }},
+    { label: "Crear cuestionario", icon: "📖", action: () => {
+      clearFlow(); setFlow("create-cuestionario"); setCourses([]); setSelectedCourse(null); setSelectedSubject(null); setCuestionarioTopic(""); setCuestionarioCount(5); setCuestionarioTypes(["mcq", "completar"]); setCuestionarioData(null); setCreatedCuestionarioId(null);
     }},
     { label: "Mis cursos", icon: "📋", action: async () => {
       clearFlow(); setFlow("my-courses"); setFlowLoading(true); setFlowError(null);
@@ -280,6 +293,64 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
     }
   }, [selectedCourse, selectedSubject, generatedData, trimester, dueDate]);
 
+  const handleGenerateCuestionario = useCallback(async () => {
+    if (!selectedSubject || !cuestionarioTopic.trim()) return;
+    setFlowLoading(true); setFlowError(null);
+    try {
+      const res = await apiFetch("/api/teacher/ai/generate-cuestionario", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cursoId: selectedCourse?.id,
+          subjectId: selectedSubject.subjectId,
+          topic: cuestionarioTopic.trim(),
+          questionCount: cuestionarioCount,
+          questionTypes: cuestionarioTypes,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al generar");
+      setCuestionarioData(data);
+    } catch (e: any) {
+      setFlowError(e.message || "Error al generar cuestionario");
+    } finally {
+      setFlowLoading(false);
+    }
+  }, [selectedCourse, selectedSubject, cuestionarioTopic, cuestionarioCount, cuestionarioTypes]);
+
+  const handleCreateCuestionario = useCallback(async () => {
+    if (!selectedCourse || !selectedSubject || !cuestionarioData) return;
+    setCreatingCuestionario(true); setFlowError(null);
+    try {
+      const res = await apiFetch("/api/teacher/cuestionarios", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cursoId: selectedCourse.id,
+          subjectId: selectedSubject.subjectId,
+          title: cuestionarioData.title,
+          description: cuestionarioData.description,
+          questions: cuestionarioData.questions.map((q: any, i: number) => ({
+            virtualType: q.virtualType,
+            question: q.question,
+            options: q.options,
+            correctIndex: q.correctIndex,
+            explanation: q.explanation || "",
+            points: q.points || 1,
+            orderIndex: i,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al crear");
+      setCreatedCuestionarioId(data.cuestionarioId);
+    } catch (e: any) {
+      setFlowError(e.message || "Error al crear cuestionario");
+    } finally {
+      setCreatingCuestionario(false);
+    }
+  }, [selectedCourse, selectedSubject, cuestionarioData]);
+
   const handleSendMessage = useCallback(async () => {
     if (!messageCourse || !messageText.trim()) return;
     setFlowLoading(true); setFlowError(null);
@@ -379,7 +450,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
               {courses.map((c) => (
                 <button
                   key={c.id}
-                  onClick={() => { setSelectedCourse(c); if (c.mySubjects.length > 0) setSelectedSubject(c.mySubjects[0]); }}
+                  onClick={() => setSelectedCourse(c)}
                   className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-left text-sm hover:border-violet-300 hover:bg-violet-50 transition-colors flex items-center justify-between"
                 >
                   <span className="font-medium">{c.nombre}</span>
@@ -395,7 +466,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
       return (
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <button onClick={() => { setSelectedCourse(null); setCourses([]); loadCourses(); }} className="rounded-lg p-1 text-gray-400 hover:text-muted-foreground hover:bg-gray-100 transition-colors">
+            <button onClick={() => { setSelectedCourse(null); }} className="rounded-lg p-1 text-gray-400 hover:text-muted-foreground hover:bg-gray-100 transition-colors">
               <ArrowLeft className="h-4 w-4" />
             </button>
             <p className="text-xs font-semibold text-muted-foreground">Materia para {selectedCourse.nombre}:</p>
@@ -474,10 +545,185 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
     );
   };
 
+  const renderCreateCuestionarioFlow = () => {
+    if (createdCuestionarioId) {
+      return (
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 mb-3">
+            <Check className="h-7 w-7 text-emerald-600" />
+          </div>
+          <p className="text-sm font-semibold text-emerald-800 mb-1">Cuestionario creado exitosamente</p>
+          <p className="text-xs text-muted-foreground mb-4">{cuestionarioData?.title} • {selectedSubject?.subjectName}</p>
+          <button onClick={clearFlow} className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors">
+            Volver al chat
+          </button>
+        </div>
+      );
+    }
+
+    if (cuestionarioData) {
+      return (
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Previsualizar cuestionario</p>
+          <div className="rounded-xl border border-border bg-card p-3 space-y-2">
+            <p className="font-semibold text-sm">{cuestionarioData.title}</p>
+            <p className="text-xs text-muted-foreground line-clamp-3">{cuestionarioData.description}</p>
+            <div className="max-h-48 overflow-y-auto space-y-1.5">
+              {cuestionarioData.questions.map((q: any, i: number) => (
+                <div key={i} className="rounded-lg bg-gray-50 p-2 text-xs">
+                  <span className="rounded bg-violet-100 text-violet-700 px-1 py-0.5 text-[10px] mr-1">{q.virtualType === "completar" ? "Completar" : "MCQ"}</span>
+                  <span className="font-medium">{i + 1}. {q.question}</span>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {q.options.map((opt: string, j: number) => (
+                      <span key={j} className={cn("rounded px-1.5 py-0.5 text-[10px]", j === q.correctIndex ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-muted-foreground")}>
+                        {opt}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground text-center">{cuestionarioData.questions.length} preguntas</p>
+          </div>
+          {flowError && <p className="text-xs text-red-600 text-center">{flowError}</p>}
+          <div className="flex gap-2">
+            <button onClick={() => setCuestionarioData(null)} disabled={creatingCuestionario} className="flex-1 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-gray-50 transition-colors disabled:opacity-50">
+              Editar
+            </button>
+            <button onClick={handleCreateCuestionario} disabled={creatingCuestionario} className="flex-1 rounded-lg bg-violet-600 px-3 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-1">
+              {creatingCuestionario ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+              {creatingCuestionario ? "Creando..." : "Crear cuestionario"}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (!selectedSubject) {
+      if (!selectedCourse && courses.length === 0 && flowLoading) {
+        return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-violet-600" /></div>;
+      }
+
+      if (!selectedCourse) {
+        if (courses.length === 0 && !flowLoading) {
+          return (
+            <div className="text-center py-4">
+              <p className="text-xs text-muted-foreground mb-3">Selecciona un curso:</p>
+              <button onClick={loadCourses} className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors">
+                Cargar cursos
+              </button>
+              {flowError && <p className="text-xs text-red-600 mt-2">{flowError}</p>}
+            </div>
+          );
+        }
+        return (
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground mb-2">Selecciona un curso:</p>
+            <div className="space-y-1.5">
+              {courses.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setSelectedCourse(c)}
+                  className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-left text-sm hover:border-violet-300 hover:bg-violet-50 transition-colors flex items-center justify-between"
+                >
+                  <span className="font-medium">{c.nombre}</span>
+                  <span className="text-xs text-muted-foreground">{c.studentCount} estudiantes</span>
+                </button>
+              ))}
+            </div>
+            {flowError && <p className="text-xs text-red-600 mt-2">{flowError}</p>}
+          </div>
+        );
+      }
+
+      return (
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <button onClick={() => { setSelectedCourse(null); setCourses([]); loadCourses(); }} className="rounded-lg p-1 text-gray-400 hover:text-muted-foreground hover:bg-gray-100 transition-colors">
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <p className="text-xs font-semibold text-muted-foreground">Materia para {selectedCourse.nombre}:</p>
+          </div>
+          <div className="space-y-1.5">
+            {selectedCourse.mySubjects.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-4">No tienes materias asignadas en este curso</p>
+            ) : selectedCourse.mySubjects.map((s) => (
+              <button
+                key={s.subjectId}
+                onClick={() => setSelectedSubject(s)}
+                className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-left text-sm hover:border-violet-300 hover:bg-violet-50 transition-colors flex items-center gap-2"
+              >
+                <span>{s.subjectEmoji || "📚"}</span>
+                <span className="font-medium">{s.subjectName}</span>
+              </button>
+            ))}
+          </div>
+          {flowError && <p className="text-xs text-red-600 mt-2">{flowError}</p>}
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <button onClick={() => { setSelectedSubject(null); }} className="rounded-lg p-1 text-gray-400 hover:text-muted-foreground hover:bg-gray-100 transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <p className="text-xs font-semibold text-muted-foreground">Detalles del cuestionario</p>
+        </div>
+        <div className="space-y-2.5">
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Tema *</label>
+            <input
+              value={cuestionarioTopic}
+              onChange={(e) => setCuestionarioTopic(e.target.value)}
+              placeholder="Ej: Simple Past, La celula, ecuaciones..."
+              className="w-full h-9 rounded-xl border border-border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
+            />
+          </div>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="text-xs text-muted-foreground mb-1 block">Preguntas</label>
+              <select value={cuestionarioCount} onChange={(e) => setCuestionarioCount(Number(e.target.value))} className="w-full h-9 rounded-xl border border-border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400">
+                {[3, 5, 8, 10, 12, 15, 20].map(n => <option key={n} value={n}>{n} preguntas</option>)}
+              </select>
+            </div>
+            <div className="flex-1">
+              <label className="text-xs text-muted-foreground mb-1 block">Tipos</label>
+              <div className="flex gap-2 h-9 items-center">
+                <label className="flex items-center gap-1 text-xs cursor-pointer">
+                  <input type="checkbox" checked={cuestionarioTypes.includes("mcq")}
+                    onChange={() => setCuestionarioTypes(t => t.includes("mcq") ? t.filter(x => x !== "mcq") : [...t, "mcq"])}
+                    className="accent-violet-600" /> MCQ
+                </label>
+                <label className="flex items-center gap-1 text-xs cursor-pointer">
+                  <input type="checkbox" checked={cuestionarioTypes.includes("completar")}
+                    onChange={() => setCuestionarioTypes(t => t.includes("completar") ? t.filter(x => x !== "completar") : [...t, "completar"])}
+                    className="accent-amber-500" /> Completar
+                </label>
+              </div>
+            </div>
+          </div>
+          {flowError && <p className="text-xs text-red-600">{flowError}</p>}
+          <button
+            onClick={handleGenerateCuestionario}
+            disabled={!cuestionarioTopic.trim() || flowLoading || cuestionarioTypes.length === 0}
+            className="w-full rounded-xl bg-violet-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
+          >
+            {flowLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {flowLoading ? "Generando..." : "Generar con IA"}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   const renderFlowContent = () => {
     switch (flow) {
       case "create-assignment":
         return renderCreateAssignmentFlow();
+      case "create-cuestionario":
+        return renderCreateCuestionarioFlow();
       case "my-courses":
         return (
           <div>
@@ -675,6 +921,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                 <h3 className="text-sm font-bold leading-none">Atlas IA</h3>
                 <p className="text-[11px] text-violet-200 mt-0.5">
                   {flow === "create-assignment" ? "Crear tarea"
+                    : flow === "create-cuestionario" ? "Crear cuestionario"
                     : flow === "my-courses" ? "Mis cursos"
                     : flow === "risk" ? "Estudiantes en riesgo"
                     : flow === "message" ? "Enviar mensaje"
