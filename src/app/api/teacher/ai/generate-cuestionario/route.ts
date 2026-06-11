@@ -44,8 +44,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Materia y tema son requeridos" }, { status: 400 });
     }
 
-    const subjectData = await db.select({ name: subjects.name }).from(subjects).where(eq(subjects.id, subjectId)).limit(1);
+    const subjectData = await db.select({ name: subjects.name, slug: subjects.slug }).from(subjects).where(eq(subjects.id, subjectId)).limit(1);
     const subjectName = subjectData[0]?.name || "materia";
+    const isEnglish = subjectData[0]?.slug === "ingles";
 
     const count = Math.min(Math.max(3, questionCount || 5), 20);
     const types = questionTypes || ["mcq", "completar"];
@@ -67,7 +68,34 @@ export async function POST(request: NextRequest) {
 
     const hasCompletar = types.includes("completar");
 
-    const aiPrompt = `Eres un docente experto creando cuestionarios de estudio para educacion secundaria (PCEI Ecuador). Genera un cuestionario en JSON.
+    const aiPrompt = isEnglish
+      ? `You are an expert teacher creating study questionnaires for secondary education (PCEI Ecuador). Generate a questionnaire in JSON.
+
+Subject: ${subjectName}
+Topic: ${topic}
+Number of questions: ${count}
+${studyContent}
+
+RULES:
+1. This questionnaire is for STUDYING, not for evaluation. Include correct answers and explanations.
+2. Question types: ${hasCompletar ? "MIX multiple choice (type 'mcq') with FILL-IN-THE-BLANK questions (type 'completar'). For 'completar', the question has a blank space (use ___) and the options include the missing word." : "All questions are multiple choice (type 'mcq')."}
+3. type 'mcq': 4 options, correctIndex 0-3, explanation.
+4. type 'completar': question with ___ for the blank, 4 options where one completes the phrase, correctIndex 0-3, explanation.
+5. If there is study material, base the questions strictly on it.
+6. Clear language for adults.
+7. IMPORTANT: The questionnaire title, description, questions, options, and all content MUST be in ENGLISH.
+8. Respond ONLY with pure JSON. No markdown.
+
+FORMAT:
+{
+  "title": "Questionnaire: ...",
+  "description": "...",
+  "questions": [
+    { "type": "mcq", "question": "...", "options": ["A","B","C","D"], "correctIndex": 0, "explanation": "..." },
+    { "type": "completar", "question": "The capital of France is ___", "options": ["Paris","London","Berlin","Madrid"], "correctIndex": 0, "explanation": "..." }
+  ]
+}`
+      : `Eres un docente experto creando cuestionarios de estudio para educacion secundaria (PCEI Ecuador). Genera un cuestionario en JSON.
 
 Materia: ${subjectName}
 Tema: ${topic}

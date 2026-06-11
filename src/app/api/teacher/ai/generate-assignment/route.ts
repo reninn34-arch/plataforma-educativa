@@ -116,6 +116,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { subject, topic, questionCount = 5, model } = body;
+    const isEnglish = subject?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === "ingles";
 
     const resolved = resolveModel(model);
     if (resolved.error) {
@@ -132,7 +133,37 @@ export async function POST(request: NextRequest) {
 
     const count = Math.min(Math.max(1, questionCount), 15);
 
-    const prompt = `Eres un docente experto en educacion secundaria acelerada para adultos (PCEI Ecuador).
+    const prompt = isEnglish
+      ? `You are an expert teacher in accelerated secondary education for adults (PCEI Ecuador).
+Generate an assignment on the following topic.
+
+Subject: ${subject}
+Topic: ${topic}
+Number of questions: ${count}
+Trimester: ${body.trimester || 1}
+
+RULES:
+- Only MCQ questions (multiple choice). Use file_upload only if the topic is impossible without it.
+- Each MCQ: 4 options, correctIndex 0-3, points 1-3 easy / 4-5 hard.
+- Adult, practical, work-oriented language.
+- Clear title (max 80 characters).
+- Description: 2 paragraphs with instructions and practical context.
+- IMPORTANT: The assignment title, description, questions, options, and all content MUST be in ENGLISH.
+
+You must respond ONLY with a valid JSON object that matches this exact structure:
+{
+  "title": "string (max 80 characters)",
+  "description": "string (min 10 characters, 2 paragraphs)",
+  "questions": [
+    {
+      "type": "mcq",
+      "question": "string",
+      "options": ["string", "string", "string", "string"],
+      "correctIndex": 0,
+      "points": 1
+    }
+  ]}`
+      : `Eres un docente experto en educacion secundaria acelerada para adultos (PCEI Ecuador).
 Genera una tarea sobre el siguiente tema.
 
 Materia: ${subject}
