@@ -387,8 +387,8 @@ const SUBJECT_CONTEXTS: Record<string, { area: string; topics: string[]; canHave
     canHaveDiagram: true,
   },
   ingles: {
-    area: "Ingles - Bachillerato Acelerado para Adultos",
-    topics: ["Verbo To Be", "Presente simple", "Pasado simple", "Futuro con Will", "Vocabulario basico", "Preposiciones", "Adjetivos", "Conversacion basica"],
+    area: "English - Accelerated High School for Adults",
+    topics: ["Verb To Be", "Present Simple", "Past Simple", "Future with Will", "Basic Vocabulary", "Prepositions", "Adjectives", "Basic Conversation"],
     canHaveDiagram: false,
   },
   quimica: {
@@ -437,6 +437,7 @@ export async function POST(request: NextRequest) {
     if (rl) return rl;
 
     const ctx = SUBJECT_CONTEXTS[subject] || SUBJECT_CONTEXTS.matematicas;
+    const isEnglish = subject === "ingles";
     const topicContext = aiPromptContext
       ? `${aiPromptContext}`
       : (topic || ctx.topics.slice(0, 1).join(", "));
@@ -460,7 +461,68 @@ export async function POST(request: NextRequest) {
       ? `\n\nMATERIAL DE ESTUDIO DEL CURSO (basa los ejercicios en este contenido):\n${materialContent}`
       : "";
 
-    const lessonPrompt = `Eres un tutor cercano, paciente y entusiasta. Ensenas a adultos en bachillerato acelerado (PCEI). Tu mision es explicar un tema de forma clara, visual y amigable.
+    const lessonPrompt = isEnglish
+      ? `You are a friendly, patient, and enthusiastic tutor. You teach adults in an accelerated high school program (PCEI). Your mission is to explain a topic clearly, visually, and in a friendly way.
+
+All lesson content and exercises MUST be written in ENGLISH.
+
+REQUIRED JSON STRUCTURE (you MUST follow this exact format):
+{
+  "lesson": {
+    "title": "Lesson title",
+    "explanation": "Topic explanation...",
+    "example": {
+      "problem": "Practical problem statement",
+      "steps": [{ "text": "Step 1", "svg": "<svg>...</svg>" }, { "text": "Step 2", "svg": "<svg>...</svg>" }],
+      "answer": "Final result of the example"
+    },
+    "commonMistake": "Common mistake and how to fix it",
+    "quickCheck": { "question": "Verification question", "options": ["A", "B", "C", "D"], "correctIndex": 0, "feedback": "Brief explanation" }
+  },
+  "exercises": [
+    { "type": "mcq", "question": "...", "options": ["A", "B", "C", "D"], "correctIndex": 0, "difficulty": "easy", "timeLimit": 30 },
+    { "type": "fill_blank", "question": "...", "acceptedAnswers": ["answer"], "difficulty": "medium", "timeLimit": 35 },
+    { "type": "true_false", "question": "...", "correctAnswer": true, "difficulty": "hard", "timeLimit": null }
+  ]
+}
+
+AREA: ${ctx.area}
+Topic: ${topicContext}${materialBlock}
+
+TEACHING STYLE:
+- Talk like a friend explaining something new: warm, encouraging, without unnecessary jargon.
+- Use phrases like "Imagine that...", "Think about this...", "Let's go step by step".
+- Maximum 2 sentences per idea. Keep it direct and clear.
+- Use everyday life examples that any adult would recognize.
+- IMPORTANT: The explanation, examples, exercises, and all content MUST be in ENGLISH.
+
+LESSON ("explanation"):
+- 2-3 short sentences introducing the concept from scratch.
+- Start with a question or analogy that connects to real life.
+
+EXAMPLE ("example"):
+- Pose a practical problem relevant to adults.
+- EACH step MUST include an "svg" field with an SVG diagram that visually illustrates that step (numbers, lines, geometric shapes, operations).
+- The SVG MUST be VERY simple: maximum 6 elements (rect, circle, text, line). viewBox='0 0 260 120'.
+- Use ONLY SINGLE quotes inside SVG: viewBox='0 0 260 120', rect x='10' y='10', etc.
+- Colors: #FF6B6B, #4ECDC4, #333, #FFD93D. Nothing complex.
+- Include "answer" as a clear conclusion of the example.
+
+COMMON MISTAKE ("commonMistake"):
+- 1 sentence for the mistake. 1 sentence for the correction.
+
+QUICK CHECK ("quickCheck"):
+- 1 question with 4 options. Useful feedback in 1 sentence.
+
+EXERCISE RULES:
+- EXACTLY 8 exercises.
+- Vary types: maximum 2 of the same type (mcq, fill_blank, true_false).
+- Varied difficulty: at least 1 easy, 1 medium, 1 hard.
+- MCQ: "options" with 4 strings, "correctIndex" (0-3). DO NOT use "correctAnswer".
+- FILL_BLANK: "acceptedAnswers" REQUIRED (array of strings).
+- TRUE_FALSE: "correctAnswer" REQUIRED (true or false).
+- Hard: "timeLimit": null. Easy/Medium: "timeLimit" between 20 and 40.`
+      : `Eres un tutor cercano, paciente y entusiasta. Ensenas a adultos en bachillerato acelerado (PCEI). Tu mision es explicar un tema de forma clara, visual y amigable.
 
 ESTRUCTURA JSON REQUERIDA (DEBES seguir exactamente este formato):
 {
