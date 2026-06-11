@@ -56,7 +56,7 @@ import { NextRequest, NextResponse } from "next/server";
  *         description: No autorizado (no es estudiante)
  */
 import { db } from "@/lib/db";
-import { users, subjects, nodes, userProgress, modules, progress, practiceSessions, practiceAnswers, assignmentSubmissions, assignments, cursoEstudiantes, cursos } from "@/lib/db/schema";
+import { users, subjects, nodes, userProgress, modules, progress, practiceSessions, practiceAnswers, assignmentSubmissions, assignments, cursoEstudiantes, cursos, studentModules } from "@/lib/db/schema";
 import { eq, and, desc, inArray, isNotNull, sql } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 
@@ -93,6 +93,12 @@ export async function GET(request: NextRequest) {
       .where(eq(users.id, user.id))
       .limit(1);
 
+    const studentModuleIds = await db
+      .select({ id: studentModules.moduleId })
+      .from(studentModules)
+      .where(eq(studentModules.studentId, user.id));
+    const smIdList = studentModuleIds.map(r => r.id);
+
     const progressRows = await db
       .select({
         id: subjects.id,
@@ -104,7 +110,7 @@ export async function GET(request: NextRequest) {
         totalStars: sql<number>`coalesce(sum(${userProgress.starsEarned}), 0)`,
       })
       .from(subjects)
-      .leftJoin(modules, eq(modules.subjectId, subjects.id))
+      .leftJoin(modules, and(eq(modules.subjectId, subjects.id), inArray(modules.id, smIdList.length > 0 ? smIdList : [-1])))
       .leftJoin(nodes, eq(nodes.moduleId, modules.id))
       .leftJoin(userProgress, and(eq(userProgress.nodeId, nodes.id), eq(userProgress.userId, user.id)))
       .groupBy(subjects.id);

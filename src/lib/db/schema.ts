@@ -72,6 +72,20 @@ export const modules = pgTable("modules", {
   subjectIdIdx: index("idx_modules_subject_id").on(table.subjectId),
 }));
 
+export const studentModules = pgTable("student_modules", {
+  id: serial("id").primaryKey(),
+  studentId: integer("student_id")
+    .notNull()
+    .references(() => users.id),
+  moduleId: integer("module_id")
+    .notNull()
+    .references(() => modules.id),
+  order: integer("order").notNull().default(1),
+}, (table) => ({
+  uniqueStudentModule: unique("student_module_unique").on(table.studentId, table.moduleId),
+  studentOrderIdx: index("idx_student_modules_order").on(table.studentId, table.order),
+}));
+
 export const nodeTypeEnum = pgEnum("node_type", ["concept", "quiz", "challenge"]);
 
 export const nodes = pgTable("nodes", {

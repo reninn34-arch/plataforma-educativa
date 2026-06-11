@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { subjects, nodes, modules, userProgress } from "@/lib/db/schema";
+import { subjects, nodes, modules, userProgress, studentModules } from "@/lib/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
@@ -27,11 +27,17 @@ export default async function NodePracticePage({ params }: { params: Promise<{ s
 
     // Module star requirement (only for AI-generated)
     if (mod.generated && mod.requiredPoints > 0) {
+      const smIds = await db
+        .select({ mid: studentModules.moduleId })
+        .from(studentModules)
+        .where(eq(studentModules.studentId, session.id));
+      const smIdList = smIds.map(r => r.mid);
+
       const allSubjectNodes = await db
         .select({ id: nodes.id })
         .from(nodes)
         .leftJoin(modules, eq(nodes.moduleId, modules.id))
-        .where(eq(modules.subjectId, subject.id));
+        .where(and(eq(modules.subjectId, subject.id), inArray(modules.id, smIdList.length > 0 ? smIdList : [-1])));
       const allNodeIds = allSubjectNodes.map(n => n.id);
 
       const allProgress = allNodeIds.length > 0
@@ -66,10 +72,12 @@ export default async function NodePracticePage({ params }: { params: Promise<{ s
     const allSubjectModules = await db
       .select()
       .from(modules)
+      .innerJoin(studentModules, and(eq(studentModules.moduleId, modules.id), eq(studentModules.studentId, session.id)))
       .where(eq(modules.subjectId, subject.id))
-      .orderBy(modules.order);
-    const currentModIndex = allSubjectModules.findIndex(m => m.id === currentModule.id);
-    const nextMod = currentModIndex >= 0 ? allSubjectModules[currentModIndex + 1] : null;
+      .orderBy(studentModules.order);
+    const allSubjectModulesFlat = allSubjectModules.map(r => r.modules);
+    const currentModIndex = allSubjectModulesFlat.findIndex(m => m.id === currentModule.id);
+    const nextMod = currentModIndex >= 0 ? allSubjectModulesFlat[currentModIndex + 1] : null;
 
     if (nextMod) {
       nextModuleTitle = nextMod.title;

@@ -26,6 +26,7 @@ async function seed() {
     practice_answers,
     practice_sessions,
     student_exercises,
+    student_modules,
     asistencia,
     curso_estudiantes,
     curso_profesores,

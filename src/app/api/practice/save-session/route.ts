@@ -7,6 +7,7 @@ import {
   nodes,
   modules,
   progress,
+  studentModules,
 } from "@/lib/db/schema";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
 
       // Batch read for progress recalculation
       const [subjectModules, progressRecord] = await Promise.all([
-        db.select({ id: modules.id }).from(modules).where(eq(modules.subjectId, subjectId)),
+        db.select({ id: modules.id }).from(modules).innerJoin(studentModules, and(eq(studentModules.moduleId, modules.id), eq(studentModules.studentId, user.id))).where(eq(modules.subjectId, subjectId)),
         db.select().from(progress).where(and(eq(progress.userId, user.id), eq(progress.subjectId, subjectId))).limit(1),
       ]);
 

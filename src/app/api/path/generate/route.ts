@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { subjects, modules, nodes } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { subjects, modules, nodes, studentModules } from "@/lib/db/schema";
+import { eq, and, sql } from "drizzle-orm";
 import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, tryParseJson } from "@/lib/ai";
 import { generateObject, generateText } from "ai";
 import { z } from "zod/v4";
@@ -37,6 +37,16 @@ const SUBJECT_META: Record<string, string> = {
   ingles: "Ingles - Bachillerato Acelerado para Adultos (PCEI)",
   quimica: "Quimica - Bachillerato Acelerado para Adultos (PCEI)",
 };
+
+function normalizeTopic(t: string): string {
+  return t
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
@@ -220,40 +230,63 @@ Responde SOLO con un JSON valido con la siguiente estructura:
 
     const { moduleTitle, nodes: aiNodes } = outputParsed;
 
-    // Check for duplicate by topic + subject
-    const existingModule = await db
+    // Check for duplicate by normalized topic + subject
+    const normalizedTopic = normalizeTopic(topic);
+    const subjectModules = await db
       .select()
       .from(modules)
-      .where(eq(modules.topic, topic))
-      .limit(1);
+      .where(eq(modules.subjectId, subject.id));
 
-    if (existingModule.length > 0 && existingModule[0].subjectId === subject.id) {
+    const existingModule = subjectModules.find(
+      (m) => m.topic && normalizeTopic(m.topic) === normalizedTopic
+    );
+
+    if (existingModule) {
+      // Link current student to this module if not already linked
+      const existingLink = await db
+        .select({ id: studentModules.id })
+        .from(studentModules)
+        .where(and(eq(studentModules.studentId, user.id), eq(studentModules.moduleId, existingModule.id)))
+        .limit(1);
+
+      if (existingLink.length === 0) {
+        await db.update(studentModules)
+          .set({ order: sql`${studentModules.order} + 1` })
+          .where(eq(studentModules.studentId, user.id));
+        await db.insert(studentModules).values({ studentId: user.id, moduleId: existingModule.id, order: 1 });
+      }
+
       const existingNodes = await db
         .select()
         .from(nodes)
-        .where(eq(nodes.moduleId, existingModule[0].id))
+        .where(eq(nodes.moduleId, existingModule.id))
         .orderBy(nodes.order);
       return Response.json({
-        module: existingModule[0],
+        module: existingModule,
         nodes: existingNodes,
         cached: true,
       });
     }
 
-    // Push existing modules down and insert new module as #1
-    await db.update(modules).set({ order: sql`${modules.order} + 1` } as any).where(eq(modules.subjectId, subject.id));
+    // Shift existing student's modules down and insert new module as #1
+    await db.update(studentModules)
+      .set({ order: sql`${studentModules.order} + 1` })
+      .where(eq(studentModules.studentId, user.id));
 
     const [newModule] = await db
       .insert(modules)
       .values({
         subjectId: subject.id,
         title: moduleTitle,
-        order: 1,
+        order: 0,
         requiredPoints: 0,
         topic: topic,
         generated: true,
       })
       .returning();
+
+    // Link student to new module
+    await db.insert(studentModules).values({ studentId: user.id, moduleId: newModule.id, order: 1 });
 
     // Insert nodes
     const nodeValues = aiNodes.map((n: z.infer<typeof nodeSchema>, i: number) => ({

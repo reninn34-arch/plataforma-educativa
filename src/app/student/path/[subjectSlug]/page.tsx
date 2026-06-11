@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { subjects, modules, nodes, userProgress } from "@/lib/db/schema";
+import { subjects, modules, nodes, userProgress, studentModules } from "@/lib/db/schema";
 import { eq, inArray, and } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { ArrowLeft, Lock, Star, Play, Check, Sparkles } from "lucide-react";
@@ -18,7 +18,14 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
   if (!subjectRecord.length) redirect("/student/dashboard");
   const subject = subjectRecord[0];
 
-  const subjectModules = await db.select().from(modules).where(eq(modules.subjectId, subject.id)).orderBy(modules.order);
+  const moduleRows = await db
+    .select()
+    .from(modules)
+    .innerJoin(studentModules, and(eq(studentModules.moduleId, modules.id), eq(studentModules.studentId, session.id)))
+    .where(eq(modules.subjectId, subject.id))
+    .orderBy(studentModules.order);
+
+  const subjectModules = moduleRows.map(r => r.modules);
 
   const moduleIds = subjectModules.map(m => m.id);
   const allNodes = moduleIds.length > 0

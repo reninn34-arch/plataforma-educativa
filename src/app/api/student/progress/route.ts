@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { progress, subjects, nodes, userProgress, modules } from "@/lib/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { progress, subjects, nodes, userProgress, modules, studentModules } from "@/lib/db/schema";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
@@ -10,6 +10,12 @@ export async function GET(request: NextRequest) {
   if (!user || user.role !== "student") return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   try {
+    const studentModuleIds = await db
+      .select({ id: studentModules.moduleId })
+      .from(studentModules)
+      .where(eq(studentModules.studentId, user.id));
+    const smIdList = studentModuleIds.map(r => r.id);
+
     const rows = await db
       .select({
         id: subjects.id,
@@ -21,7 +27,7 @@ export async function GET(request: NextRequest) {
           sql<number>`coalesce(sum(${userProgress.starsEarned}), 0)`,
       })
       .from(subjects)
-      .leftJoin(modules, eq(modules.subjectId, subjects.id))
+      .leftJoin(modules, and(eq(modules.subjectId, subjects.id), inArray(modules.id, smIdList.length > 0 ? smIdList : [-1])))
       .leftJoin(nodes, eq(nodes.moduleId, modules.id))
       .leftJoin(userProgress, and(eq(userProgress.nodeId, nodes.id), eq(userProgress.userId, user.id)))
       .groupBy(subjects.id);

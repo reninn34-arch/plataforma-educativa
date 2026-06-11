@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { subjects, studyMaterials } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
-import { opencodeGoModel, logAiCall, DEFAULT_MODEL_ID, tryParseJson } from "@/lib/ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, tryParseJson } from "@/lib/ai";
 import { generateText } from "ai";
 
 const KEY_MAP: Record<string, string> = {
@@ -38,11 +38,17 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { cursoId, subjectId, topic, questionCount, questionTypes } = await request.json();
+    const { cursoId, subjectId, topic, questionCount, questionTypes, model } = await request.json();
 
     if (!subjectId || !topic?.trim()) {
       return NextResponse.json({ error: "Materia y tema son requeridos" }, { status: 400 });
     }
+
+    const resolved = resolveModel(model);
+    if (resolved.error) {
+      return NextResponse.json({ error: resolved.error }, { status: 400 });
+    }
+    const candidates = getChatModelCandidates(model);
 
     const subjectData = await db.select({ name: subjects.name, slug: subjects.slug }).from(subjects).where(eq(subjects.id, subjectId)).limit(1);
     const subjectName = subjectData[0]?.name || "materia";
@@ -121,32 +127,113 @@ FORMATO:
   ]
 }`;
 
-    const start = Date.now();
-    const aiResult = await generateText({ model: opencodeGoModel, prompt: aiPrompt, temperature: 0.5, maxOutputTokens: 8000 });
-    logAiCall({ route: "ai-tool/generate-cuestionario-form", model: DEFAULT_MODEL_ID, durationMs: Date.now() - start, usage: aiResult.usage ? { inputTokens: aiResult.usage.inputTokens, outputTokens: aiResult.usage.outputTokens, totalTokens: (aiResult.usage.inputTokens ?? 0) + (aiResult.usage.outputTokens ?? 0) } : undefined });
+    const REQUEST_TIMEOUT_MS = 60_000;
+    const MAX_CANDIDATES = 3;
+    let lastError: unknown;
+    let usedModel = resolved;
 
-    let data = tryParseJson(aiResult.text || "");
-    data = normalizeKeys(data);
+    for (const candidate of candidates.slice(0, MAX_CANDIDATES)) {
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MS);
 
-    if (!data || typeof data !== "object" || !data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
-      return NextResponse.json({ error: "La IA no pudo generar preguntas. Intenta con un tema mas especifico." }, { status: 422 });
+      try {
+        const start = Date.now();
+        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek";
+
+        let text: string;
+
+        if (isTextOnlyProvider) {
+          const r = await generateText({
+            model: getChatModel(candidate),
+            prompt: aiPrompt + "\n\nResponde SOLO con un JSON valido. No incluyas texto adicional, solo el JSON.",
+            temperature: 0.5,
+            maxOutputTokens: 4096,
+            abortSignal: abortController.signal,
+          });
+          text = r.text;
+        } else {
+          const r = await generateText({
+            model: getChatModel(candidate),
+            prompt: aiPrompt + "\n\nResponde SOLO con un JSON valido. No incluyas texto adicional, solo el JSON.",
+            temperature: 0.5,
+            maxOutputTokens: 4096,
+            abortSignal: abortController.signal,
+          });
+          text = r.text;
+        }
+
+        clearTimeout(timeoutId);
+        usedModel = candidate;
+
+        logAiCall({
+          route: "teacher/ai/generate-cuestionario",
+          model: candidate.modelId,
+          durationMs: Date.now() - start,
+        });
+
+        let data = tryParseJson(text || "");
+        data = normalizeKeys(data);
+
+        if (!data || typeof data !== "object" || !data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
+          lastError = new Error("No se pudieron extraer preguntas del JSON generado");
+          continue;
+        }
+
+        const questions = data.questions.slice(0, 30).map((q: any, i: number) => ({
+          virtualType: q.type === "completar" ? "completar" : "mcq",
+          question: q.question || "",
+          options: q.options || ["", "", "", ""],
+          correctIndex: q.correctIndex ?? 0,
+          explanation: q.explanation || "",
+          points: q.points || 1,
+          orderIndex: i,
+        }));
+
+        return NextResponse.json({
+          title: data.title || `Cuestionario: ${topic}`,
+          description: data.description || `Cuestionario de estudio sobre ${topic}`,
+          questions,
+        });
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        const msg = String(err?.message || err || "");
+        const wasAborted = err?.name === "AbortError" || msg.includes("abort");
+
+        logAiCall({
+          route: "teacher/ai/generate-cuestionario",
+          model: candidate.modelId,
+          durationMs: 0,
+          error: wasAborted ? `Timeout (${REQUEST_TIMEOUT_MS / 1000}s)` : (err?.message || "AI error"),
+        });
+
+        lastError = err;
+        if (!isRetryableModelError(err) && !wasAborted) {
+          return NextResponse.json(
+            { error: "Error al generar el cuestionario con IA. Intenta de nuevo." },
+            { status: 502 }
+          );
+        }
+      }
     }
 
-    const questions = data.questions.slice(0, 30).map((q: any, i: number) => ({
-      virtualType: q.type === "completar" ? "completar" : "mcq",
-      question: q.question || "",
-      options: q.options || ["", "", "", ""],
-      correctIndex: q.correctIndex ?? 0,
-      explanation: q.explanation || "",
-      points: q.points || 1,
-      orderIndex: i,
-    }));
+    if (lastError) {
+      const msg = String((lastError as any)?.message || "");
+      if (msg.includes("abort") || msg.includes("Timeout")) {
+        return NextResponse.json(
+          { error: "La generacion excedio el tiempo limite con todos los modelos. Intenta con menos preguntas." },
+          { status: 504 }
+        );
+      }
+      return NextResponse.json(
+        { error: "No se pudo generar el cuestionario con los modelos configurados." },
+        { status: 502 }
+      );
+    }
 
-    return NextResponse.json({
-      title: data.title || `Cuestionario: ${topic}`,
-      description: data.description || `Cuestionario de estudio sobre ${topic}`,
-      questions,
-    });
+    return NextResponse.json(
+      { error: "Ningun modelo pudo generar datos validos. Intenta con otro tema." },
+      { status: 422 }
+    );
   } catch (error) {
     console.error("[generate-cuestionario] error:", error);
     return NextResponse.json({ error: "Error al generar cuestionario" }, { status: 500 });
