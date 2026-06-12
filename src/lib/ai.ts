@@ -78,10 +78,7 @@ export const ALLOWED_EMBEDDING_MODELS = parseAllowedModels(
   DEFAULT_EMBEDDING_PROVIDER,
   DEFAULT_EMBEDDING_MODEL,
 );
-export const FALLBACK_MODELS = toModelIdList([
-  ...parseModelList(env.AI_FALLBACK_MODELS, "opencode"),
-  ...parseModelList(env.AI_GROQ_FALLBACK_MODELS, "groq"),
-]);
+export const FALLBACK_MODELS = toModelIdList(parseModelList(env.AI_FALLBACK_MODELS, DEFAULT_PROVIDER));
 export const FALLBACK_EMBEDDING_MODELS = toModelIdList(
   parseModelList(env.AI_FALLBACK_EMBEDDING_MODELS, DEFAULT_EMBEDDING_PROVIDER),
 );
