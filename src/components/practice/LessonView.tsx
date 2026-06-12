@@ -79,16 +79,9 @@ function MermaidDiagram({ code, large, onRetry }: { code: string; large?: boolea
       if (!cancelled) setSvg(rendered);
     }
 
-    renderDiagram(code).catch(() => {
-      if (cancelled) return;
-      const sanitized = sanitizeMermaid(code);
-      if (sanitized === code) {
-        if (!cancelled) setError(true);
-        return;
-      }
-      renderDiagram(sanitized).catch(() => {
-        if (!cancelled) setError(true);
-      });
+    const sanitized = sanitizeMermaid(code);
+    renderDiagram(sanitized).catch(() => {
+      if (!cancelled) setError(true);
     });
 
     return () => { cancelled = true; };
@@ -228,6 +221,14 @@ function DiagramView({ diagram, onRetry }: { diagram: NonNullable<LessonData["di
   };
 
   const renderContent = (large = false) => {
+    if (retrying) {
+      return (
+        <div className="flex flex-col items-center justify-center p-8 space-y-3">
+          <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+          <p className="text-sm text-blue-600 font-medium animate-pulse">Generando nuevo diagrama...</p>
+        </div>
+      );
+    }
     if (currentDiagram.mermaid) {
       return <MermaidDiagram code={currentDiagram.mermaid} large={large} onRetry={handleRetry} />;
     }

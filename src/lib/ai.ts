@@ -185,11 +185,11 @@ export function getChatModel(target: ResolvedModel | string) {
   // "responses" model (hits /responses) which OpenCode and most gateways
   // don't support.  .chat() hits /chat/completions which is the standard.
   if (typeof client.chat === "function") {
-    return client.chat(model);
+    return client.chat(model, { maxRetries: 1 });
   }
 
   if (typeof client === "function") {
-    return client(model);
+    return client(model, { maxRetries: 1 });
   }
 
   throw new Error(`Proveedor ${provider} no expone un modelo de chat compatible`);
@@ -312,9 +312,17 @@ export function getEmbeddingModelCandidates(requestedModel: unknown): ResolvedMo
 }
 
 export function isRetryableModelError(error: unknown): boolean {
+  const statusCode = (error as any)?.statusCode;
+  if (statusCode === 429 || statusCode === 408 || statusCode >= 500) {
+    return true;
+  }
   const message = String((error as any)?.message ?? error ?? "").toLowerCase();
+  const isZodError = error instanceof Error && (error.name === "ZodError" || error.stack?.includes("ZodError"));
+  const isValidationError = message.includes("invalid input") || message.includes("invalid_type") || message.includes("expected");
   return (
-    message.includes("not found")
+    isZodError
+    || isValidationError
+    || message.includes("not found")
     || message.includes("404")
     || message.includes("model")
     || message.includes("unsupported")
@@ -322,6 +330,11 @@ export function isRetryableModelError(error: unknown): boolean {
     || message.includes("response_format")
     || message.includes("unavailable")
     || message.includes("failed to validate")
+    || message.includes("429")
+    || message.includes("rate limit")
+    || message.includes("too many requests")
+    || message.includes("limit exceeded")
+    || message.includes("quota")
     || (message.includes("json") && !message.includes("success"))
   );
 }

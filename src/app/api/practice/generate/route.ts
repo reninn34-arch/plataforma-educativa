@@ -43,6 +43,9 @@ const SCHEMA_KEY_MAP: Record<string, string> = {
   limitetiempo: "timeLimit",
   timelimit: "timeLimit",
   dificultad: "difficulty",
+  commonmistakecorrection: "commonMistakeCorrection",
+  errorcomuncorreccion: "commonMistakeCorrection",
+  correccionerrorcomun: "commonMistakeCorrection",
   channelname: "channelName",
   thumbnailurl: "thumbnailUrl",
 };
@@ -149,6 +152,22 @@ const baseLessonSchema = z.object({
       if ((val.respuestacorrecta || val.indicecorrecto || val.correctindex) && val.correctIndex === undefined) {
         val.correctIndex = val.respuestacorrecta ?? val.indicecorrecto ?? val.correctindex;
       }
+      
+      // Defensively fix fields
+      if (!val.question) val.question = "¿Comprendiste el concepto principal?";
+      if (!val.options || !Array.isArray(val.options) || val.options.length < 4) {
+        val.options = ["Opción A", "Opción B", "Opción C", "Opción D"];
+      } else if (val.options.length > 4) {
+        val.options = val.options.slice(0, 4);
+      }
+      if (typeof val.correctIndex !== "number") {
+        const parsedIdx = parseInt(val.correctIndex, 10);
+        val.correctIndex = isNaN(parsedIdx) ? 0 : parsedIdx;
+      }
+      if (val.correctIndex < 0 || val.correctIndex > 3) {
+        val.correctIndex = 0;
+      }
+      if (!val.feedback) val.feedback = "¡Buen trabajo!";
     }
     return val;
   }, z.object({
@@ -164,14 +183,55 @@ const lessonSchema = z.preprocess((val: any) => {
     if (val.titulo && !val.title) val.title = val.titulo;
     if (val.explicacion && !val.explanation) val.explanation = val.explicacion;
     if (val.ejemplo && !val.example) val.example = val.ejemplo;
+    
+    // Normalize commonMistake if it comes with separate correction
     if ((val.errorcomun || val.error) && !val.commonMistake) {
       val.commonMistake = val.errorcomun || val.error;
     }
+    const corr = val.commonMistakeCorrection ?? val.correction ?? val.correccion ?? val.errorcomuncorreccion ?? val.correccionerrorcomun;
+    if (val.commonMistake && typeof val.commonMistake === "string" && corr) {
+      val.commonMistake = {
+        description: val.commonMistake,
+        correction: corr
+      };
+    }
+
     if ((val.comprobacionrapida || val.comprobacion) && !val.quickCheck) {
       val.quickCheck = val.comprobacionrapida || val.comprobacion;
     }
+
+    // Default fallbacks if missing entirely
     if (!val.title) {
       val.title = "Lección de Estudio";
+    }
+    if (!val.explanation) {
+      val.explanation = "Introducción conceptual al tema de estudio.";
+    }
+    if (!val.example) {
+      val.example = {
+        problem: "Ejemplo práctico de aplicación",
+        steps: [{ text: "Analizar los datos del problema y aplicar la fórmula o regla.", svg: undefined }],
+        answer: "Solución obtenida."
+      };
+    }
+    if (!val.commonMistake) {
+      val.commonMistake = {
+        description: "Confundir los conceptos básicos del tema.",
+        correction: "Lee con atención las definiciones y repasa los ejemplos paso a paso."
+      };
+    }
+    if (!val.quickCheck) {
+      val.quickCheck = {
+        question: "¿Comprendiste el concepto principal presentado en la explicación?",
+        options: [
+          "Sí, comprendo la idea principal",
+          "Tengo algunas dudas todavía",
+          "No me queda claro el concepto",
+          "Prefiero ver más ejemplos"
+        ],
+        correctIndex: 0,
+        feedback: "¡Excelente! Continuemos para poner en práctica lo aprendido."
+      };
     }
   }
   return val;
@@ -337,6 +397,17 @@ const practiceResponseSchema = z.preprocess((val: any) => {
         }
         return ex;
       });
+
+      // Defensively force exactly 8 exercises to satisfy .length(8)
+      if (normalized.exercises.length > 8) {
+        normalized.exercises = normalized.exercises.slice(0, 8);
+      } else if (normalized.exercises.length < 8 && normalized.exercises.length > 0) {
+        const originalLength = normalized.exercises.length;
+        while (normalized.exercises.length < 8) {
+          const copySrc = normalized.exercises[normalized.exercises.length % originalLength];
+          normalized.exercises.push({ ...copySrc });
+        }
+      }
     }
   }
   return normalized;
@@ -460,7 +531,6 @@ export async function POST(request: NextRequest) {
     const materialBlock = studyMaterial
       ? `\n\nMATERIAL DE ESTUDIO DEL CURSO (basa los ejercicios en este contenido):\n${materialContent}`
       : "";
-
     const lessonPrompt = isEnglish
       ? `You are a friendly, patient, and enthusiastic tutor. You teach adults in an accelerated high school program (PCEI). Your mission is to explain a topic clearly, visually, and in a friendly way.
 
@@ -516,7 +586,7 @@ QUICK CHECK ("quickCheck"):
 
 EXERCISE RULES:
 - EXACTLY 8 exercises.
-- Vary types: maximum 2 of the same type (mcq, fill_blank, true_false).
+- Vary types: distribute the types evenly among mcq, fill_blank, and true_false to complete the 8 exercises (e.g. 3 mcq, 3 fill_blank, 2 true_false). Do NOT use other types.
 - Varied difficulty: at least 1 easy, 1 medium, 1 hard.
 - MCQ: "options" with 4 strings, "correctIndex" (0-3). DO NOT use "correctAnswer".
 - FILL_BLANK: "acceptedAnswers" REQUIRED (array of strings).
@@ -573,7 +643,7 @@ COMPROBACION RAPIDA ("quickCheck"):
 
 REGLAS EJERCICIOS:
 - EXACTAMENTE 8 ejercicios.
-- Variar tipos: maximo 2 del mismo tipo (mcq, fill_blank, true_false).
+- Variar tipos: distribuye los tipos equitativamente entre mcq, fill_blank y true_false para completar los 8 ejercicios (por ejemplo: 3 mcq, 3 fill_blank, 2 true_false). NO uses otros tipos.
 - Dificultad variada: al menos 1 easy, 1 medium, 1 hard.
 - MCQ: "options" con 4 strings, "correctIndex" (0-3). NO usar "correctAnswer".
 - FILL_BLANK: "acceptedAnswers" OBLIGATORIO (array de strings).
@@ -616,7 +686,7 @@ REGLAS:
 
         const startTime = performance.now();
 
-        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek";
+        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek" || candidate.provider === "opencode";
 
         const lessonPromise = (async () => {
           if (isTextOnlyProvider) {
@@ -799,9 +869,25 @@ REGLAS:
 
     lessonResult.exercises = lessonResult.exercises.map((ex, i) => ({ ...ex, id: i + 1 }));
 
+    const isEnglishLesson = subject === "ingles";
+    if (!diagram || !isValidMermaid(diagram.mermaid)) {
+      if (ctx.canHaveDiagram) {
+        const safeTopic = topicContext.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s]/g, " ").trim();
+        diagram = {
+          mermaid: isEnglishLesson
+            ? `graph TD\n  A[Diagram of ${safeTopic}] --> B[Click the button below to regenerate]`
+            : `graph TD\n  A[Diagrama de ${safeTopic}] --> B[Haz clic en el botón de abajo para regenerar]`,
+          caption: isEnglishLesson ? "Topic diagram" : "Diagrama del tema"
+        };
+      }
+    }
+
     if (diagram && isValidMermaid(diagram.mermaid)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (lessonResult.lesson as any).diagram = diagram;
+      (lessonResult.lesson as any).diagram = {
+        ...diagram,
+        caption: isEnglishLesson ? (diagram.caption || "Topic diagram") : (diagram.caption || "Diagrama del tema"),
+      };
     }
 
     const [videos] = await Promise.all([

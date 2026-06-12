@@ -125,7 +125,7 @@ REGLAS:
                             candidate.model.toLowerCase().includes("o3") || 
                             candidate.model.toLowerCase().includes("reasoner");
 
-        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek";
+        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek" || candidate.provider === "opencode";
 
         const promptText = isReasoning
           ? `${systemPrompt}\n\nAREA: ${areaContext}\nTEMA SOLICITADO POR EL ESTUDIANTE: "${topic}"${materialBlock}\n\nGenera un Learning Path de 6-8 nodos para este tema, basandote en el MATERIAL DE ESTUDIO DEL CURSO proporcionado. Los primeros nodos deben ser de tipo "concept" (ensenanza) y los ultimos de tipo "quiz" o "challenge" (practica).`
@@ -136,7 +136,7 @@ REGLAS:
           const responseText = await generateText({
             model: getChatModel(candidate),
             prompt: fallbackPrompt,
-            ...(isReasoning ? {} : { system: systemPrompt, temperature: 0.8 }),
+            ...(isReasoning ? {} : { system: systemPrompt, temperature: 0.3 }),
             maxOutputTokens: 4000,
             abortSignal: abortController.signal,
           });
@@ -148,7 +148,7 @@ REGLAS:
               model: getChatModel(candidate),
               schema: pathSchema,
               prompt: promptText,
-              ...(isReasoning ? {} : { system: systemPrompt, temperature: 0.8 }),
+              ...(isReasoning ? {} : { system: systemPrompt, temperature: 0.3 }),
               maxOutputTokens: 4000,
               abortSignal: abortController.signal,
             });
@@ -159,7 +159,7 @@ REGLAS:
             const responseText = await generateText({
               model: getChatModel(candidate),
               prompt: fallbackPrompt,
-              ...(isReasoning ? {} : { system: systemPrompt, temperature: 0.8 }),
+              ...(isReasoning ? {} : { system: systemPrompt, temperature: 0.3 }),
               maxOutputTokens: 4000,
               abortSignal: abortController.signal,
             });
@@ -191,7 +191,7 @@ Responde SOLO con un JSON valido con la siguiente estructura:
     { "title": "string", "type": "concept|quiz|challenge", "aiPromptContext": "string" }
   ]
 }`,
-              temperature: 0.8,
+              temperature: 0.3,
               maxOutputTokens: 4000,
               abortSignal: abortController.signal,
             });

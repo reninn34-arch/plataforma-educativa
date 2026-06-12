@@ -6,7 +6,8 @@ export function isValidMermaid(code: string): boolean {
   cleaned = cleaned.replace(/\n?```\s*$/, "");
   cleaned = cleaned.trim();
 
-  if (!/^graph\s+(TD|LR|TB|RL)/i.test(cleaned)) return false;
+  // Accept both graph and flowchart syntax
+  if (!/^(graph|flowchart)\s+(TD|LR|TB|RL)/i.test(cleaned)) return false;
   if (!/-->/.test(cleaned)) return false;
 
   const openSquare = (cleaned.match(/\[/g) || []).length;
@@ -23,7 +24,16 @@ export function isValidMermaid(code: string): boolean {
 }
 
 export function sanitizeMermaid(code: string): string {
-  return code.replace(/([A-Za-z]\w*)\[([^\[\]]+)\]/g, (match, id, text) => {
+  let cleaned = code.trim();
+  // Remove any lines starting with 'caption:' or 'caption :' case-insensitively
+  cleaned = cleaned.replace(/^\s*caption\s*:.*$/gim, "");
+  // Replace all semicolons with newlines to ensure compatibility with modern Mermaid (which requires newlines instead of single-line semicolons)
+  cleaned = cleaned.replace(/;/g, "\n");
+  // Remove consecutive newlines
+  cleaned = cleaned.replace(/\n+/g, "\n");
+  cleaned = cleaned.trim();
+
+  return cleaned.replace(/([A-Za-z]\w*)\[([^\[\]]+)\]/g, (match, id, text) => {
     if (text.startsWith('"') && text.endsWith('"')) return match;
     if (/^[\wáéíóúÁÉÍÓÚñÑ\s]+$/.test(text)) return match;
     const escaped = text.replace(/"/g, '\\"');

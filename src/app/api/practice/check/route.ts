@@ -40,7 +40,7 @@ Respuestas aceptadas: ${JSON.stringify(acceptedAnswers)}
 
 Evalua si la respuesta del estudiante es semanticamente equivalente a alguna de las aceptadas.`;
 
-      const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek";
+      const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek" || candidate.provider === "opencode";
 
       if (isTextOnlyProvider) {
         const textPrompt = prompt + "\n\nResponde SOLO con un JSON valido: {\"isCorrect\": true} o {\"isCorrect\": false}. No uses bloques de markdown ni texto adicional.";

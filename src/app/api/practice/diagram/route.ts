@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       try {
         const aiModel = getChatModel(candidate);
         const diagramStart = performance.now();
-        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek";
+        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek" || candidate.provider === "opencode";
 
         if (isTextOnlyProvider) {
           const r = await generateText({
