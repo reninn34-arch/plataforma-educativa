@@ -337,7 +337,6 @@ export default function AssignmentSubmitPage() {
                 </Badge>
               )}
             </div>
-            <Button variant="outline" size="sm" onClick={() => setSubmission(null)} className="rounded-xl border-slate-200">Cambiar entrega</Button>
           </div>
         )}
       </main>
