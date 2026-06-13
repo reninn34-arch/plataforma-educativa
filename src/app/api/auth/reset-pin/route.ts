@@ -34,9 +34,14 @@ import { eq, sql } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { hashPin } from "@/lib/hash-utils";
 import { isValidPin } from "@/lib/api-helpers";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const rl = rateLimit({ key: `reset-pin:${ip}`, maxRequests: 5, windowMs: 60_000 });
+    if (rl) return rl;
+
     const { token, newPin } = await request.json();
 
     if (!token || !newPin || !/^\d{4}$/.test(newPin)) {

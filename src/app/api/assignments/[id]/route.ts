@@ -296,7 +296,6 @@ export async function PUT(
 
     // Delete old file if replaced or removed
     if (newFileUrl !== undefined && existing.fileUrl) {
-      const oldFilePath = join(process.cwd(), existing.fileUrl.replace("/api/uploads/assignments/", "uploads/assignments/").replace("/", "\\"));
       const oldFullPath = join(process.cwd(), "uploads", "assignments", existing.fileUrl.split("/").pop() || "");
       if (existsSync(oldFullPath)) {
         try { await unlink(oldFullPath); } catch {}

@@ -24,4 +24,3 @@ export function UserProvider({ children, profile }: { children: ReactNode; profi
 }
 
 export function useUserProfile() { return useContext(UserContext); }
-export function useTeacherCourses() { return useContext(UserContext); }

@@ -7,6 +7,9 @@ export function apiError(message: string, status: number = 400) {
 }
 
 export function apiSuccess<T>(data: T, status: number = 200) {
+  if (Array.isArray(data)) {
+    return NextResponse.json({ success: true, data }, { status });
+  }
   return NextResponse.json({ success: true, ...data as any }, { status });
 }
 
@@ -113,10 +116,7 @@ const COMMON_PINS = [
   "1122","2233","3344","4455","5566","6677","7788","8899",
   "3210","4321","5432","6543","7654","8765","9876",
   "0101","1010","1212","2020","2525","3636","4545",
-  "0001","0007","0010","0100","1000","1110","1234","2000","2001",
-  "2222","2580","3333","4444","5555","6666","7777","8888","9999",
-  "abcd","admin","pass","0007","0000","1234","1","1111","11","1212",
-  "123456","12345678","12345","password","qwerty","abc123",
+  "0001","0007","0010","0100","1000","1110","2000","2001","2580",
 ];
 
 export function isValidPin(pin: string): { valid: boolean; reason?: string } {
@@ -127,9 +127,6 @@ export function isValidPin(pin: string): { valid: boolean; reason?: string } {
     return { valid: false, reason: "Este PIN es demasiado común. Elige uno más seguro." };
   }
   if (/(\d)\1{3}/.test(pin)) {
-    return { valid: false, reason: "El PIN no debe tener todos los dígitos iguales" };
-  }
-  if (/^(\d)\1{2,}/.test(pin)) {
     return { valid: false, reason: "Evita dígitos repetidos en tu PIN" };
   }
   const asc = /^0?1?2?3?4?5?6?7?8?9?$/.test(pin);

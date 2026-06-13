@@ -39,6 +39,11 @@ const envSchema = z.object({
   AI_ALLOWED_EMBEDDING_MODELS: z.string().default("opencode:text-embedding-3-small"),
   AI_ENFORCE_EMBEDDING_ALLOWLIST: booleanFromEnv.default(false),
   AI_FALLBACK_EMBEDDING_MODELS: z.string().default(""),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM_NAME: z.string().optional(),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });
 

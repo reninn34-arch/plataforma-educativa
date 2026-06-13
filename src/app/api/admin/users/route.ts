@@ -55,10 +55,7 @@ import { eq, desc, and, inArray, sql, type SQL } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { hashPin } from "@/lib/hash-utils";
 import type { UserRole } from "@/lib/types";
-
-function generatePin(): string {
-  return String(Math.floor(1000 + Math.random() * 9000));
-}
+import { generatePin } from "@/lib/csv-utils";
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
