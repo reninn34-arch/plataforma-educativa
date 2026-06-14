@@ -4,6 +4,30 @@ Todas las cambios notables en Atlas Edu serán documentados aquí.
 
 El formato sigue [Keep a Changelog](https://keepachangelog.com/), y el proyecto usa [Semantic Versioning](https://semver.org/).
 
+## [0.7.0] - 2026-06-13 — Sprint 7 🧹
+
+### Agregado
+- Landing page rediseñada con hero, características, HowItWorks, testimonios, estadísticas animadas y footer (#75-#82)
+- Instrucciones de instalación con pasos específicos para Windows (verificación servicio PostgreSQL, `copy` en vez de `cp`)
+- Variables SMTP validadas desde Zod en `env.ts` (antes se accedían con `process.env` directo)
+- Rate limiting en `POST /api/auth/reset-pin` (5 req/min por IP)
+
+### Cambiado
+- README sincronizado con `.env.example` real: Groq como provider default, sin vars inventadas
+- `apiSuccess()` ahora maneja arrays correctamente (envuelve en `{ success: true, data }` en vez de spreadear)
+- `generatePin()` consolidado en `csv-utils.ts` — eliminadas definiciones duplicadas en `ai-tools.ts` y `admin/users/route.ts`
+- `checkAcademicLoad`, `recordPhysicalGrades` y `getFeatureGuide` extraídos a funciones compartidas en `ai-tools.ts` (~200 líneas menos)
+
+### Corregido
+- `COMMON_PINS` contenía strings no numéricos (`"abcd"`, `"admin"`, `"pass"`) que nunca coincidían con PINs de 4 dígitos
+- Validación redundante de dígitos repetidos eliminada
+- `useTeacherCourses()` en `contexts.tsx` era alias engañoso de `useUserProfile()` — eliminado
+- `NotificationBell.tsx` duplicado en `components/` raíz — eliminado (no se importaba)
+- `forgot-pin/route.ts` token de reseteo usaba `role: "" as any` — ahora usa el rol real del usuario
+- `assignments/[id]/route.ts` línea con backcodeo `"\\"` que rompía en Linux — eliminada
+- `study-material.test.ts` timeout por PDF mínimo artesanal — ahora usa mock de `pdf-parse` v2
+- Rate limiting documentado correctamente en README (login 10, forgot-pin 3, reset-pin 5)
+
 ## [0.6.1] - 2026-06-06 — Sprint 6 🔐
 
 ### Agregado
