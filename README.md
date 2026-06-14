@@ -1,6 +1,6 @@
 # Atlas Edu
 
-Plataforma educativa integral para el sistema PCEI (Programa de Curricular para Educacion Intensiva) de Ecuador. Diseñada para acelerar la educación secundaria de adultos a través de herramientas con inteligencia artificial, seguimiento de progreso y comunicación entre estudiantes, docentes, administradores y padres de familia.
+Plataforma educativa integral para el sistema PCEI (Programa de Curricular para Educacion Intensiva) de Ecuador. Diseñada para acelerar la educación secundaria de adultos a través de herramientas con inteligencia artificial, seguimiento de progreso y comunicación entre estudiantes, docentes y administradores.
 
 ## Stack
 
@@ -140,7 +140,6 @@ src/
 │   ├── (student)/          # Portal del estudiante
 │   ├── (teacher)/          # Portal del docente
 │   ├── (admin)/            # Portal del administrador
-│   ├── (parent)/           # Portal del padre de familia
 │   ├── login/              # Página de inicio de sesión
 │   └── api/                # Endpoints REST
 ├── components/             # Componentes React compartidos
@@ -179,30 +178,34 @@ src/
 Copiar `.env.example` a `.env.local` y configurar:
 
 ```bash
+# Base de datos
 DATABASE_URL="postgresql://usuario:contraseña@localhost:5432/atlas_edu"
-JWT_SECRET="secret-aleatorio-de-al-menos-16-caracteres"
-OPENCODE_GO_API_KEY="sk-tu-api-key"
-OPENCODE_GO_BASE_URL="https://opencode.ai/zen/go/v1"
-OPENAI_API_KEY="sk-tu-api-key-openai"
-ANTHROPIC_API_KEY="sk-ant-tu-api-key"
-GOOGLE_GENERATIVE_AI_API_KEY="tu-api-key-google"
-AI_DEFAULT_PROVIDER="opencode"
-AI_DEFAULT_MODEL="kimi-k2.5"
-AI_ALLOWED_MODELS="opencode:kimi-k2.5,openai:gpt-5.3-codex,anthropic:claude-sonnet-4.6,google:gemini-3.5-flash"
-AI_ENFORCE_ALLOWLIST="false"
-AI_FALLBACK_MODELS="opencode:deepseek-v4-flash-free,openai:gpt-5.3-codex,anthropic:claude-sonnet-4.6,google:gemini-3.5-flash"
-AI_DEFAULT_EMBEDDING_PROVIDER="opencode"
-AI_DEFAULT_EMBEDDING_MODEL="text-embedding-3-small"
-AI_ALLOWED_EMBEDDING_MODELS="opencode:text-embedding-3-small,openai:text-embedding-3-small"
-AI_ENFORCE_EMBEDDING_ALLOWLIST="false"
-AI_FALLBACK_EMBEDDING_MODELS="openai:text-embedding-3-small"
 
-# SMTP (opcional)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=tu-correo@gmail.com
-SMTP_PASS=tu-contrasena-app
-SMTP_FROM="Atlas Edu <noreply@atlas.edu>"
+# JWT
+JWT_SECRET="secret-aleatorio-de-al-menos-16-caracteres"
+
+# Groq (default)
+GROQ_API_KEY="gsk_tu_api_key"
+AI_DEFAULT_PROVIDER="groq"
+AI_DEFAULT_MODEL="llama-3.3-70b-versatile"
+
+# OpenCode (fallback)
+OPENCODE_GO_API_KEY="sk-tu-api-key"
+AI_FALLBACK_MODELS="opencode:deepseek-flash,opencode:kimi-k2.5,opencode:gpt-5.5-pro"
+
+# Opcionales: OpenAI, Anthropic, Google, DeepSeek
+# OPENAI_API_KEY="sk-..."
+# ANTHROPIC_API_KEY="sk-ant-..."
+# GOOGLE_GENERATIVE_AI_API_KEY="..."
+# DEEPSEEK_API_KEY="..."
+# DEEPSEEK_BASE_URL="https://api.deepseek.com"
+
+# SMTP (opcional, para recuperación de PIN)
+# SMTP_HOST=smtp.gmail.com
+# SMTP_PORT=587
+# SMTP_USER=tu-correo@gmail.com
+# SMTP_PASS=tu-contrasena-app
+# SMTP_FROM_NAME=Atlas Edu
 ```
 
 Notas sobre seleccion de modelo IA:
@@ -256,7 +259,7 @@ La aplicación corre en `http://localhost:3000`. Para producción real, usar un 
 - **Middleware (`src/proxy.ts`)**: Protege todas las rutas por autenticación JWT y roles. En Next.js 16, el middleware se define en `proxy.ts` (reemplaza al anterior `middleware.ts`).
 - **CSRF**: Tokens de doble submit. El middleware genera un token en cada carga de página y lo verifica en todas las mutaciones de API (POST/PUT/DELETE). El frontend usa `apiFetch()` de `@/lib/fetch-utils` que incluye el token automáticamente.
 - **Archivos**: Los archivos subidos por estudiantes se almacenan fuera de `public/` y se sirven a través de una ruta de API con verificación de autenticación y autorización.
-- **Rate limiting**: Login limitado a 10 intentos/minuto por IP. Endpoints de IA también rate-limited.
+- **Rate limiting**: Login (10 req/min), recuperación de PIN (3 req/min), restablecimiento de PIN (5 req/min). Endpoints de IA también rate-limited.
 - **Headers HTTP**: X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy configurados.
 
 ## Funcionalidades principales
@@ -264,7 +267,6 @@ La aplicación corre en `http://localhost:3000`. Para producción real, usar un 
 - **Estudiantes**: Dashboard de progreso, práctica con IA, rutas de aprendizaje personalizadas, entrega de tareas, calendario, calificaciones, chat con docentes.
 - **Docentes**: Gestión de cursos, creación y calificación de tareas, registro de asistencia, analytics de práctica con IA, gradebook exportable, mensajería directa.
 - **Administradores**: Gestión de usuarios (individual y bulk CSV), cursos, períodos lectivos, configuración SMTP, envío de credenciales por email, reportes de calificaciones.
-- **Padres**: Visualización del progreso académico de sus hijos.
 - **IA**: Chat tutor por materia, generación de ejercicios prácticos con diagramas Mermaid, verificación de respuestas, coach con pistas, rutas de aprendizaje generadas por IA.
 
 ## Licencia
