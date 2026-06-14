@@ -7,7 +7,7 @@ import { apiFetch } from "@/lib/fetch-utils";
 import { Badge } from "@/components/ui/badge";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 interface CursoOption { id: number; nombre: string; nivel: string; }
 interface CoursesData { cursos: CursoOption[]; }
@@ -79,45 +79,53 @@ function generatePdf(data: ReportData) {
   doc.save(`reporte-${data.curso.nombre.replace(/\s+/g, "-").toLowerCase()}.pdf`);
 }
 
-function generateExcel(data: ReportData) {
-  const wb = XLSX.utils.book_new();
+async function generateExcel(data: ReportData) {
+  const wb = new ExcelJS.Workbook();
 
-  const summaryData = [
-    ["Reporte de Calificaciones", data.curso.nombre],
-    ["Nivel", data.curso.nivel],
-    ["Fecha", new Date().toLocaleDateString("es-ES")],
-    ["Total Estudiantes", String(data.stats.totalEstudiantes)],
-    ["Promedio del Curso", String(data.stats.promedioCurso)],
-    ["Total Materias", String(data.stats.totalMaterias)],
-    ["Total Tareas", String(data.stats.totalTareas)],
-    [],
-    ["Estudiante", "Promedio General", "Tareas", "Entregadas", "Pendientes"],
-  ];
+  const ws1 = wb.addWorksheet("Resumen");
+
+  ws1.addRow(["Reporte de Calificaciones", data.curso.nombre]);
+  ws1.addRow(["Nivel", data.curso.nivel]);
+  ws1.addRow(["Fecha", new Date().toLocaleDateString("es-ES")]);
+  ws1.addRow(["Total Estudiantes", String(data.stats.totalEstudiantes)]);
+  ws1.addRow(["Promedio del Curso", String(data.stats.promedioCurso)]);
+  ws1.addRow(["Total Materias", String(data.stats.totalMaterias)]);
+  ws1.addRow(["Total Tareas", String(data.stats.totalTareas)]);
+  ws1.addRow([]);
+  ws1.addRow(["Estudiante", "Promedio General", "Tareas", "Entregadas", "Pendientes"]);
 
   for (const s of data.students) {
-    summaryData.push([s.nombre, String(s.promedioGeneral), String(s.totalTareas), String(s.entregadas), String(s.pendientes)]);
+    ws1.addRow([s.nombre, String(s.promedioGeneral), String(s.totalTareas), String(s.entregadas), String(s.pendientes)]);
   }
 
-  const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
-  XLSX.utils.book_append_sheet(wb, ws1, "Resumen");
-
-  const colWidths = [{ wch: 30 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 12 }];
-  ws1["!cols"] = colWidths;
+  ws1.getColumn(1).width = 30;
+  ws1.getColumn(2).width = 12;
+  ws1.getColumn(3).width = 10;
+  ws1.getColumn(4).width = 12;
+  ws1.getColumn(5).width = 12;
 
   for (const student of data.students) {
-    const sheetData = [
-      [`Calificaciones - ${student.nombre}`],
-      ["Materia", "Promedio", "Calificaciones"],
-    ];
+    const ws = wb.addWorksheet(student.nombre.slice(0, 31));
+    ws.addRow([`Calificaciones - ${student.nombre}`]);
+    ws.addRow(["Materia", "Promedio", "Calificaciones"]);
     for (const m of student.materias) {
-      sheetData.push([`${m.emoji} ${m.nombre}`, String(m.promedio), String(m.calificaciones)]);
+      ws.addRow([`${m.emoji} ${m.nombre}`, String(m.promedio), String(m.calificaciones)]);
     }
-    const ws = XLSX.utils.aoa_to_sheet(sheetData);
-    ws["!cols"] = [{ wch: 30 }, { wch: 12 }, { wch: 14 }];
-    XLSX.utils.book_append_sheet(wb, ws, student.nombre.slice(0, 31));
+    ws.getColumn(1).width = 30;
+    ws.getColumn(2).width = 12;
+    ws.getColumn(3).width = 14;
   }
 
-  XLSX.writeFile(wb, `reporte-${data.curso.nombre.replace(/\s+/g, "-").toLowerCase()}.xlsx`);
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `reporte-${data.curso.nombre.replace(/\s+/g, "-").toLowerCase()}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function ReportesContent() {
@@ -164,7 +172,7 @@ function ReportesContent() {
     if (!data) return;
     setExportingXlsx(true);
     await new Promise(resolve => setTimeout(resolve, 50));
-    generateExcel(data);
+    await generateExcel(data);
     setExportingXlsx(false);
   };
 
