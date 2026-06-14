@@ -5,8 +5,8 @@ import { getEnv } from "@/lib/env";
 const connectionString = getEnv().DATABASE_URL;
 
 const client = postgres(connectionString, {
-  max: 25,
-  idle_timeout: 30,
+  max: 100,
+  idle_timeout: 5,
   connect_timeout: 10,
   prepare: false,
   connection: {
