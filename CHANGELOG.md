@@ -9,8 +9,9 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/), y el proyecto 
 ### Agregado
 - Landing page rediseñada con hero, características, HowItWorks, testimonios, estadísticas animadas y footer (#75-#82)
 - Groq como proveedor IA principal con fallback automático a OpenCode / DeepSeek
-- Cuestionarios de estudio (CRUD completo) con tipos MCQ, file_upload y completar, y generación por IA
-- Botón "Crear cuestionario" en el asistente IA para docentes
+- **Cuestionarios de estudio**: CRUD completo con página dedicada para docentes (`/teacher/cuestionarios`). Tipos de pregunta: MCQ, file_upload y **completar** (fill-in-the-blank). Vista previa, edición y eliminación
+- **Generación IA de cuestionarios**: Herramienta `createCuestionario` en el asistente IA del docente. El profesor describe el tema en lenguaje natural y la IA genera automáticamente el cuestionario completo con preguntas, opciones y respuestas correctas. Integrado con `POST /api/teacher/cuestionarios/generate`
+- Botón "Crear cuestionario" en el asistente IA: acceso directo desde el chat para que el docente genere un cuestionario sin salir de la conversación
 - Módulos de aprendizaje por estudiante (tabla `student_modules`) con orden personalizado y sincronización con learning paths generados por IA
 - Generación de deberes y cuestionarios en inglés cuando la materia es Inglés
 - Lecciones y ejercicios de práctica generados en inglés para la materia Inglés, resto en español
