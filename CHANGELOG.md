@@ -8,25 +8,46 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/), y el proyecto 
 
 ### Agregado
 - Landing page rediseñada con hero, características, HowItWorks, testimonios, estadísticas animadas y footer (#75-#82)
-- Instrucciones de instalación con pasos específicos para Windows (verificación servicio PostgreSQL, `copy` en vez de `cp`)
+- Groq como proveedor IA principal con fallback automático a OpenCode / DeepSeek
+- Cuestionarios de estudio (CRUD completo) con tipos MCQ, file_upload y completar, y generación por IA
+- Botón "Crear cuestionario" en el asistente IA para docentes
+- Módulos de aprendizaje por estudiante (tabla `student_modules`) con orden personalizado y sincronización con learning paths generados por IA
+- Generación de deberes y cuestionarios en inglés cuando la materia es Inglés
+- Lecciones y ejercicios de práctica generados en inglés para la materia Inglés, resto en español
+- Sistema de detección de errores retryables en IA (rate limits, timeouts) con reintentos automáticos
 - Variables SMTP validadas desde Zod en `env.ts` (antes se accedían con `process.env` directo)
 - Rate limiting en `POST /api/auth/reset-pin` (5 req/min por IP)
 
 ### Cambiado
-- README sincronizado con `.env.example` real: Groq como provider default, sin vars inventadas
-- `apiSuccess()` ahora maneja arrays correctamente (envuelve en `{ success: true, data }` en vez de spreadear)
+- Proveedor IA default cambiado de OpenCode a Groq (`llama-3.3-70b-versatile`) con fallbacks a OpenCode
+- Variables de entorno agrupadas por proveedor (Groq primero, OpenCode después)
+- README sincronizado con `.env.example` real
+- `apiSuccess()` ahora maneja arrays correctamente (envuelve en `{ success: true, data }`)
 - `generatePin()` consolidado en `csv-utils.ts` — eliminadas definiciones duplicadas en `ai-tools.ts` y `admin/users/route.ts`
 - `checkAcademicLoad`, `recordPhysicalGrades` y `getFeatureGuide` extraídos a funciones compartidas en `ai-tools.ts` (~200 líneas menos)
+- Diseño de práctica: 8 preguntas por ronda, estilo Kahoot, pantalla completa, resultados consistentes
+- Layout de práctica: grid 2 columnas en MCQ, feedback compacto
 
 ### Corregido
-- `COMMON_PINS` contenía strings no numéricos (`"abcd"`, `"admin"`, `"pass"`) que nunca coincidían con PINs de 4 dígitos
-- Validación redundante de dígitos repetidos eliminada
-- `useTeacherCourses()` en `contexts.tsx` era alias engañoso de `useUserProfile()` — eliminado
-- `NotificationBell.tsx` duplicado en `components/` raíz — eliminado (no se importaba)
-- `forgot-pin/route.ts` token de reseteo usaba `role: "" as any` — ahora usa el rol real del usuario
-- `assignments/[id]/route.ts` línea con backcodeo `"\\"` que rompía en Linux — eliminada
-- `study-material.test.ts` timeout por PDF mínimo artesanal — ahora usa mock de `pdf-parse` v2
-- Rate limiting documentado correctamente en README (login 10, forgot-pin 3, reset-pin 5)
+- Ortografía general: tildes, signos de puntuación y faltas ortográficas en toda la plataforma
+- Ortografía en nombres de materias en página de práctica
+- Nombres de módulos y nodos en seed con ortografía corregida + truncate cascade
+- Módulos y nodos por defecto eliminados del seed (ahora solo se generan por IA según búsqueda del estudiante)
+- Diagramas Mermaid: fallback incondicional a `generateText` con parseo robusto sin JSON
+- Lecciones: `introduction`/`intro` como `explanation` y `text` como `description` en `commonMistakes`
+- Práctica: generación de ejercicios fallaba por formato JSON incorrecto del modelo
+- Módulo nuevo ahora se pone primero en el árbol (no al final). Módulos completados se colapsan
+- Admin: `totalUsers` ahora incluye admins para calcular activos/inactivos correctamente
+- Admin: asistente IA oculto en el panel de administración
+- Botón "Cambiar entrega" eliminado para estudiantes
+- Auto-scroll al generar módulo nuevo eliminado
+- `COMMON_PINS` limpiado: eliminados strings no numéricos y duplicados
+- Validación redundante de dígitos repetidos eliminada en `isValidPin`
+- `useTeacherCourses()` — alias engañoso de `useUserProfile()` eliminado
+- `NotificationBell.tsx` duplicado en `components/` raíz eliminado
+- `forgot-pin/route.ts` token de reseteo usa rol real del usuario en vez de `"" as any`
+- `assignments/[id]/route.ts` línea con backcodeo `"\\"` que rompía en Linux eliminada
+- `study-material.test.ts` timeout corregido (ahora usa mock de `pdf-parse` v2)
 
 ## [0.6.1] - 2026-06-06 — Sprint 6 🔐
 
