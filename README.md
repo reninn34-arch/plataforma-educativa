@@ -108,17 +108,30 @@ cd atlas-edu
 # 2. Instalar dependencias
 npm install
 
-# 3. Crear base de datos PostgreSQL
-createdb atlas_edu
+# 3. Asegurar que PostgreSQL esté instalado y el servicio corriendo
+#   Windows (PowerShell): Get-Service postgresql*  (debe mostrar "Running")
+#   Windows (CMD):       sc query postgresql-x64-18
+#   Linux:               sudo systemctl status postgresql
+#   macOS:               brew services list | grep postgresql
 
-# 4. Configurar variables de entorno
-cp .env.example .env.local
-# Editar .env.local con tus credenciales reales
+# 4. Crear base de datos PostgreSQL
+#   Linux/macOS: createdb atlas_edu
+#   Windows:     createdb -U postgres atlas_edu
+#   O desde psql: CREATE DATABASE atlas_edu;
 
-# 5. Ejecutar migraciones y datos de prueba
+# 5. Configurar variables de entorno
+#   Linux/macOS: cp .env.example .env.local
+#   Windows:     copy .env.example .env.local
+# Editar .env.local — mínimo requerido:
+#   - DATABASE_URL:  ajustar usuario/contraseña si no es postgres/password
+#   - JWT_SECRET:    obligatorio (genera uno con: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
+#   - GROQ_API_KEY:  obligatorio, de https://console.groq.com
+#   - OPENCODE_GO_API_KEY: necesario si usas fallback IA, de opencode.ai
+
+# 6. Ejecutar migraciones y datos de prueba
 npm run db:setup
 
-# 6. Iniciar servidor de desarrollo
+# 7. Iniciar servidor de desarrollo
 npm run dev
 ```
 
