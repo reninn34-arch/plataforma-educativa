@@ -824,23 +824,7 @@ function createTeacherTools(userId: number, userFullName: string) {
         ],
         aiHelp: "Usa la edicion manual desde la pagina del curso",
       },
-      report_cards: {
-        titulo: "Generar Boletin de Notas",
-        url: "/admin/boletin/[cursoId]",
-        pasos: [
-          "Ve a Admin > Cursos",
-          "Click en 'Ver Boletin' del curso",
-          "Veras tabla con estudiantes y sus notas por materia",
-          "El promedio anual se calcula: (T1+T2+T3)/3",
-          "Usa el boton 'Imprimir' para PDF",
-        ],
-        consejos: [
-          "Azul = Aprobado (>=7), Rojo = Reprobado (<7)",
-          "Trimestres sin nota cuentan como 0",
-          "Los campos de firma son para imprimiry firmar manualmente",
-        ],
-        aiHelp: "Ve directamente a Admin > Cursos > [curso] > Boletin",
-      },
+
       smtp_config: {
         titulo: "Configurar Email (SMTP)",
         url: "/admin/configuracion",
@@ -1914,24 +1898,7 @@ FORMATO JSON:
         ],
         aiHelp: "Configuracion manual desde la pagina del curso",
       },
-      report_cards: {
-        titulo: "Generar e Imprimir Boletin de Notas",
-        url: "/admin/boletin/[id]",
-        pasos: [
-          "Ve a Admin > Cursos",
-          "Click en 'Ver Boletin' del curso",
-          "Veras tabla con estudiantes y sus notas por materia",
-          "El promedio anual se calcula: (T1+T2+T3)/3",
-          "Usa el boton 'Imprimir' para generar PDF",
-        ],
-        consejos: [
-          "Azul = Aprobado (>=7), Rojo = Reprobado (<7)",
-          "Trimestres sin nota cuentan como 0",
-          "Los campos de firma son para imprimir y firmar manualmente",
-          "Solo aparecen cursos con estudiantes inscritos",
-        ],
-        aiHelp: "Ve directamente a Admin > Cursos > [curso] > Boletin",
-      },
+
       smtp_config: {
         titulo: "Configurar Servidor de Email (SMTP)",
         url: "/admin/configuracion",
