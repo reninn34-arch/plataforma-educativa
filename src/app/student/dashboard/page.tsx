@@ -41,7 +41,7 @@ export default function StudentDashboard() {
   if (isLoading) return (
     <div className="flex-1 flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 rounded-full border-3 border-indigo-200 border-t-indigo-600 animate-spin" />
+        <div className="w-10 h-10 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
         <p className="text-sm text-muted-foreground font-medium">Cargando tu progreso...</p>
       </div>
     </div>
@@ -78,9 +78,9 @@ export default function StudentDashboard() {
       <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8 pb-24 lg:pb-8">
 
         {/* Hero Banner */}
-        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-600 to-violet-600 p-6 sm:p-8 text-white shadow-xl shadow-indigo-200/50">
-          <div className="absolute top-0 right-0 w-72 h-72 bg-card/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-400/10 rounded-full blur-3xl -translate-x-1/3 translate-y-1/3" />
+        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[var(--hero-gradient-from)] via-[var(--hero-gradient-via)] to-[var(--hero-gradient-to)] p-6 sm:p-8 text-white shadow-xl shadow-primary/20">
+          <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 dark:bg-white/5 rounded-full blur-3xl -translate-x-1/3 translate-y-1/3" />
 
           <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
             <div>
@@ -91,7 +91,7 @@ export default function StudentDashboard() {
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
                 ¡Hola, {firstName}! 👋
               </h1>
-              <p className="text-indigo-100 text-sm sm:text-base mt-2 max-w-lg leading-relaxed">
+              <p className="text-primary-foreground/90 text-sm sm:text-base mt-2 max-w-lg leading-relaxed">
                 {streakDays > 0
                   ? `Llevas una racha de ${streakDays} días. ¡Sigue así para mantener el ritmo!`
                   : "Hoy es un gran día para empezar a practicar. ¡Ánimo!"}
@@ -100,16 +100,14 @@ export default function StudentDashboard() {
 
             <Link
               href="/student/assignments"
-              className="inline-flex items-center gap-2 bg-card text-foreground font-bold py-3 px-6 rounded-2xl hover:bg-muted hover:scale-[1.02] transition-all duration-200 shadow-lg shadow-indigo-900/20 group shrink-0"
+              className="inline-flex items-center gap-2 bg-card text-foreground font-bold py-3 px-6 rounded-2xl hover:bg-muted hover:scale-[1.02] transition-all duration-200 shadow-lg shadow-[var(--active-link-border)]/50 dark:shadow-[var(--active-link-border)]/10 group shrink-0"
             >
-              <div className="bg-indigo-100 dark:bg-indigo-900/50 text-foreground p-1.5 rounded-full group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+              <div className="bg-[var(--active-link-border)] dark:bg-[var(--active-link-border)]/30 text-foreground p-1.5 rounded-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                 <ClipboardList size={18} />
               </div>
               Ver tareas
             </Link>
           </div>
-
-
         </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
@@ -119,10 +117,10 @@ export default function StudentDashboard() {
             {/* Quick Access to Practice */}
             <Link
               href="/student/practice"
-              className="block group bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-950/60 dark:to-violet-950/60 rounded-2xl p-4 sm:p-6 border border-indigo-100 dark:border-indigo-800/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+              className="block group bg-gradient-to-r from-[var(--active-link-bg)] to-[var(--active-link-bg)] dark:from-[var(--active-link-bg)]/40 dark:to-[var(--active-link-bg)]/40 rounded-2xl p-4 sm:p-6 border border-[var(--active-link-border)] dark:border-[var(--active-link-border)]/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
             >
               <div className="flex items-center gap-3 sm:gap-5">
-                <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200 dark:shadow-indigo-900/40 shrink-0">
+                <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[var(--accent-card-from)] to-[var(--accent-card-to)] flex items-center justify-center shadow-lg shadow-[var(--active-link-border)]/50 dark:shadow-primary/40 shrink-0">
                   <div className="absolute inset-0 rounded-2xl bg-card/20 animate-ping" />
                   <Brain size={24} className="relative z-10 text-white animate-pulse" />
                 </div>
@@ -144,8 +142,8 @@ export default function StudentDashboard() {
                   </div>
                 </div>
                 <div className="relative shrink-0">
-                  <div className="absolute inset-0 rounded-xl bg-indigo-400/40 dark:bg-indigo-600/40 animate-ping group-hover:animate-none" />
-                  <div className="relative z-10 bg-indigo-600 text-white p-2 sm:p-3 rounded-xl group-hover:bg-indigo-700 transition-colors">
+                  <div className="absolute inset-0 rounded-xl bg-[var(--active-link-icon)]/30 dark:bg-[var(--active-link-icon)]/45 animate-ping group-hover:animate-none" />
+                  <div className="relative z-10 bg-primary text-white p-2 sm:p-3 rounded-xl group-hover:bg-primary/95 transition-colors">
                     <ChevronRight size={18} />
                   </div>
                 </div>
@@ -155,7 +153,7 @@ export default function StudentDashboard() {
             {/* Resumen académico */}
             <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
               <h3 className="font-bold text-foreground flex items-center gap-2 mb-4">
-                <BookOpen size={18} className="text-indigo-500" />
+                <BookOpen size={18} className="text-primary" />
                 Resumen académico
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -165,7 +163,7 @@ export default function StudentDashboard() {
                   <p className="text-xs text-muted-foreground font-medium">Racha</p>
                 </div>
                 <div className="bg-muted rounded-xl p-3 text-center">
-                  <Zap size={18} className="text-indigo-500 mx-auto mb-1" />
+                  <Zap size={18} className="text-primary" />
                   <p className="text-lg font-bold text-foreground">{totalSessions}</p>
                   <p className="text-xs text-muted-foreground font-medium">Sesiones</p>
                 </div>
@@ -191,7 +189,7 @@ export default function StudentDashboard() {
               <div className="px-5 pt-5 pb-3 border-b border-border">
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-foreground flex items-center gap-2 text-sm">
-                    <ClipboardList size={18} className="text-indigo-500" />
+                    <ClipboardList size={18} className="text-primary" />
                     Pendientes
                   </h3>
                   <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-lg">
@@ -240,39 +238,39 @@ export default function StudentDashboard() {
               )}
             </div>
 
-            {/* Tutor de Aprendizaje Card */}
-            <div className="bg-gradient-to-br from-violet-600 to-purple-700 rounded-2xl p-5 text-white relative overflow-hidden group cursor-pointer shadow-md">
-              <div className="absolute -right-6 -bottom-6 text-violet-400/20 group-hover:scale-110 transition-transform duration-500">
-                <Brain size={120} />
-              </div>
-              <div className="absolute top-0 right-0 w-40 h-40 bg-purple-400/10 rounded-full blur-3xl" />
-              <div className="relative z-10">
-                <div className="w-11 h-11 rounded-2xl bg-card/15 backdrop-blur-sm flex items-center justify-center mb-3 border border-white/20">
-                  <Brain size={22} className="text-purple-200" />
+              {/* Tutor de Aprendizaje Card */}
+              <div className="bg-gradient-to-br from-[var(--tutor-gradient-from)] to-[var(--tutor-gradient-to)] rounded-2xl p-5 text-white relative overflow-hidden group cursor-pointer shadow-md">
+                <div className="absolute -right-6 -bottom-6 text-white/10 group-hover:scale-110 transition-transform duration-500">
+                  <Brain size={120} />
                 </div>
-                <h3 className="font-bold text-lg">Tutor de Aprendizaje</h3>
-                <p className="text-purple-200 text-sm mt-1 leading-relaxed">
-                  No te damos respuestas. Te guiamos paso a paso para que aprendas resolviéndolo tú.
-                </p>
-                <div className="flex flex-wrap gap-1.5 mt-3">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-card/10 backdrop-blur-sm px-2.5 py-1 text-[10px] font-medium text-purple-100 border border-white/10">
-                    🧮 Explicación paso a paso
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-card/10 backdrop-blur-sm px-2.5 py-1 text-[10px] font-medium text-purple-100 border border-white/10">
-                    💡 Pistas sin spoilers
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-card/10 backdrop-blur-sm px-2.5 py-1 text-[10px] font-medium text-purple-100 border border-white/10">
-                    ✅ Validación de intentos
-                  </span>
-                </div>
-                <button
-                  onClick={() => window.dispatchEvent(new CustomEvent("open-ai-assistant", { detail: { flow: "tutor" } }))}
-                  className="mt-4 bg-card text-foreground font-semibold py-2.5 px-5 rounded-xl text-sm hover:bg-accent hover:scale-[1.02] transition-all shadow-md w-full text-center active:scale-95"
-                >
-                  Iniciar tutoría
-                </button>
-              </div>
-            </div>
+                <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full blur-3xl" />
+                <div className="relative z-10">
+                  <div className="w-11 h-11 rounded-2xl bg-card/15 backdrop-blur-sm flex items-center justify-center mb-3 border border-white/20">
+                    <Brain size={22} className="text-white" />
+                  </div>
+                  <h3 className="font-bold text-lg">Tutor de Aprendizaje</h3>
+                  <p className="text-white/90 text-sm mt-1 leading-relaxed">
+                   No te damos respuestas. Te guiamos paso a paso para que aprendas resolviéndolo tú.
+                 </p>
+                 <div className="flex flex-wrap gap-1.5 mt-3">
+                   <span className="inline-flex items-center gap-1 rounded-full bg-card/10 backdrop-blur-sm px-2.5 py-1 text-[10px] font-medium text-white border border-white/10">
+                     🧮 Explicación paso a paso
+                   </span>
+                   <span className="inline-flex items-center gap-1 rounded-full bg-card/10 backdrop-blur-sm px-2.5 py-1 text-[10px] font-medium text-white border border-white/10">
+                     💡 Pistas sin spoilers
+                   </span>
+                   <span className="inline-flex items-center gap-1 rounded-full bg-card/10 backdrop-blur-sm px-2.5 py-1 text-[10px] font-medium text-white border border-white/10">
+                     ✅ Validación de intentos
+                   </span>
+                 </div>
+                 <button
+                   onClick={() => window.dispatchEvent(new CustomEvent("open-ai-assistant", { detail: { flow: "tutor" } }))}
+                   className="mt-4 bg-card text-foreground font-semibold py-2.5 px-5 rounded-xl text-sm hover:bg-accent hover:scale-[1.02] transition-all shadow-md w-full text-center active:scale-95"
+                 >
+                   Iniciar tutoría
+                 </button>
+               </div>
+             </div>
 
           </div>
         </div>

@@ -56,6 +56,11 @@ export function LoginForm({ redirect }: Props) {
         localStorage.setItem("theme", resolved);
         setTheme(resolved);
       }
+      
+      const userId = data.user.id;
+      const userColor = localStorage.getItem(`accent-color-user-${userId}`) || localStorage.getItem(`accent-color-${data.user.role}`) || "indigo";
+      document.cookie = `accent-color=${userColor}; path=/; max-age=31536000; SameSite=Lax`;
+      
       const safeRedirect = redirect && redirect.startsWith("/") ? redirect : null;
       if (data.user.role === "teacher") {
         router.push("/teacher/dashboard");

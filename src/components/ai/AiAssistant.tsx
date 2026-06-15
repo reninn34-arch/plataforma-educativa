@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
@@ -382,7 +382,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
           </div>
           <p className="text-sm font-semibold text-emerald-800 mb-1">Tarea creada exitosamente</p>
           <p className="text-xs text-muted-foreground mb-4">{generatedData?.title} • {selectedSubject?.subjectName}</p>
-          <button onClick={clearFlow} className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors">
+          <button onClick={clearFlow} className="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-white hover:bg-primary/90 transition-colors">
             Volver al chat
           </button>
         </div>
@@ -417,7 +417,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
             <button onClick={() => setGeneratedData(null)} disabled={creating} className="flex-1 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-gray-50 transition-colors disabled:opacity-50">
               Editar
             </button>
-            <button onClick={handleCreateAssignment} disabled={creating} className="flex-1 rounded-lg bg-violet-600 px-3 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-1">
+            <button onClick={handleCreateAssignment} disabled={creating} className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-white hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-1">
               {creating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
               {creating ? "Creando..." : "Crear tarea"}
             </button>
@@ -428,7 +428,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
 
     if (!selectedSubject) {
       if (!selectedCourse && courses.length === 0 && flowLoading) {
-        return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-violet-600" /></div>;
+        return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
       }
 
       if (!selectedCourse) {
@@ -436,7 +436,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
           return (
             <div className="text-center py-4">
               <p className="text-xs text-muted-foreground mb-3">Selecciona un curso:</p>
-              <button onClick={loadCourses} className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors">
+              <button onClick={loadCourses} className="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-white hover:bg-primary/90 transition-colors">
                 Cargar cursos
               </button>
               {flowError && <p className="text-xs text-red-600 mt-2">{flowError}</p>}
@@ -451,7 +451,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                 <button
                   key={c.id}
                   onClick={() => setSelectedCourse(c)}
-                  className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-left text-sm hover:border-violet-300 hover:bg-violet-50 transition-colors flex items-center justify-between"
+                  className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-left text-sm hover:border-primary/30 hover:bg-[var(--active-link-bg)] transition-colors flex items-center justify-between"
                 >
                   <span className="font-medium">{c.nombre}</span>
                   <span className="text-xs text-muted-foreground">{c.studentCount} estudiantes</span>
@@ -478,7 +478,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
               <button
                 key={s.subjectId}
                 onClick={() => setSelectedSubject(s)}
-                className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-left text-sm hover:border-violet-300 hover:bg-violet-50 transition-colors flex items-center gap-2"
+                className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-left text-sm hover:border-primary/30 hover:bg-[var(--active-link-bg)] transition-colors flex items-center gap-2"
               >
                 <span>{s.subjectEmoji || "📚"}</span>
                 <span className="font-medium">{s.subjectName}</span>
@@ -505,19 +505,19 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder="Ej: matrices 3x3, ecuaciones cuadraticas..."
-              className="w-full h-9 rounded-xl border border-border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
+              className="w-full h-9 rounded-xl border border-border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
             />
           </div>
           <div className="flex gap-2">
             <div className="flex-1">
               <label className="text-xs text-muted-foreground mb-1 block">Preguntas</label>
-              <select value={questionCount} onChange={(e) => setQuestionCount(Number(e.target.value))} className="w-full h-9 rounded-xl border border-border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400">
+              <select value={questionCount} onChange={(e) => setQuestionCount(Number(e.target.value))} className="w-full h-9 rounded-xl border border-border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40">
                 {[3, 4, 5, 6, 7, 8, 9, 10].map(n => <option key={n} value={n}>{n} preguntas</option>)}
               </select>
             </div>
             <div className="flex-1">
               <label className="text-xs text-muted-foreground mb-1 block">Trimestre</label>
-              <select value={trimester} onChange={(e) => setTrimester(Number(e.target.value))} className="w-full h-9 rounded-xl border border-border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400">
+              <select value={trimester} onChange={(e) => setTrimester(Number(e.target.value))} className="w-full h-9 rounded-xl border border-border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40">
                 {[1, 2, 3].map(n => <option key={n} value={n}>Trimestre {n}</option>)}
               </select>
             </div>
@@ -528,14 +528,14 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
               type="datetime-local"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full h-9 rounded-xl border border-border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
+              className="w-full h-9 rounded-xl border border-border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
             />
           </div>
           {flowError && <p className="text-xs text-red-600">{flowError}</p>}
           <button
             onClick={handleGenerateAssignment}
             disabled={!topic.trim() || flowLoading}
-            className="w-full rounded-xl bg-violet-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
+            className="w-full rounded-xl bg-primary px-3 py-2.5 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
           >
             {flowLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {flowLoading ? "Generando..." : "Generar con IA"}
@@ -554,7 +554,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
           </div>
           <p className="text-sm font-semibold text-emerald-800 mb-1">Cuestionario creado exitosamente</p>
           <p className="text-xs text-muted-foreground mb-4">{cuestionarioData?.title} • {selectedSubject?.subjectName}</p>
-          <button onClick={clearFlow} className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors">
+          <button onClick={clearFlow} className="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-white hover:bg-primary/90 transition-colors">
             Volver al chat
           </button>
         </div>
@@ -571,7 +571,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
             <div className="max-h-48 overflow-y-auto space-y-1.5">
               {cuestionarioData.questions.map((q: any, i: number) => (
                 <div key={i} className="rounded-lg bg-gray-50 p-2 text-xs">
-                  <span className="rounded bg-violet-100 text-violet-700 px-1 py-0.5 text-[10px] mr-1">{q.virtualType === "completar" ? "Completar" : "MCQ"}</span>
+                  <span className="rounded bg-primary/10 text-primary px-1 py-0.5 text-[10px] mr-1">{q.virtualType === "completar" ? "Completar" : "MCQ"}</span>
                   <span className="font-medium">{i + 1}. {q.question}</span>
                   <div className="mt-1 flex flex-wrap gap-1">
                     {q.options.map((opt: string, j: number) => (
@@ -590,7 +590,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
             <button onClick={() => setCuestionarioData(null)} disabled={creatingCuestionario} className="flex-1 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-gray-50 transition-colors disabled:opacity-50">
               Editar
             </button>
-            <button onClick={handleCreateCuestionario} disabled={creatingCuestionario} className="flex-1 rounded-lg bg-violet-600 px-3 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-1">
+            <button onClick={handleCreateCuestionario} disabled={creatingCuestionario} className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-white hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-1">
               {creatingCuestionario ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
               {creatingCuestionario ? "Creando..." : "Crear cuestionario"}
             </button>
@@ -601,7 +601,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
 
     if (!selectedSubject) {
       if (!selectedCourse && courses.length === 0 && flowLoading) {
-        return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-violet-600" /></div>;
+        return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
       }
 
       if (!selectedCourse) {
@@ -609,7 +609,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
           return (
             <div className="text-center py-4">
               <p className="text-xs text-muted-foreground mb-3">Selecciona un curso:</p>
-              <button onClick={loadCourses} className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors">
+              <button onClick={loadCourses} className="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-white hover:bg-primary/90 transition-colors">
                 Cargar cursos
               </button>
               {flowError && <p className="text-xs text-red-600 mt-2">{flowError}</p>}
@@ -624,7 +624,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                 <button
                   key={c.id}
                   onClick={() => setSelectedCourse(c)}
-                  className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-left text-sm hover:border-violet-300 hover:bg-violet-50 transition-colors flex items-center justify-between"
+                  className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-left text-sm hover:border-primary/30 hover:bg-[var(--active-link-bg)] transition-colors flex items-center justify-between"
                 >
                   <span className="font-medium">{c.nombre}</span>
                   <span className="text-xs text-muted-foreground">{c.studentCount} estudiantes</span>
@@ -651,7 +651,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
               <button
                 key={s.subjectId}
                 onClick={() => setSelectedSubject(s)}
-                className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-left text-sm hover:border-violet-300 hover:bg-violet-50 transition-colors flex items-center gap-2"
+                className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-left text-sm hover:border-primary/30 hover:bg-[var(--active-link-bg)] transition-colors flex items-center gap-2"
               >
                 <span>{s.subjectEmoji || "📚"}</span>
                 <span className="font-medium">{s.subjectName}</span>
@@ -678,13 +678,13 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
               value={cuestionarioTopic}
               onChange={(e) => setCuestionarioTopic(e.target.value)}
               placeholder="Ej: Simple Past, La celula, ecuaciones..."
-              className="w-full h-9 rounded-xl border border-border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
+              className="w-full h-9 rounded-xl border border-border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
             />
           </div>
           <div className="flex gap-2">
             <div className="flex-1">
               <label className="text-xs text-muted-foreground mb-1 block">Preguntas</label>
-              <select value={cuestionarioCount} onChange={(e) => setCuestionarioCount(Number(e.target.value))} className="w-full h-9 rounded-xl border border-border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400">
+              <select value={cuestionarioCount} onChange={(e) => setCuestionarioCount(Number(e.target.value))} className="w-full h-9 rounded-xl border border-border bg-gray-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40">
                 {[3, 5, 8, 10, 12, 15, 20].map(n => <option key={n} value={n}>{n} preguntas</option>)}
               </select>
             </div>
@@ -694,7 +694,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                 <label className="flex items-center gap-1 text-xs cursor-pointer">
                   <input type="checkbox" checked={cuestionarioTypes.includes("mcq")}
                     onChange={() => setCuestionarioTypes(t => t.includes("mcq") ? t.filter(x => x !== "mcq") : [...t, "mcq"])}
-                    className="accent-violet-600" /> MCQ
+                    className="accent-primary" /> MCQ
                 </label>
                 <label className="flex items-center gap-1 text-xs cursor-pointer">
                   <input type="checkbox" checked={cuestionarioTypes.includes("completar")}
@@ -708,7 +708,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
           <button
             onClick={handleGenerateCuestionario}
             disabled={!cuestionarioTopic.trim() || flowLoading || cuestionarioTypes.length === 0}
-            className="w-full rounded-xl bg-violet-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
+            className="w-full rounded-xl bg-primary px-3 py-2.5 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
           >
             {flowLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {flowLoading ? "Generando..." : "Generar con IA"}
@@ -729,7 +729,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Mis cursos</p>
             {flowLoading ? (
-              <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-violet-600" /></div>
+              <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
             ) : myCoursesData && myCoursesData.length > 0 ? (
               <div className="space-y-2">
                 {myCoursesData.map((c) => (
@@ -740,7 +740,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {c.mySubjects.map((s) => (
-                        <span key={s.subjectId} className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] text-violet-700">
+                        <span key={s.subjectId} className="rounded-full bg-[var(--active-link-bg)] px-2 py-0.5 text-[10px] text-primary">
                           {s.subjectEmoji} {s.subjectName}
                         </span>
                       ))}
@@ -762,7 +762,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Estudiantes en riesgo</p>
             {flowLoading ? (
-              <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-violet-600" /></div>
+              <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
             ) : riskData && riskData.length > 0 ? (
               <div className="space-y-2">
                 {riskData.map((s) => (
@@ -799,7 +799,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                 </div>
                 <p className="text-sm font-semibold text-emerald-800 mb-1">Mensaje enviado</p>
                 <p className="text-xs text-muted-foreground mb-3">A los estudiantes de {messageCourse?.nombre}</p>
-                <button onClick={clearFlow} className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors">
+                <button onClick={clearFlow} className="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-white hover:bg-primary/90 transition-colors">
                   Volver al chat
                 </button>
               </div>
@@ -807,18 +807,18 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
               <div>
                 <p className="text-xs font-semibold text-muted-foreground mb-2">Selecciona el curso:</p>
                 {courses.length === 0 && !flowLoading ? (
-                  <button onClick={loadCourses} className="w-full rounded-xl bg-violet-600 px-3 py-2.5 text-xs font-medium text-white hover:bg-violet-700 transition-colors">
+                  <button onClick={loadCourses} className="w-full rounded-xl bg-primary px-3 py-2.5 text-xs font-medium text-white hover:bg-primary/90 transition-colors">
                     Cargar cursos
                   </button>
                 ) : flowLoading ? (
-                  <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-violet-600" /></div>
+                  <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
                 ) : (
                   <div className="space-y-1.5 max-h-48 overflow-y-auto">
                     {courses.map((c) => (
                       <button
                         key={c.id}
                         onClick={() => setMessageCourse(c)}
-                        className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-left text-sm hover:border-violet-300 hover:bg-violet-50 transition-colors"
+                        className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-left text-sm hover:border-primary/30 hover:bg-[var(--active-link-bg)] transition-colors"
                       >
                         {c.nombre}
                       </button>
@@ -840,13 +840,13 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                   onChange={(e) => setMessageText(e.target.value)}
                   placeholder="Escribe tu mensaje..."
                   rows={4}
-                  className="w-full rounded-xl border border-border bg-gray-50 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 resize-none"
+                  className="w-full rounded-xl border border-border bg-gray-50 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 resize-none"
                 />
                 {flowError && <p className="text-xs text-red-600 mt-1">{flowError}</p>}
                 <button
                   onClick={handleSendMessage}
                   disabled={!messageText.trim() || flowLoading}
-                  className="w-full mt-2 rounded-xl bg-violet-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
+                  className="w-full mt-2 rounded-xl bg-primary px-3 py-2.5 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
                 >
                   {flowLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   {flowLoading ? "Enviando..." : "Enviar mensaje"}
@@ -866,7 +866,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
       {showFab && !open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-violet-600 text-white shadow-lg hover:bg-violet-700 transition-all hover:scale-105 active:scale-95"
+          className="fixed bottom-6 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg hover:bg-primary/90 transition-all hover:scale-105 active:scale-95"
           aria-label="Abrir asistente IA"
         >
           <Sparkles className="h-6 w-6" />
@@ -893,7 +893,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
             // desktop: floating card
             "sm:inset-x-auto sm:bottom-6 sm:right-6",
             "sm:w-[380px] sm:h-[560px]",
-            "sm:rounded-2xl sm:border sm:border-violet-200",
+            "sm:rounded-2xl sm:border sm:border-primary/20",
             "animate-fade-in-up"
           )}
         >
@@ -903,7 +903,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
           </div>
 
           {/* Header */}
-          <div className="flex items-center justify-between bg-violet-600 px-4 py-3 text-white shrink-0">
+          <div className="flex items-center justify-between bg-primary px-4 py-3 text-white shrink-0">
             <div className="flex items-center gap-2.5">
               {flow !== "none" && flow !== "tutor" ? (
                 <button
@@ -919,7 +919,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
               )}
               <div>
                 <h3 className="text-sm font-bold leading-none">Atlas IA</h3>
-                <p className="text-[11px] text-violet-200 mt-0.5">
+                <p className="text-[11px] text-primary-foreground/70 mt-0.5">
                   {flow === "create-assignment" ? "Crear tarea"
                     : flow === "create-cuestionario" ? "Crear cuestionario"
                     : flow === "my-courses" ? "Mis cursos"
@@ -932,7 +932,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
             </div>
             <button
               onClick={() => { clearFlow(); setMessages([]); setOpen(false); }}
-              className="flex h-9 w-9 items-center justify-center rounded-xl text-violet-200 hover:bg-card/10 hover:text-white transition-colors"
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-primary-foreground/70 hover:bg-card/10 hover:text-white transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
@@ -947,8 +947,8 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                 ) : messages.length === 0 ? (
                   flow === "tutor" ? (
                     <div className="flex flex-col items-center justify-center min-h-[260px] py-6">
-                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-violet-100 mb-4">
-                        <Sparkles className="h-8 w-8 text-violet-600" />
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
+                        <Sparkles className="h-8 w-8 text-primary" />
                       </div>
                       <p className="text-base font-semibold text-foreground mb-1">Soy tu tutor de aprendizaje</p>
                       <p className="text-xs text-muted-foreground mb-6 text-center max-w-[280px] leading-relaxed">
@@ -964,7 +964,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                           <button
                             key={i}
                             onClick={() => handleActionClick(btn.msg)}
-                            className="rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-xs font-medium text-violet-700 hover:bg-violet-100 transition-colors flex items-center gap-1.5"
+                            className="rounded-full border border-primary/20 bg-[var(--active-link-bg)] px-4 py-2 text-xs font-medium text-primary hover:bg-primary/10 transition-colors flex items-center gap-1.5"
                           >
                             <span>{btn.msg}</span>
                           </button>
@@ -973,8 +973,8 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center min-h-[260px] py-6">
-                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-violet-100 mb-4">
-                        <Sparkles className="h-8 w-8 text-violet-600" />
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
+                        <Sparkles className="h-8 w-8 text-primary" />
                       </div>
                       <p className="text-base font-semibold text-foreground mb-1">Hola, soy Atlas IA</p>
                       <p className="text-xs text-muted-foreground mb-6 text-center max-w-[260px]">
@@ -985,7 +985,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                           <button
                             key={i}
                             onClick={btn.action}
-                            className="rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-xs font-medium text-violet-700 hover:bg-violet-100 transition-colors flex items-center gap-1.5"
+                            className="rounded-full border border-primary/20 bg-[var(--active-link-bg)] px-4 py-2 text-xs font-medium text-primary hover:bg-primary/10 transition-colors flex items-center gap-1.5"
                           >
                             <span>{btn.icon}</span>
                             <span>{btn.label}</span>
@@ -1001,7 +1001,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                           <div className={cn(
                             "rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed max-w-[85%]",
                             m.role === "user"
-                              ? "bg-violet-600 text-white rounded-br-sm"
+                              ? "bg-primary text-white rounded-br-sm"
                               : "bg-muted text-foreground rounded-bl-sm"
                           )}>
                             {m.parts?.map((part: any, j: number) => {
@@ -1065,7 +1065,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                       key={i}
                       type="button"
                       onClick={btn.action}
-                      className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-[11px] font-medium text-violet-700 hover:bg-violet-100 transition-colors whitespace-nowrap flex items-center gap-1"
+                      className="rounded-full border border-primary/20 bg-[var(--active-link-bg)] px-3 py-1.5 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors whitespace-nowrap flex items-center gap-1"
                     >
                       <span>{btn.icon}</span>
                       <span>{btn.label}</span>
@@ -1083,14 +1083,14 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
           >
             {/* Attached file pill */}
             {attachedFile && (
-              <div className="flex items-center justify-between rounded-xl bg-violet-50 border border-violet-100 px-3 py-2 text-xs mb-2">
+              <div className="flex items-center justify-between rounded-xl bg-[var(--active-link-bg)] border border-primary/10 px-3 py-2 text-xs mb-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <FileText className="h-4 w-4 text-violet-600 shrink-0" />
-                  <span className="truncate text-violet-800 font-medium">{attachedFile.name}</span>
+                  <FileText className="h-4 w-4 text-primary shrink-0" />
+                  <span className="truncate text-primary font-medium">{attachedFile.name}</span>
                 </div>
                 <button
                   onClick={() => setAttachedFile(null)}
-                  className="ml-2 shrink-0 text-violet-400 hover:text-red-500 transition-colors"
+                  className="ml-2 shrink-0 text-primary/60 hover:text-red-500 transition-colors"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -1139,7 +1139,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder={flow === "tutor" ? "Escribe tu duda o tema..." : "Escribe un mensaje..."}
-                className="flex-1 min-w-0 h-11 rounded-2xl border border-border bg-muted px-4 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400/30 focus:border-violet-400 transition-colors"
+                className="flex-1 min-w-0 h-11 rounded-2xl border border-border bg-muted px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-colors"
                 disabled={loading}
                 autoComplete="off"
               />
@@ -1148,7 +1148,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
               <button
                 type="submit"
                 disabled={loading || (!inputText.trim() && !attachedFile)}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-violet-600 text-white shadow-sm hover:bg-violet-700 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-sm hover:bg-primary/90 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
                 {loading
                   ? <Loader2 className="h-4 w-4 animate-spin" />
@@ -1163,7 +1163,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-violet-600 transition-colors"
+                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-primary transition-colors"
               >
                 <Paperclip className="h-3.5 w-3.5" />
                 <span>Adjuntar</span>
@@ -1173,7 +1173,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                 onClick={toggleRecording}
                 className={cn(
                   "flex items-center gap-1.5 text-xs transition-colors",
-                  isRecording ? "text-red-500 animate-pulse" : "text-slate-400 hover:text-violet-600"
+                  isRecording ? "text-red-500 animate-pulse" : "text-slate-400 hover:text-primary"
                 )}
               >
                 <Mic className="h-3.5 w-3.5" />

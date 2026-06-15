@@ -65,7 +65,7 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
-      <header className="sticky top-0 z-10 bg-gradient-to-r from-indigo-600 to-violet-600 shadow-lg">
+      <header className="sticky top-0 z-10 bg-gradient-to-r from-[var(--hero-gradient-from)] via-[var(--hero-gradient-via)] to-[var(--hero-gradient-to)] shadow-lg">
         <div className="flex h-14 items-center gap-3 px-4 max-w-2xl mx-auto w-full">
           <Link href="/student/practice" className="text-white/80 hover:bg-white/15 p-2 rounded-full transition-colors">
             <ArrowLeft className="h-5 w-5" />
@@ -74,7 +74,7 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
             <span className="text-xl shrink-0">{subject.emoji}</span>
             <div className="min-w-0">
               <span className="text-base font-bold text-white">{subject.name}</span>
-              <p className="text-xs text-indigo-200">Camino de Aprendizaje</p>
+              <p className="text-xs text-primary-foreground/70">Camino de Aprendizaje</p>
             </div>
           </div>
           <div className="flex items-center gap-3 shrink-0 bg-white/10 rounded-xl px-3 py-1.5">
@@ -85,7 +85,7 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
             <div className="w-px h-5 bg-white/20" />
             <div>
               <p className="text-sm font-bold text-white">{subjectProgress}%</p>
-              <p className="text-[10px] text-indigo-200">{completedNodes}/{totalNodes}</p>
+              <p className="text-[10px] text-primary-foreground/70">{completedNodes}/{totalNodes}</p>
             </div>
           </div>
         </div>
@@ -117,7 +117,7 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                     ${isModLocked
                       ? 'bg-slate-50 border-slate-200 opacity-60'
                       : mod.generated
-                        ? 'bg-gradient-to-r from-indigo-50 to-white border-indigo-200 shadow-indigo-100/50'
+                        ? 'bg-gradient-to-r from-[var(--active-link-bg)] to-white border-primary/20 shadow-primary/5'
                         : 'bg-white border-slate-200 shadow-slate-100'
                     }
                   `}
@@ -125,12 +125,12 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                     <>
                       <div className="flex items-center gap-2">
                         {mod.generated ? (
-                          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700">
+                          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--active-link-bg)] text-primary">
                             <Sparkles className="h-3 w-3" />
                             IA
                           </span>
                         ) : (
-                          <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">
+                          <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
                             Unidad {modIndex + 1}
                           </span>
                         )}
@@ -143,12 +143,12 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                       </div>
                       <h2 className="text-xl font-bold text-slate-800 mt-1">{mod.title}</h2>
                       {mod.topic && (
-                        <p className="text-xs text-indigo-600 mt-0.5">Tema: {mod.topic}</p>
+                        <p className="text-xs text-primary mt-0.5">Tema: {mod.topic}</p>
                       )}
                       <div className="flex items-center gap-3 mt-3">
                         <div className="flex-1 max-w-[200px] h-2 bg-slate-200 rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-500"
+                            className="h-full bg-gradient-to-r from-primary to-[var(--tutor-gradient-to)] rounded-full transition-all duration-500"
                             style={{ width: `${modPct}%` }}
                           />
                         </div>
@@ -186,13 +186,13 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                           {i > 0 && (
                             <div className={`
                               absolute top-16 h-12 w-1 -z-10 rounded-full
-                              ${isCompleted ? 'bg-indigo-400' : 'bg-slate-200'}
+                              ${isCompleted ? 'bg-primary' : 'bg-slate-200'}
                             `} />
                           )}
 
                           <div className="relative group">
                             {isCurrent && !isModLocked && (
-                              <div className="absolute -inset-4 bg-indigo-400/20 rounded-full animate-ping -z-10" />
+                              <div className="absolute -inset-4 bg-primary/20 rounded-full animate-ping -z-10" />
                             )}
 
                             <Link href={(isLocked || isModLocked) ? "#" : `/student/path/${subject.slug}/${node.id}`}>
@@ -202,7 +202,7 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                                   h-20 w-20 rounded-full flex items-center justify-center transition-all shadow-md
                                   ${(isLocked || isModLocked) ? 'bg-slate-200 border-2 border-slate-300 text-slate-400 cursor-not-allowed' :
                                     isCompleted ? 'bg-emerald-400 border-2 border-emerald-500 text-white hover:-translate-y-1 hover:shadow-emerald-200' :
-                                    'bg-gradient-to-br from-indigo-500 to-violet-600 text-white hover:-translate-y-1 scale-110 shadow-lg shadow-indigo-200'
+                                    'bg-gradient-to-br from-primary to-[var(--tutor-gradient-to)] text-white hover:-translate-y-1 scale-110 shadow-lg shadow-primary/30'
                                   }
                                 `}
                               >
@@ -223,7 +223,7 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                               {node.title}
                             </span>
                             {node.type === "concept" && !isLocked && (
-                              <span className="block text-[10px] text-indigo-500 mt-0.5 font-medium">Enseñanza</span>
+                              <span className="block text-[10px] text-primary mt-0.5 font-medium">Enseñanza</span>
                             )}
                             {node.type === "challenge" && !isLocked && (
                               <span className="block text-[10px] text-amber-500 mt-0.5 font-medium">Desafío</span>

@@ -58,8 +58,8 @@ export function ChatUI({ subject }: { subject: string }) {
         <div role="log" aria-live="polite" className="px-4 py-4 space-y-4">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 mb-4 shadow-sm">
-                <Bot className="h-8 w-8 text-indigo-600" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--active-link-bg)] mb-4 shadow-sm">
+                <Bot className="h-8 w-8 text-primary" />
               </div>
               <p className="text-lg font-bold text-foreground">Tutor Socrático</p>
               <p className="mt-1 text-sm text-muted-foreground max-w-xs">
@@ -81,8 +81,8 @@ export function ChatUI({ subject }: { subject: string }) {
             >
               <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full mt-0.5 ${
                 msg.role === "user"
-                  ? "bg-indigo-600 text-primary-foreground"
-                  : "bg-indigo-50 text-accent-foreground"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-[var(--active-link-bg)] text-primary"
               }`}>
                 {msg.role === "user" ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
               </div>
@@ -90,7 +90,7 @@ export function ChatUI({ subject }: { subject: string }) {
               <div
                 className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
                   msg.role === "user"
-                    ? "bg-indigo-600 text-primary-foreground rounded-tr-md"
+                    ? "bg-primary text-primary-foreground rounded-tr-md"
                     : "bg-muted text-foreground border border-border rounded-tl-md"
                 }`}
               >
@@ -104,7 +104,7 @@ export function ChatUI({ subject }: { subject: string }) {
 
           {isLoading && (
             <div className="flex gap-3 flex-row">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-accent-foreground mt-0.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--active-link-bg)] text-primary mt-0.5">
                 <Bot className="h-4 w-4" />
               </div>
               <div className="rounded-2xl rounded-tl-md bg-muted border border-border shadow-sm">
@@ -139,7 +139,7 @@ export function ChatUI({ subject }: { subject: string }) {
             type="submit"
             disabled={!input.trim() || isLoading}
             aria-label="Enviar mensaje"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-primary-foreground hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 shadow-sm"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 shadow-sm"
           >
             <Send className="h-4 w-4" />
           </button>

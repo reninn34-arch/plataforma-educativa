@@ -35,7 +35,7 @@ export default function AdminDashboard() {
   if (isLoading) return (
     <div className="flex-1 flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 rounded-full border-3 border-indigo-200 border-t-indigo-600 animate-spin" />
+        <div className="w-10 h-10 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
         <p className="text-sm text-slate-400 font-medium">Cargando panel...</p>
       </div>
     </div>
@@ -62,13 +62,13 @@ export default function AdminDashboard() {
   return (
     <div className="flex-1 w-full animate-fade-in-up">
       <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8 space-y-8">
-        <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-indigo-200/50 relative overflow-hidden">
+        <div className="bg-gradient-to-br from-[var(--hero-gradient-from)] via-[var(--hero-gradient-via)] to-[var(--hero-gradient-to)] rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-primary/20 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-card/5 rounded-full blur-3xl" />
           <div className="relative z-10">
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Panel de Administración
             </h1>
-            <p className="text-indigo-200 mt-2 max-w-lg">
+            <p className="text-primary-foreground/90 mt-2 max-w-lg">
               Gestiona la institución, usuarios y cursos. Bienvenido, {firstName}.
             </p>
           </div>
@@ -107,7 +107,7 @@ export default function AdminDashboard() {
         <div className="grid md:grid-cols-2 gap-6">
           <div className="bg-card rounded-2xl border border-border p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
-              <Users size={18} className="text-indigo-500" />
+              <Users size={18} className="text-primary" />
               <h2 className="text-base font-bold text-foreground">Usuarios por rol</h2>
             </div>
             {chartData.roles.length > 0 ? (
@@ -209,7 +209,7 @@ export default function AdminDashboard() {
 
         <div>
           <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-            <Sparkles size={20} className="text-indigo-500" />
+            <Sparkles size={20} className="text-primary" />
             Acceso rápido
           </h2>
           <div className="grid sm:grid-cols-2 gap-4">
@@ -225,7 +225,7 @@ export default function AdminDashboard() {
                   <h3 className="font-bold text-foreground">Gestionar Usuarios</h3>
                   <p className="text-xs text-slate-400 mt-1">Crear, ver y eliminar estudiantes y profesores</p>
                 </div>
-                <ArrowRight size={20} className="text-slate-300 group-hover:text-indigo-500 transition-colors" />
+                <ArrowRight size={20} className="text-slate-300 group-hover:text-primary transition-colors" />
               </div>
             </button>
             <button
@@ -240,7 +240,7 @@ export default function AdminDashboard() {
                   <h3 className="font-bold text-foreground">Gestionar Cursos</h3>
                   <p className="text-xs text-slate-400 mt-1">Crear cursos, asignar profesores y matricular estudiantes</p>
                 </div>
-                <ArrowRight size={20} className="text-slate-300 group-hover:text-indigo-500 transition-colors" />
+                <ArrowRight size={20} className="text-slate-300 group-hover:text-primary transition-colors" />
               </div>
             </button>
           </div>
