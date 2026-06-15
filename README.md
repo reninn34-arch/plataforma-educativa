@@ -2,6 +2,25 @@
 
 Plataforma educativa integral para el sistema PCEI (Programa de Curricular para Educacion Intensiva) de Ecuador. Diseñada para acelerar la educación secundaria de adultos a través de herramientas con inteligencia artificial, seguimiento de progreso y comunicación entre estudiantes, docentes y administradores.
 
+📖 **[Ver Manual de Usuario completo →](MANUAL-DE-USUARIO.md)**
+
+---
+
+## Vista previa
+
+| | |
+|---|---|
+| ![Login](public/docs/images/login.png) | ![Dashboard Estudiante](public/docs/images/dashboard-estudiante.png) |
+| **Inicio de sesión** | **Dashboard del Estudiante** |
+| ![Camino de Aprendizaje](public/docs/images/camino-aprendizaje.png) | ![Tutor IA](public/docs/images/chat-tutor-ia.png) |
+| **Camino de Aprendizaje con IA** | **Tutor IA** |
+| ![Dashboard Docente](public/docs/images/dashboard-docente.png) | ![Asistente IA Docente](public/docs/images/asistente-ia.png) |
+| **Dashboard del Docente** | **Asistente IA del Docente** |
+| ![Dashboard Admin](public/docs/images/dashboard-admin.png) | ![Reportes](public/docs/images/reportes-admin.png) |
+| **Panel de Administración** | **Reportes de Calificaciones** |
+
+---
+
 ## Stack
 
 | Capa | Tecnología |
