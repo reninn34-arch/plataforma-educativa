@@ -424,13 +424,13 @@ Consulte el rendimiento de sus estudiantes en las prácticas con inteligencia ar
 
 ### 4.9. Material de Estudio
 
-Gestione el contenido educativo y comparta archivos con sus estudiantes:
+Suba material bibliográfico y documentos que servirán como **base de conocimiento para la Inteligencia Artificial** del curso. Este material no se comparte directamente con los estudiantes, sino que permite a la IA generar contenido alineado a su currículo:
 
 1. Seleccione **"Mis Cursos"** en el menú lateral.
 2. Identifique la materia específica a la que desea agregar material.
 3. Haga clic en el **ícono de subir archivo** correspondiente a esa materia en la lista.
-4. Seleccione y suba el archivo o material que desea compartir.
-5. Una vez subido, el material estará inmediatamente disponible para todos los estudiantes de ese curso.
+4. Seleccione y suba el documento deseado (por ejemplo, PDFs o textos).
+5. Una vez procesado, la IA utilizará este material como contexto para **crear tareas**, **generar cuestionarios** y alimentar las sesiones de **práctica activa** de sus estudiantes.
 
 ![Subida de material de estudio.](public/docs/images/creacion-material.png)
 
