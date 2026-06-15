@@ -22,7 +22,7 @@ Plataforma Educativa Inteligente para el Programa de Currículo para Educación 
 
 Atlas Edu es una plataforma educativa integral diseñada para el **Programa de Currículo para Educación Intensiva (PCEI)** de Ecuador. Su objetivo es acelerar la educación secundaria de adultos mediante el uso de herramientas con inteligencia artificial, gamificación, seguimiento de progreso y comunicación fluida entre estudiantes, docentes y administradores.
 
-![Logotipo de Atlas Edu con el eslogan "Educación Inteligente para el Futuro".](/docs/images/logotipo.png)
+![Logotipo de Atlas Edu con el eslogan "Educación Inteligente para el Futuro".](public/docs/images/logotipo.png)
 
 ### ¿A quién está dirigido?
 
@@ -47,7 +47,7 @@ Atlas Edu es una plataforma educativa integral diseñada para el **Programa de C
 
 Abra su navegador web y diríjase a la dirección proporcionada por su institución (ej: `https://atlas.edu.ec`).
 
-![Pantalla de carga inicial de Atlas Edu con el logotipo y animación.](/docs/images/carga-inicial.png)
+![Pantalla de carga inicial de Atlas Edu con el logotipo y animación.](public/docs/images/carga-inicial.png)
 
 ### 2.2. Inicio de Sesión
 
@@ -56,7 +56,7 @@ Abra su navegador web y diríjase a la dirección proporcionada por su instituci
 3. Ingrese su **PIN de 4 dígitos** proporcionado por la institución.
 4. Haga clic en el botón **"Ingresar"**.
 
-![Captura de pantalla del formulario de inicio de sesión con los campos de cédula y PIN visibles.](/docs/images/login.png)
+![Captura de pantalla del formulario de inicio de sesión con los campos de cédula y PIN visibles.](public/docs/images/login.png)
 
 **Nota:** Si ingresa un PIN incorrecto en múltiples ocasiones, el sistema bloqueará temporalmente el acceso por razones de seguridad.
 
@@ -72,7 +72,7 @@ Si ha olvidado su PIN:
 6. Ingrese un **nuevo PIN de 4 dígitos**.
 7. Confirme el nuevo PIN y haga clic en **"Restablecer PIN"**.
 
-![Formulario de recuperación de PIN con los campos de cédula y correo electrónico.](/docs/images/recuperacion-pin.png)
+![Formulario de recuperación de PIN con los campos de cédula y correo electrónico.](public/docs/images/recuperacion-pin.png)
 
 ### 2.4. Interfaz General
 
@@ -84,7 +84,7 @@ Una vez dentro de la plataforma, verá los siguientes elementos comunes:
 | **Barra superior (Topbar)** | Contiene el nombre del usuario, botón de notificaciones y selector de tema. |
 | **Selector de Tema** | Permite alternar entre tema **Claro**, **Oscuro** o **Sistema** (sigue la configuración de su dispositivo). |
 
-![Vista general del dashboard con la barra lateral, la barra superior y el contenido principal anotados.](/docs/images/dashboard-general.png)
+![Vista general del dashboard con la barra lateral, la barra superior y el contenido principal anotados.](public/docs/images/dashboard-general.png)
 
 ### 2.5. Cierre de Sesión
 
@@ -92,7 +92,7 @@ Para cerrar sesión de forma segura:
 1. Haga clic en su nombre en la esquina superior derecha.
 2. Seleccione **"Cerrar Sesión"**.
 
-![Menú desplegable con la opción "Cerrar Sesión" resaltada.](/docs/images/menu-cerrar-sesion.png)
+![Menú desplegable con la opción "Cerrar Sesión" resaltada.](public/docs/images/menu-cerrar-sesion.png)
 
 ---
 
@@ -109,7 +109,7 @@ Al iniciar sesión como estudiante, el dashboard le muestra un resumen general d
 - **Tareas Pendientes:** Lista de tareas próximas a vencer con un contador regresivo.
 - **Acceso Rápido:** Botones para iniciar práctica con IA o hablar con el tutor IA.
 
-![Dashboard del estudiante con tarjetas de métricas, acceso rápido y lista de tareas pendientes.](/docs/images/dashboard-estudiante.png)
+![Dashboard del estudiante con tarjetas de métricas, acceso rápido y lista de tareas pendientes.](public/docs/images/dashboard-estudiante.png)
 
 ### 3.2. Camino de Aprendizaje
 
@@ -124,7 +124,7 @@ El **Camino de Aprendizaje** es una representación visual de los módulos y nod
    - **✅ Completado** — Ha sido superado exitosamente.
    - **🏆 Dominado** — Ha alcanzado el nivel más alto (con estrellas).
 
-![Vista del camino de aprendizaje de una materia con módulos y nodos en diferentes estados.](/docs/images/camino-aprendizaje.png)
+![Vista del camino de aprendizaje de una materia con módulos y nodos en diferentes estados.](public/docs/images/camino-aprendizaje.png)
 
 ### 3.3. Práctica con IA (Gamificada)
 
@@ -153,7 +153,7 @@ Al hacer clic en un nodo desbloqueado, ingresa a la práctica interactiva gamifi
 - **📺 Videos Relacionados:** El sistema sugiere videos de YouTube relevantes al tema.
 - **🎉 Confetti:** Animación de celebración al completar un nodo exitosamente.
 
-![Pantalla de práctica activa mostrando una pregunta, las vidas restantes, el combo y el temporizador.](/docs/images/practica-activa.png)
+![Pantalla de práctica activa mostrando una pregunta, las vidas restantes, el combo y el temporizador.](public/docs/images/practica-activa.png)
 
 ### 3.4. Tutor IA (Chat por Materia)
 
@@ -166,7 +166,7 @@ El **Tutor IA** es un asistente conversacional que responde preguntas sobre la m
 
 **Consejo:** El tutor está diseñado para **guiarle sin dar la respuesta directa**. Hará preguntas para ayudarle a llegar a la solución por sí mismo.
 
-![Ventana del chat del Tutor IA con un historial de preguntas y respuestas visible.](/docs/images/chat-tutor-ia.png)
+![Ventana del chat del Tutor IA con un historial de preguntas y respuestas visible.](public/docs/images/chat-tutor-ia.png)
 
 ### 3.5. Tareas
 
@@ -186,7 +186,7 @@ El **Tutor IA** es un asistente conversacional que responde preguntas sobre la m
 2. Redacte su respuesta en el campo de texto o adjunte un archivo (PDF, Word, imagen, etc.).
 3. Haga clic en **"Entregar Tarea"**.
 
-![Detalle de una tarea con el campo de respuesta, el selector de archivos y el botón de entrega.](/docs/images/detalle-tarea.png)
+![Detalle de una tarea con el campo de respuesta, el selector de archivos y el botón de entrega.](public/docs/images/detalle-tarea.png)
 
 ### 3.6. Cuestionarios de Estudio
 
@@ -200,7 +200,7 @@ Los cuestionarios son evaluaciones tipo opción múltiple creadas por sus docent
 
 **Exportar:** Puede descargar el cuestionario en formato PDF haciendo clic en el ícono de descarga.
 
-![Cuestionario en curso con preguntas de opción múltiple y botón de envío.](/docs/images/cuestionario-curso.png)
+![Cuestionario en curso con preguntas de opción múltiple y botón de envío.](public/docs/images/cuestionario-curso.png)
 
 ### 3.7. Horario
 
@@ -210,7 +210,7 @@ Visualice su horario semanal de clases:
 2. Vea los bloques de clase organizados por día y hora.
 3. Cada bloque muestra la materia y el aula correspondiente.
 
-![Vista del horario semanal con bloques de colores por materia.](/docs/images/estudiante-horario.png)
+![Vista del horario semanal con bloques de colores por materia.](public/docs/images/estudiante-horario.png)
 
 ### 3.8. Calendario
 
@@ -224,7 +224,7 @@ El calendario le muestra todas las fechas importantes:
 2. Navegue entre meses usando las flechas izquierda/derecha.
 3. Haga clic en un evento para ver los detalles.
 
-![Vista del calendario mensual con eventos marcados.](/docs/images/estudiante-calendario.png)
+![Vista del calendario mensual con eventos marcados.](public/docs/images/estudiante-calendario.png)
 
 ### 3.9. Calificaciones
 
@@ -238,7 +238,7 @@ Consulte su historial de calificaciones:
    - Fecha
 3. En la parte superior, vea su **promedio general** y el **promedio por materia**.
 
-![Tabla de calificaciones con el promedio general destacado.](/docs/images/estudiante-calificaciones.png)
+![Tabla de calificaciones con el promedio general destacado.](public/docs/images/estudiante-calificaciones.png)
 
 ### 3.10. Perfil
 
@@ -252,7 +252,7 @@ Desde su perfil puede:
    - Haga clic en **"Guardar Cambios"**.
 3. **Cambiar tema:** Seleccione entre tema claro, oscuro o automático.
 
-![Página de perfil con los formularios de cambio de nombre y PIN.](/docs/images/perfil.png)
+![Página de perfil con los formularios de cambio de nombre y PIN.](public/docs/images/perfil.png)
 
 ### 3.11. Notificaciones
 
@@ -262,7 +262,7 @@ El ícono de **campana 🔔** en la barra superior muestra las notificaciones no
 - Las notificaciones incluyen: nuevas tareas, tareas próximas a vencer, calificaciones publicadas, mensajes de docentes.
 - Haga clic en una notificación para ir directamente a la sección correspondiente.
 
-![Panel desplegable de notificaciones con ejemplos de notificaciones.](/docs/images/notificaciones.png)
+![Panel desplegable de notificaciones con ejemplos de notificaciones.](public/docs/images/notificaciones.png)
 
 ---
 
@@ -282,7 +282,7 @@ Al iniciar sesión como docente, el dashboard le muestra:
   - Estado de riesgo (si aplica)
 - **Exportar Datos:** Botón para descargar la tabla en Excel o CSV.
 
-![Dashboard del docente con la tabla de estudiantes y el selector de curso.](/docs/images/dashboard-docente.png)
+![Dashboard del docente con la tabla de estudiantes y el selector de curso.](public/docs/images/dashboard-docente.png)
 
 ### 4.2. Gestión de Cursos
 
@@ -293,7 +293,7 @@ Al iniciar sesión como docente, el dashboard le muestra:
    - Materias que imparte en ese curso
    - Acceso rápido a tareas, asistencia y horario
 
-![Vista de la lista de cursos asignados al docente.](/docs/images/cursos-docente.png)
+![Vista de la lista de cursos asignados al docente.](public/docs/images/cursos-docente.png)
 
 ### 4.3. Tareas
 
@@ -327,7 +327,7 @@ Al iniciar sesión como docente, el dashboard le muestra:
 4. Ingrese la calificación y un comentario de retroalimentación.
 5. Haga clic en **"Guardar Calificación"**.
 
-![Formulario de calificación con campo de nota y retroalimentación.](/docs/images/formulario-calificacion.png)
+![Formulario de calificación con campo de nota y retroalimentación.](public/docs/images/formulario-calificacion.png)
 
 ### 4.4. Cuestionarios
 
@@ -358,7 +358,7 @@ Al iniciar sesión como docente, el dashboard le muestra:
 - Desde la vista del cuestionario, haga clic en **"Exportar PDF"** o **"Exportar Word"**.
 - El archivo descargado incluirá todas las preguntas, formateadas para impresión.
 
-![Vista de edición de un cuestionario con lista de preguntas y botones de exportación.](/docs/images/edicion-cuestionario.png)
+![Vista de edición de un cuestionario con lista de preguntas y botones de exportación.](public/docs/images/edicion-cuestionario.png)
 
 ### 4.5. Asistencia
 
@@ -377,7 +377,7 @@ Al iniciar sesión como docente, el dashboard le muestra:
 - Use el selector de fechas para ver el historial de asistencia de un curso.
 - Los datos se muestran en una tabla con los estudiantes en filas y las fechas en columnas.
 
-![Tabla de registro de asistencia con los estados por estudiante.](/docs/images/registro-asistencia.png)
+![Tabla de registro de asistencia con los estados por estudiante.](public/docs/images/registro-asistencia.png)
 
 ### 4.6. Horario
 
@@ -390,7 +390,7 @@ Configure los bloques horarios de sus cursos:
    - Materia
 4. Haga clic en **"Guardar Horario"**.
 
-![Editor de horario semanal con bloques por día y materia.](/docs/images/docente-horario.png)
+![Editor de horario semanal con bloques por día y materia.](public/docs/images/docente-horario.png)
 
 ### 4.7. Analíticas IA
 
@@ -405,7 +405,7 @@ Consulte el rendimiento de sus estudiantes en las prácticas con inteligencia ar
    - **Nodos completados vs. totales**
    - **Estudiantes en riesgo** (baja actividad o precisión)
 
-![Panel de analíticas con gráficos y tabla de rendimiento por estudiante.](/docs/images/analiticas-docente.png)
+![Panel de analíticas con gráficos y tabla de rendimiento por estudiante.](public/docs/images/analiticas-docente.png)
 
 ### 4.8. Gradebook (Libro de Calificaciones)
 
@@ -420,7 +420,7 @@ Consulte el rendimiento de sus estudiantes en las prácticas con inteligencia ar
    - CSV (.csv)
    - PDF (.pdf)
 
-![Vista del gradebook con la matriz de estudiantes y evaluaciones.](/docs/images/gradebook.png)
+![Vista del gradebook con la matriz de estudiantes y evaluaciones.](public/docs/images/gradebook.png)
 
 ### 4.9. Material de Estudio
 
@@ -435,7 +435,7 @@ Gestione el contenido educativo de sus cursos:
    - **Tipo de archivo** (si aplica)
 4. Haga clic en **"Guardar"**.
 
-![Formulario de creación de material de estudio.](/docs/images/creacion-material.png)
+![Formulario de creación de material de estudio.](public/docs/images/creacion-material.png)
 
 ### 4.10. Mensajería
 
@@ -453,7 +453,7 @@ Gestione el contenido educativo de sus cursos:
 4. Redacte el mensaje.
 5. Haga clic en **"Enviar a Todos"**.
 
-![Ventana de mensajería con selección de destinatario y campo de texto.](/docs/images/mensajeria.png)
+![Ventana de mensajería con selección de destinatario y campo de texto.](public/docs/images/mensajeria.png)
 
 ### 4.11. Asistente IA (Acciones Rápidas)
 
@@ -464,7 +464,7 @@ El asistente IA flotante (ícono ✨ en la esquina inferior derecha) le permite 
 - "Enviar un mensaje a todos los estudiantes de 1ro BGU"
 - "Generar un cuestionario de Física con 10 preguntas"
 
-![Asistente IA flotante abierto mostrando comandos de ejemplo.](/docs/images/asistente-ia.png)
+![Asistente IA flotante abierto mostrando comandos de ejemplo.](public/docs/images/asistente-ia.png)
 
 ---
 
@@ -479,7 +479,7 @@ Al iniciar sesión como administrador, el dashboard le muestra:
 - **Estudiantes por Curso:** Gráfico de barras con la cantidad de estudiantes en cada curso.
 - **Acceso Rápido:** Botones para ir a Gestión de Usuarios y Gestión de Cursos.
 
-![Dashboard del administrador con los gráficos y accesos rápidos.](/docs/images/dashboard-admin.png)
+![Dashboard del administrador con los gráficos y accesos rápidos.](public/docs/images/dashboard-admin.png)
 
 ### 5.2. Gestión de Usuarios
 
@@ -518,7 +518,7 @@ Al iniciar sesión como administrador, el dashboard le muestra:
    - **Activar o desactivar** el usuario (un usuario desactivado no puede iniciar sesión)
 3. Haga clic en **"Guardar Cambios"**.
 
-![Formulario de creación/edición de usuario con todos los campos.](/docs/images/edicion-usuario.png)
+![Formulario de creación/edición de usuario con todos los campos.](public/docs/images/edicion-usuario.png)
 
 ### 5.3. Gestión de Cursos
 
@@ -548,7 +548,7 @@ Haga clic en un curso para acceder a:
 4. Seleccione los estudiantes a matricular.
 5. Haga clic en **"Matricular"**.
 
-![Detalle del curso con pestañas de estudiantes, profesores y horarios.](/docs/images/detalle-curso.png)
+![Detalle del curso con pestañas de estudiantes, profesores y horarios.](public/docs/images/detalle-curso.png)
 
 ### 5.4. Periodos Lectivos
 
@@ -565,7 +565,7 @@ Gestione los periodos académicos:
 
 **Nota:** Solo un periodo lectivo puede estar **activo** a la vez. Al activar un nuevo periodo, el anterior se desactivará automáticamente.
 
-![Lista de periodos lectivos con indicador de periodo activo.](/docs/images/periodos-lectivos.png)
+![Lista de periodos lectivos con indicador de periodo activo.](public/docs/images/periodos-lectivos.png)
 
 ### 5.5. Configuración SMTP
 
@@ -581,7 +581,7 @@ Configure el servidor de correo para el envío de credenciales y notificaciones:
 3. Haga clic en **"Guardar Configuración"**.
 4. Para probar la configuración, haga clic en **"Enviar Correo de Prueba"** e ingrese una dirección de correo destino.
 
-![Formulario de configuración SMTP con botón de prueba.](/docs/images/configuracion-smtp.png)
+![Formulario de configuración SMTP con botón de prueba.](public/docs/images/configuracion-smtp.png)
 
 ### 5.6. Envío de Credenciales
 
@@ -597,7 +597,7 @@ Configure el servidor de correo para el envío de credenciales y notificaciones:
 2. Haga clic en **"Enviar Credenciales"** en la sección correspondiente.
 3. Confirme el envío masivo.
 
-![Confirmación de envío de credenciales con resumen de destinatarios.](/docs/images/envio-credenciales.png)
+![Confirmación de envío de credenciales con resumen de destinatarios.](public/docs/images/envio-credenciales.png)
 
 ### 5.7. Reportes
 
@@ -609,7 +609,7 @@ Configure el servidor de correo para el envío de credenciales y notificaciones:
    - Actividad reciente
 3. Puede exportar los reportes en formato PDF o Excel.
 
-![Página de reportes con gráficos y tablas estadísticas.](/docs/images/reportes-admin.png)
+![Página de reportes con gráficos y tablas estadísticas.](public/docs/images/reportes-admin.png)
 
 
 ---
