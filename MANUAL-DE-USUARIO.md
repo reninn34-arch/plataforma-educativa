@@ -424,18 +424,15 @@ Consulte el rendimiento de sus estudiantes en las prácticas con inteligencia ar
 
 ### 4.9. Material de Estudio
 
-Gestione el contenido educativo de sus cursos:
+Gestione el contenido educativo y comparta archivos con sus estudiantes:
 
-1. Seleccione **"Material de Estudio"** en el menú lateral.
-2. Haga clic en **"Nuevo Material"**.
-3. Complete:
-   - **Título**
-   - **Curso y materia**
-   - **Contenido** (puede incluir texto formateado, imágenes, enlaces)
-   - **Tipo de archivo** (si aplica)
-4. Haga clic en **"Guardar"**.
+1. Seleccione **"Mis Cursos"** en el menú lateral.
+2. Identifique la materia específica a la que desea agregar material.
+3. Haga clic en el **ícono de subir archivo** correspondiente a esa materia en la lista.
+4. Seleccione y suba el archivo o material que desea compartir.
+5. Una vez subido, el material estará inmediatamente disponible para todos los estudiantes de ese curso.
 
-![Formulario de creación de material de estudio.](public/docs/images/creacion-material.png)
+![Subida de material de estudio.](public/docs/images/creacion-material.png)
 
 ### 4.10. Mensajería
 
