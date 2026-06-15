@@ -54,7 +54,7 @@ function DashboardContent() {
                   {selectedCurso.mySubjects?.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {selectedCurso.mySubjects.map((s: any, i: number) => (
-                        <span key={i} className="text-[10px] font-medium bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-lg border border-indigo-100">
+                        <span key={i} className="text-[10px] font-medium bg-[var(--active-link-bg)] text-[var(--active-link-text)] px-2 py-0.5 rounded-lg border border-[var(--active-link-border)]">
                           {s.subjectEmoji} {s.subjectName}
                         </span>
                       ))}
@@ -63,7 +63,7 @@ function DashboardContent() {
                 </>
               ) : (
                 <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-md">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--accent-card-from)] to-[var(--accent-card-to)] flex items-center justify-center text-white shadow-md">
                     <Sparkles size={20} />
                   </div>
                   <div>
@@ -75,8 +75,8 @@ function DashboardContent() {
             </div>
             {activePeriod && (
               <div className="flex items-center gap-1.5 mt-3">
-                <span className="w-2 h-2 rounded-full bg-indigo-400" />
-                <span className="text-xs font-medium text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">
+                <span className="w-2 h-2 rounded-full bg-[var(--active-link-icon)]" />
+                <span className="text-xs font-medium text-[var(--active-link-text)] bg-[var(--active-link-bg)] px-2.5 py-1 rounded-lg border border-[var(--active-link-border)]">
                   📅 {activePeriod.nombre}
                 </span>
               </div>
@@ -91,7 +91,7 @@ function DashboardContent() {
                   if (e.target.value) router.push(`/teacher/dashboard?cursoId=${e.target.value}`);
                   else router.push("/teacher/dashboard");
                 }}
-                className="h-10 rounded-xl border border-border bg-card px-3 text-sm font-medium text-muted-foreground focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
+                className="h-10 rounded-xl border border-border bg-card px-3 text-sm font-medium text-muted-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/20 focus:outline-none"
               >
                 <option value="">Todos los cursos</option>
                 {cursos.map((c: any) => (
@@ -102,7 +102,7 @@ function DashboardContent() {
             <a
               href="/api/analytics/export"
               download
-              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm"
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/95 transition-colors shadow-sm"
             >
               <Download size={16} />
               Exportar
@@ -113,13 +113,13 @@ function DashboardContent() {
         {/* Course pills — quick course selector when on "all" view */}
         {!cursoId && cursos.length > 0 && (
           <div className="flex items-center gap-2">
-            <BookOpen size={16} className="text-indigo-500 shrink-0" />
+            <BookOpen size={16} className="text-[var(--active-link-icon)] shrink-0" />
             <div className="flex flex-wrap gap-2">
               {cursos.map((c: any) => (
                 <button
                   key={c.id}
                   onClick={() => router.push(`/teacher/dashboard?cursoId=${c.id}`)}
-                  className="text-sm font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-3 py-1.5 rounded-xl border border-indigo-100 transition-all"
+                  className="text-sm font-medium bg-[var(--active-link-bg)] text-[var(--active-link-text)] hover:bg-[var(--active-link-border)]/50 px-3 py-1.5 rounded-xl border border-[var(--active-link-border)] transition-all"
                 >
                   {c.nombre}
                 </button>
@@ -140,7 +140,7 @@ export default function TeacherDashboard() {
     <Suspense fallback={
       <div className="flex-1 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-full border-3 border-indigo-200 border-t-indigo-600 animate-spin" />
+          <div className="w-10 h-10 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
           <p className="text-sm text-muted-foreground font-medium">Cargando panel...</p>
         </div>
       </div>

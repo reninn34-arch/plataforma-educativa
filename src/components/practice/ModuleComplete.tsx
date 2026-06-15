@@ -152,7 +152,7 @@ export function ModuleComplete({
 
           <button
             onClick={onRetry}
-            className="flex items-center justify-center gap-2 w-full rounded-2xl bg-indigo-500/80 text-white font-black text-base py-4 hover:bg-indigo-500 transition-all active:scale-[0.98] shadow-lg border border-indigo-400/30"
+            className="flex items-center justify-center gap-2 w-full rounded-2xl bg-primary/80 text-white font-black text-base py-4 hover:bg-primary transition-all active:scale-[0.98] shadow-lg border border-primary/30"
           >
             <RefreshCw className="h-5 w-5" />
             Jugar otra ronda

@@ -7,7 +7,7 @@ import { SUBJECTS } from "@/lib/utils";
 import { apiFetch } from "@/lib/fetch-utils";
 import { subjectTheme } from "@/lib/subject-theme";
 
-function ProgressBar({ percentage, color = "bg-indigo-500" }: { percentage: number; color?: string }) {
+function ProgressBar({ percentage, color = "bg-primary" }: { percentage: number; color?: string }) {
   return (
     <div className="w-full h-2 bg-muted rounded-full overflow-hidden shadow-inner">
       <div
@@ -38,8 +38,8 @@ export default function PracticePage() {
   if (isLoading) return (
     <div className="flex-1 flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 rounded-full border-3 border-indigo-200 border-t-indigo-600 animate-spin" />
-        <p className="text-sm text-slate-400 font-medium">Cargando materias...</p>
+        <div className="w-10 h-10 rounded-full border-3 border-primary/20 border-t-primary animate-spin" />
+        <p className="text-sm text-muted-foreground font-medium">Cargando materias...</p>
       </div>
     </div>
   );
@@ -50,9 +50,9 @@ export default function PracticePage() {
     <div className="flex-1 w-full animate-fade-in-up">
       <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8 pb-24 lg:pb-8">
         {/* Hero */}
-        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-600 to-violet-600 p-6 sm:p-8 text-white shadow-xl shadow-indigo-200/50">
-          <div className="absolute top-0 right-0 w-72 h-72 bg-card/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-400/10 rounded-full blur-3xl -translate-x-1/3 translate-y-1/3" />
+        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[var(--hero-gradient-from)] via-[var(--hero-gradient-via)] to-[var(--hero-gradient-to)] p-6 sm:p-8 text-white shadow-xl shadow-primary/20">
+          <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 dark:bg-white/5 rounded-full blur-3xl -translate-x-1/3 translate-y-1/3" />
           <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
             <div>
               <div className="inline-flex items-center gap-1.5 bg-card/15 backdrop-blur-sm rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider mb-3">
@@ -65,11 +65,11 @@ export default function PracticePage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
                 Elige una materia
               </h1>
-              <p className="text-indigo-100 text-sm sm:text-base mt-2 max-w-lg leading-relaxed">
+              <p className="text-primary-foreground/90 text-sm sm:text-base mt-2 max-w-lg leading-relaxed">
                 Refuerza tus conocimientos con ejercicios personalizados generados por inteligencia artificial.
               </p>
             </div>
-            <div className="hidden sm:flex items-center gap-2 text-indigo-200 text-sm">
+            <div className="hidden sm:flex items-center gap-2 text-primary-foreground/80 text-sm">
               <Target size={16} />
               {Object.keys(progress).length} materias disponibles
             </div>
@@ -114,8 +114,8 @@ export default function PracticePage() {
                         </span>
                       )}
                       <div className="relative">
-                        <div className="absolute inset-0 rounded-xl bg-indigo-300/40 animate-ping group-hover:animate-none" />
-                        <div className="relative z-10 w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500 group-hover:bg-indigo-100 transition-colors">
+                        <div className="absolute inset-0 rounded-xl bg-primary/30 animate-ping group-hover:animate-none" />
+                        <div className="relative z-10 w-8 h-8 rounded-xl bg-[var(--active-link-bg)] flex items-center justify-center text-primary group-hover:bg-primary/10 transition-colors">
                           <Play size={16} className="fill-current ml-0.5" />
                         </div>
                       </div>

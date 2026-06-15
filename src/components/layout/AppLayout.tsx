@@ -8,6 +8,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { apiFetch, clearCache } from "@/lib/fetch-utils";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { AccentColorPicker } from "@/components/theme/AccentColorPicker";
+import { useUserProfile } from "@/lib/contexts";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -22,6 +24,7 @@ export function AppLayout({ children, role, links, title, isFullScreen }: AppLay
   const router = useRouter();
   const queryClient = useQueryClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { profile } = useUserProfile();
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -34,6 +37,7 @@ export function AppLayout({ children, role, links, title, isFullScreen }: AppLay
     queryClient.clear();
     clearCache();
     localStorage.removeItem("theme");
+    document.cookie = "accent-color=; path=/; max-age=0";
     router.push("/login");
   };
 
@@ -59,11 +63,11 @@ export function AppLayout({ children, role, links, title, isFullScreen }: AppLay
         <aside className="hidden lg:flex flex-col w-64 bg-card dark:bg-slate-900 border-r border-border dark:border-slate-800 fixed inset-y-0 z-40 shadow-sm">
         {/* Logo */}
         <div className="h-16 flex items-center gap-3 px-5 border-b border-slate-100 dark:border-slate-800">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold shadow-sm">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--logo-gradient-from)] to-[var(--logo-gradient-to)] flex items-center justify-center text-white font-bold shadow-sm">
             A
           </div>
           <div>
-            <span className="text-base font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">
+            <span className="text-base font-bold bg-clip-text text-transparent bg-gradient-to-r from-[var(--logo-text-gradient-from)] to-[var(--logo-text-gradient-to)]">
               Atlas Edu
             </span>
             <span className="block text-[10px] text-slate-400 dark:text-muted-foreground font-medium tracking-wide uppercase">{title}</span>
@@ -80,16 +84,16 @@ export function AppLayout({ children, role, links, title, isFullScreen }: AppLay
                 href={href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                   active
-                    ? "bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 shadow-sm border border-indigo-100 dark:border-indigo-800"
+                    ? "bg-[var(--active-link-bg)] text-[var(--active-link-text)] shadow-sm border border-[var(--active-link-border)]"
                     : "text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-slate-200 hover:bg-muted dark:hover:bg-slate-800"
                 }`}
               >
-                <div className={`${active ? "text-indigo-600" : "text-slate-400 group-hover:text-muted-foreground"} transition-colors`}>
+                <div className={`${active ? "text-[var(--active-link-icon)]" : "text-slate-400 group-hover:text-muted-foreground"} transition-colors`}>
                   <Icon size={20} />
                 </div>
                 <span>{label}</span>
                 {active && (
-                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[var(--active-link-dot)]" />
                 )}
               </Link>
             );
@@ -119,10 +123,11 @@ export function AppLayout({ children, role, links, title, isFullScreen }: AppLay
           <Menu size={22} />
         </button>
         <span className="text-sm font-semibold text-foreground truncate mx-2">{title}</span>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
+          <AccentColorPicker role={role} userId={profile?.id} />
           <ThemeToggle />
           <NotificationBell />
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--logo-gradient-from)] to-[var(--logo-gradient-to)] flex items-center justify-center text-white font-bold text-xs shrink-0">
             A
           </div>
         </div>
@@ -134,11 +139,11 @@ export function AppLayout({ children, role, links, title, isFullScreen }: AppLay
         <div className="lg:hidden fixed inset-y-0 left-0 w-72 bg-card z-50 shadow-2xl animate-fade-in-up border-r border-border flex flex-col">
           <div className="h-16 flex items-center justify-between px-5 border-b border-slate-100">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--logo-gradient-from)] to-[var(--logo-gradient-to)] flex items-center justify-center text-white font-bold">
                 A
               </div>
               <div>
-                <span className="text-base font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
+                <span className="text-base font-bold bg-clip-text text-transparent bg-gradient-to-r from-[var(--logo-text-gradient-from)] to-[var(--logo-text-gradient-to)]">
                   Atlas Edu
                 </span>
                 <span className="block text-[10px] text-slate-400 font-medium">{title}</span>
@@ -158,16 +163,16 @@ export function AppLayout({ children, role, links, title, isFullScreen }: AppLay
                   href={href}
                   className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all ${
                     active
-                      ? "bg-indigo-50 text-indigo-700 border border-indigo-100"
+                      ? "bg-[var(--active-link-bg)] text-[var(--active-link-text)] border border-[var(--active-link-border)]"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   }`}
                 >
-                  <div className={`${active ? "text-indigo-600" : "text-slate-400"}`}>
+                  <div className={`${active ? "text-[var(--active-link-icon)]" : "text-slate-400"}`}>
                     <Icon size={22} />
                   </div>
                   {label}
                   {active && (
-                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[var(--active-link-dot)]" />
                   )}
                 </Link>
               );
@@ -190,7 +195,8 @@ export function AppLayout({ children, role, links, title, isFullScreen }: AppLay
       <div className={`flex-1 flex flex-col min-h-screen w-full min-w-0 overflow-x-hidden ${isFullScreen ? "" : "lg:pl-64 pt-16 lg:pt-0"}`}>
         {/* Desktop Top Bar */}
         {!isFullScreen && (
-          <div className="hidden lg:flex items-center justify-end gap-1 px-6 py-3 border-b border-slate-100 dark:border-slate-800 bg-card/80 dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-30">
+          <div className="hidden lg:flex items-center justify-end gap-1.5 px-6 py-3 border-b border-slate-100 dark:border-slate-800 bg-card/80 dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-30">
+            <AccentColorPicker role={role} userId={profile?.id} />
             <ThemeToggle />
             <NotificationBell />
           </div>

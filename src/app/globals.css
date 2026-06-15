@@ -57,6 +57,26 @@
   --input: #E2E8F0;
   --ring: #4F46E5;
 
+  /* Accent theme logo & sidebar active item styling variables */
+  --logo-gradient-from: #6366F1;
+  --logo-gradient-to: #7C3AED;
+  --logo-text-gradient-from: #4F46E5;
+  --logo-text-gradient-to: #7C3AED;
+  --active-link-bg: #EEF2FF;
+  --active-link-text: #4338CA;
+  --active-link-border: #E0E7FF;
+  --active-link-icon: #4F46E5;
+  --active-link-dot: #6366F1;
+
+  /* Dashboard card gradient variables */
+  --hero-gradient-from: #4F46E5;
+  --hero-gradient-via: #4F46E5;
+  --hero-gradient-to: #7C3AED;
+  --accent-card-from: #6366F1;
+  --accent-card-to: #7C3AED;
+  --tutor-gradient-from: #7C3AED;
+  --tutor-gradient-to: #5B21B6;
+
   --chart-1: #4F46E5;
   --chart-2: #10B981;
   --chart-3: #F59E0B;
@@ -101,6 +121,27 @@
   --border: #334155;
   --input: #334155;
   --ring: #818CF8;
+
+  /* Accent theme logo & sidebar active item styling variables */
+  --logo-gradient-from: #6366F1;
+  --logo-gradient-to: #7C3AED;
+  --logo-text-gradient-from: #818CF8;
+  --logo-text-gradient-to: #A78BFA;
+  --active-link-bg: rgba(49, 46, 129, 0.4);
+  --active-link-text: #C7D2FE;
+  --active-link-border: #3730A3;
+  --active-link-icon: #818CF8;
+  --active-link-dot: #818CF8;
+
+  /* Dashboard card gradient variables */
+  --hero-gradient-from: #4F46E5;
+  --hero-gradient-via: #4F46E5;
+  --hero-gradient-to: #7C3AED;
+  --accent-card-from: #6366F1;
+  --accent-card-to: #7C3AED;
+  --tutor-gradient-from: #7C3AED;
+  --tutor-gradient-to: #5B21B6;
+
   --chart-1: #818CF8;
   --chart-2: #34D399;
   --chart-3: #FBBF24;
