@@ -25,6 +25,7 @@ interface VideoData {
   channelName: string;
   thumbnailUrl: string;
   duration: string;
+  embeddable?: boolean;
 }
 
 interface LessonData {
@@ -122,21 +123,44 @@ function MermaidDiagram({ code, large, onRetry }: { code: string; large?: boolea
 
 function VideoSlide({ videos, videoSearchUrl }: { videos: VideoData[]; videoSearchUrl?: string }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [embedError, setEmbedError] = useState(false);
   const active = videos[activeIndex];
+
+  useEffect(() => {
+    setEmbedError(false);
+  }, [activeIndex]);
 
   return (
     <div className="space-y-3 h-full overflow-y-auto">
-      {/* Reproductor embed */}
-      <div className="rounded-2xl overflow-hidden shadow-sm bg-black aspect-video">
-        <iframe
-          src={`https://www.youtube.com/embed/${active.id}?autoplay=0&rel=0`}
-          title={active.title}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="w-full h-full"
-          referrerPolicy="strict-origin-when-cross-origin"
-        />
-      </div>
+      {embedError ? (
+        <div className="rounded-2xl bg-muted border border-border aspect-video flex flex-col items-center justify-center gap-3 p-6">
+          <AlertTriangle className="h-8 w-8 text-amber-500" />
+          <p className="text-sm font-medium text-foreground text-center">
+            Este video no está disponible para reproducción incrustada
+          </p>
+          <a
+            href={`https://www.youtube.com/watch?v=${active.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-red-700 transition-colors"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Ver en YouTube
+          </a>
+        </div>
+      ) : (
+        <div className="rounded-2xl overflow-hidden shadow-sm bg-black aspect-video">
+          <iframe
+            src={`https://www.youtube.com/embed/${active.id}?autoplay=0&rel=0`}
+            title={active.title}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="w-full h-full"
+            referrerPolicy="strict-origin-when-cross-origin"
+            onError={() => setEmbedError(true)}
+          />
+        </div>
+      )}
 
       {/* Info del video activo */}
       <div className="px-1 space-y-1">

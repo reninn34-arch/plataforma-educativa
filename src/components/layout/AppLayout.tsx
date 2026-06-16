@@ -9,7 +9,7 @@ import { apiFetch, clearCache } from "@/lib/fetch-utils";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { AccentColorPicker } from "@/components/theme/AccentColorPicker";
-import { useUserProfile } from "@/lib/contexts";
+import { UserProvider, useUserProfile } from "@/lib/contexts";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -20,6 +20,14 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children, role, links, title, isFullScreen }: AppLayoutProps) {
+  return (
+    <UserProvider>
+      <AppLayoutInner children={children} role={role} links={links} title={title} isFullScreen={isFullScreen} />
+    </UserProvider>
+  );
+}
+
+function AppLayoutInner({ children, role, links, title, isFullScreen }: AppLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const queryClient = useQueryClient();

@@ -3,17 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Palette, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-export const ACCENT_COLORS = {
-  indigo: { light: "#4F46E5", dark: "#818CF8", bg: "bg-indigo-600", border: "border-indigo-600/30", name: "Default" },
-  blue: { light: "#2563EB", dark: "#60A5FA", bg: "bg-blue-600", border: "border-blue-600/30", name: "Azul" },
-  emerald: { light: "#059669", dark: "#34D399", bg: "bg-emerald-600", border: "border-emerald-600/30", name: "Verde" },
-  rose: { light: "#E11D48", dark: "#FB7185", bg: "bg-rose-600", border: "border-rose-600/30", name: "Rosa" },
-  violet: { light: "#7C3AED", dark: "#A78BFA", bg: "bg-violet-600", border: "border-violet-600/30", name: "Violeta" },
-  amber: { light: "#D97706", dark: "#FBBF24", bg: "bg-amber-600", border: "border-amber-600/30", name: "Ámbar" },
-} as const;
-
-export type AccentColorKey = keyof typeof ACCENT_COLORS;
+import { COLOR_PALETTES, type AccentColorKey } from "@/lib/accent-colors";
 
 export function AccentColorPicker({ role = "student", userId }: { role?: string; userId?: number }) {
   const [mounted, setMounted] = useState(false);
@@ -75,7 +65,7 @@ export function AccentColorPicker({ role = "student", userId }: { role?: string;
         <span
           className={cn(
             "absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full border border-background",
-            ACCENT_COLORS[currentColor]?.bg || "bg-indigo-600"
+            COLOR_PALETTES[currentColor]?.bg || "bg-indigo-600"
           )}
         />
       </button>
@@ -86,8 +76,8 @@ export function AccentColorPicker({ role = "student", userId }: { role?: string;
             Color de énfasis
           </p>
           <div className="grid grid-cols-3 gap-2">
-            {(Object.keys(ACCENT_COLORS) as AccentColorKey[]).map((key) => {
-              const colorInfo = ACCENT_COLORS[key];
+            {(Object.keys(COLOR_PALETTES) as AccentColorKey[]).map((key) => {
+              const colorInfo = COLOR_PALETTES[key];
               const isSelected = key === currentColor;
               return (
                 <button

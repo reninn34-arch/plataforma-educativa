@@ -445,7 +445,8 @@ export async function POST(request: NextRequest) {
     const cleanContext = aiPromptContext
       ? aiPromptContext.replace(/^(En este (módulo|tema|nodo|apartado) (aprenderás|veremos|estudiaremos|conocerás|abordaremos) (sobre|acerca de)?\s*)/i, "").slice(0, 100).replace(/\n/g, " ")
       : "";
-    const videoSearchQuery = topic || nodeTitle || cleanContext || ctx.topics[0];
+    const primaryQuery = topic || nodeTitle || cleanContext || ctx.topics[0];
+    const videoSearchQuery = `${primaryQuery} ${subject}`;
 
     const studyMaterial = await getStudyMaterialForStudent(user.id, subject);
     if (studyMaterial) {
@@ -805,7 +806,7 @@ REGLAS:
     }
 
     const [videos] = await Promise.all([
-      searchYouTubeVideos(videoSearchQuery),
+      searchYouTubeVideos(videoSearchQuery, subject),
     ]);
 
     const videoSearchUrl = buildSearchUrl(videoSearchQuery);

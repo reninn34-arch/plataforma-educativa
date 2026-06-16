@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const [dbUser] = await db.select({
+      id: users.id,
       cedula: users.cedula,
       fullName: users.fullName,
       role: users.role,
@@ -58,6 +59,7 @@ export async function GET(request: NextRequest) {
     }).from(users).where(eq(users.id, user.id));
     if (!dbUser) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
     return NextResponse.json({
+      id: dbUser.id,
       cedula: dbUser.cedula,
       fullName: dbUser.fullName,
       role: dbUser.role,
