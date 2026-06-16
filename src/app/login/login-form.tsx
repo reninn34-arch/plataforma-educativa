@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/theme/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import { Loader2, Eye, EyeOff, Shield, ArrowLeft, Sparkles, GraduationCap } from "lucide-react";
 import { apiFetch, clearCache } from "@/lib/fetch-utils";

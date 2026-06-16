@@ -1,9 +1,26 @@
 "use client";
 
-import { useEffect } from "react";
-import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { COLOR_PALETTES, type AccentColorKey } from "@/lib/accent-colors";
+
+type Theme = "light" | "dark";
+
+interface ThemeContextType {
+  theme: Theme;
+  resolvedTheme: Theme;
+  setTheme: (theme: Theme) => void;
+}
+
+const ThemeContext = createContext<ThemeContextType>({
+  theme: "light",
+  resolvedTheme: "light",
+  setTheme: () => {},
+});
+
+export function useTheme() {
+  return useContext(ThemeContext);
+}
 
 function AccentColorInitializer() {
   const pathname = usePathname();
@@ -11,6 +28,8 @@ function AccentColorInitializer() {
 
   useEffect(() => {
     const updateAccent = () => {
+      const isDark = resolvedTheme === "dark";
+
       let accent = "";
       const cookiesList = document.cookie.split(";");
       for (let i = 0; i < cookiesList.length; i++) {
@@ -30,14 +49,12 @@ function AccentColorInitializer() {
 
       const storedColor = accent as AccentColorKey;
       const palette = COLOR_PALETTES[storedColor] || COLOR_PALETTES.indigo;
-      const isDark = resolvedTheme === "dark";
       const values = isDark ? palette.dark : palette.light;
 
       document.documentElement.style.setProperty("--primary", values.primary);
       document.documentElement.style.setProperty("--ring", values.primary);
       document.documentElement.style.setProperty("--sidebar-primary", values.primary);
 
-      // Set all the extra logo/highlight properties
       document.documentElement.style.setProperty("--logo-gradient-from", values.logoFrom);
       document.documentElement.style.setProperty("--logo-gradient-to", values.logoTo);
       document.documentElement.style.setProperty("--logo-text-gradient-from", values.logoTextFrom);
@@ -48,7 +65,6 @@ function AccentColorInitializer() {
       document.documentElement.style.setProperty("--active-link-icon", values.activeIcon);
       document.documentElement.style.setProperty("--active-link-dot", values.activeDot);
 
-      // Card gradient variables
       document.documentElement.style.setProperty("--hero-gradient-from", values.heroFrom);
       document.documentElement.style.setProperty("--hero-gradient-via", values.heroVia);
       document.documentElement.style.setProperty("--hero-gradient-to", values.heroTo);
@@ -73,16 +89,36 @@ function AccentColorInitializer() {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setThemeState] = useState<Theme>("light");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("theme") as Theme | null;
+    if (stored === "dark" || stored === "light") {
+      setThemeState(stored);
+    }
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    localStorage.setItem("theme", theme);
+    document.cookie = `theme=${theme}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [theme, mounted]);
+
+  const setTheme = useCallback((newTheme: Theme) => {
+    setThemeState(newTheme);
+  }, []);
+
   return (
-    <NextThemesProvider
-      attribute="class"
-      defaultTheme="light"
-      storageKey="theme"
-      enableSystem={false}
-      disableTransitionOnChange
-    >
-      <AccentColorInitializer />
+    <ThemeContext.Provider value={{ theme, resolvedTheme: theme, setTheme }}>
+      {mounted && <AccentColorInitializer />}
       {children}
-    </NextThemesProvider>
+    </ThemeContext.Provider>
   );
 }

@@ -68,6 +68,7 @@ export const modules = pgTable("modules", {
   requiredPoints: integer("required_points").notNull().default(0),
   topic: varchar("topic", { length: 200 }),
   generated: boolean("generated").notNull().default(false),
+  topicEmbedding: jsonb("topic_embedding"),
 }, (table) => ({
   subjectIdIdx: index("idx_modules_subject_id").on(table.subjectId),
 }));
@@ -133,6 +134,23 @@ export const userProgress = pgTable("user_progress", {
 }, (table) => ({
   userIdIdx: index("idx_user_progress_user_id").on(table.userId),
   userNodeStatusIdx: index("idx_user_progress_user_node_status").on(table.userId, table.nodeId, table.status),
+}));
+
+export const nodeVideos = pgTable("node_videos", {
+  id: serial("id").primaryKey(),
+  nodeId: integer("node_id")
+    .notNull()
+    .references(() => nodes.id),
+  videoId: varchar("video_id", { length: 50 }).notNull(),
+  title: varchar("title", { length: 300 }).notNull(),
+  channelName: varchar("channel_name", { length: 200 }).notNull(),
+  thumbnailUrl: varchar("thumbnail_url", { length: 500 }),
+  duration: varchar("duration", { length: 20 }),
+  embeddable: boolean("embeddable").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueNodeVideo: unique("node_videos_node_video_unique").on(table.nodeId, table.videoId),
+  nodeIdIdx: index("idx_node_videos_node_id").on(table.nodeId),
 }));
 
 export const chatSessions = pgTable("chat_sessions", {

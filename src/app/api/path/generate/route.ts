@@ -3,7 +3,7 @@ import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { subjects, modules, nodes, studentModules } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, tryParseJson } from "@/lib/ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, tryParseJson, generateEmbedding, cosineSimilarity } from "@/lib/ai";
 import { generateObject, generateText } from "ai";
 import { z } from "zod/v4";
 import { rateLimit } from "@/lib/rate-limit";
@@ -103,10 +103,13 @@ REGLAS:
 - Genera entre 6 y 8 nodos de aprendizaje en total.
 - Los primeros 3-4 nodos tipo "concept" (ensenanza teorica).
 - Los ultimos 3-4 nodos tipo "quiz" o "challenge" (practica y evaluacion).
-- Cada nodo: "title" corto (max 6 palabras), "type" segun corresponda, "aiPromptContext" detallado (2-3 oraciones).
+- CADA NODO debe cubrir un SUBTEMA DIFERENTE y NO SOLAPADO del tema principal. NO repitas titulos ni contenidos entre nodos. Si dos subtemas se parecen, COMBINALOS en uno solo.
+- Ejemplo para "Movimiento Rectilineo": N1: "MRU vs MRUA", N2: "Graficas velocidad-tiempo", N3: "Caida libre como MRUA", N4: "Ejercicios MRU", N5: "Ejercicios MRUA", N6: "Desafio problemas combinados", N7: "Evaluacion MRU/MRUA".
+- Cada nodo: "title" corto (max 6 palabras) y DISTINTO a los demas, "type" segun corresponda, "aiPromptContext" detallado (2-3 oraciones) enfocado en su subtema especifico y UNICO.
 - Contenido apropiado para adultos que retoman sus estudios, con ejemplos practicos de la vida real.
 - Progresion de dificultad: de lo mas basico a lo mas avanzado.
-- "moduleTitle": titulo descriptivo del camino completo.`;
+- "moduleTitle": titulo descriptivo del camino completo.
+- IMPORTANTE: Asegurate de que cada nodo tenga un enfoque UNICO. Si el mismo subtema aparece en dos nodos diferentes, es un error. Cada nodo debe ser claramente distinguible de los demas.`;
 
     const startTime = performance.now();
     let outputParsed: z.infer<typeof pathSchema> | null = null;
@@ -237,32 +240,57 @@ Responde SOLO con un JSON valido con la siguiente estructura:
       .from(modules)
       .where(eq(modules.subjectId, subject.id));
 
-    const existingModule = subjectModules.find(
+    let matchedModule = subjectModules.find(
       (m) => m.topic && normalizeTopic(m.topic) === normalizedTopic
     );
 
-    if (existingModule) {
+    // If no exact match, try semantic similarity with embeddings
+    if (!matchedModule && subjectModules.some((m) => m.topic && m.topicEmbedding)) {
+      try {
+        const newEmbedding = await generateEmbedding(topic);
+        const SEMANTIC_THRESHOLD = 0.85;
+        let bestScore = 0;
+        for (const m of subjectModules) {
+          if (m.topic && m.topicEmbedding) {
+            const score = cosineSimilarity(newEmbedding.embedding, m.topicEmbedding as number[]);
+            if (score > bestScore) {
+              bestScore = score;
+              if (score >= SEMANTIC_THRESHOLD) {
+                matchedModule = m;
+              }
+            }
+          }
+        }
+        if (matchedModule) {
+          console.log(`[path] semantic duplicate found: topic="${topic}" matches module #${matchedModule.id} topic="${matchedModule.topic}" (score=${bestScore.toFixed(3)})`);
+        }
+      } catch (err) {
+        console.warn("[path] embedding similarity check failed, falling back to exact match only:", err);
+      }
+    }
+
+    if (matchedModule) {
       // Link current student to this module if not already linked
       const existingLink = await db
         .select({ id: studentModules.id })
         .from(studentModules)
-        .where(and(eq(studentModules.studentId, user.id), eq(studentModules.moduleId, existingModule.id)))
+        .where(and(eq(studentModules.studentId, user.id), eq(studentModules.moduleId, matchedModule.id)))
         .limit(1);
 
       if (existingLink.length === 0) {
         await db.update(studentModules)
           .set({ order: sql`${studentModules.order} + 1` })
           .where(eq(studentModules.studentId, user.id));
-        await db.insert(studentModules).values({ studentId: user.id, moduleId: existingModule.id, order: 1 });
+        await db.insert(studentModules).values({ studentId: user.id, moduleId: matchedModule.id, order: 1 });
       }
 
       const existingNodes = await db
         .select()
         .from(nodes)
-        .where(eq(nodes.moduleId, existingModule.id))
+        .where(eq(nodes.moduleId, matchedModule.id))
         .orderBy(nodes.order);
       return Response.json({
-        module: existingModule,
+        module: matchedModule,
         nodes: existingNodes,
         cached: true,
       });
@@ -273,6 +301,15 @@ Responde SOLO con un JSON valido con la siguiente estructura:
       .set({ order: sql`${studentModules.order} + 1` })
       .where(eq(studentModules.studentId, user.id));
 
+    // Generate and save embedding for the new topic
+    let topicEmbedding: number[] | null = null;
+    try {
+      const embeddingResult = await generateEmbedding(topic);
+      topicEmbedding = embeddingResult.embedding;
+    } catch (err) {
+      console.warn("[path] could not generate embedding for new topic:", err);
+    }
+
     const [newModule] = await db
       .insert(modules)
       .values({
@@ -282,6 +319,7 @@ Responde SOLO con un JSON valido con la siguiente estructura:
         requiredPoints: 0,
         topic: topic,
         generated: true,
+        topicEmbedding: topicEmbedding ? JSON.stringify(topicEmbedding) : null,
       })
       .returning();
 

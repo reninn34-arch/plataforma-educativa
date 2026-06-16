@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, tryParseJson } from "@/lib/ai";
 import { isValidMermaid, sanitizeMermaid } from "@/lib/mermaid-validate";
 import { db } from "@/lib/db";
-import { studentExercises } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { studentExercises, nodeVideos, modules, nodes } from "@/lib/db/schema";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { generateObject, generateText } from "ai";
 import { z } from "zod/v4";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
@@ -148,6 +148,14 @@ const baseLessonSchema = z.object({
       if (val.opciones && !val.options) val.options = val.opciones;
       if ((val.respuestacorrecta || val.indicecorrecto || val.correctindex) && val.correctIndex === undefined) {
         val.correctIndex = val.respuestacorrecta ?? val.indicecorrecto ?? val.correctindex;
+      }
+      if (Array.isArray(val.options)) {
+        if (val.options.length > 4) {
+          val.options = val.options.slice(0, 4);
+        }
+        while (val.options.length < 4) {
+          val.options.push(`Opción ${String.fromCharCode(65 + val.options.length)}`);
+        }
       }
     }
     return val;
@@ -308,6 +316,7 @@ const practiceResponseSchema = z.preprocess((val: any) => {
 
     // Defensively ensure each exercise has a difficulty and MCQ options are array
     if (Array.isArray(normalized.exercises)) {
+      normalized.exercises = normalized.exercises.slice(0, 8);
       const defaultDiffs = ["easy", "medium", "hard", "medium"];
       normalized.exercises = normalized.exercises.map((ex: any, idx: number) => {
         if (ex && typeof ex === "object") {
@@ -452,8 +461,27 @@ export async function POST(request: NextRequest) {
       ingles: "inglés",
     };
     const subjectName = subjectDisplayName[subject] || subject;
-    const primaryQuery = topic || nodeTitle || cleanContext || ctx.topics[0];
-    const videoSearchQuery = `${primaryQuery} ${subjectName}`;
+
+    let moduleTopic: string | undefined;
+    if (nodeId) {
+      try {
+        const nodeWithModule = await db
+          .select({ topic: modules.topic })
+          .from(nodes)
+          .innerJoin(modules, eq(nodes.moduleId, modules.id))
+          .where(eq(nodes.id, nodeId))
+          .limit(1);
+        if (nodeWithModule.length > 0 && nodeWithModule[0].topic) {
+          moduleTopic = nodeWithModule[0].topic;
+        }
+      } catch (err) {
+        console.warn("[practice] error fetching module topic:", err);
+      }
+    }
+
+    console.log(`[practice] moduleTopic="${moduleTopic}" nodeTitle="${nodeTitle}"`);
+
+    const videoSearchQuery = nodeTitle || cleanContext || topic || moduleTopic || ctx.topics[0];
 
     const studyMaterial = await getStudyMaterialForStudent(user.id, subject);
     if (studyMaterial) {
@@ -529,7 +557,8 @@ EXERCISE RULES:
 - MCQ: "options" with 4 strings, "correctIndex" (0-3). DO NOT use "correctAnswer".
 - FILL_BLANK: "acceptedAnswers" REQUIRED (array of strings).
 - TRUE_FALSE: "correctAnswer" REQUIRED (true or false).
-- Hard: "timeLimit": null. Easy/Medium: "timeLimit" between 20 and 40.`
+- Hard: "timeLimit": null. Easy/Medium: "timeLimit" between 20 and 40.
+- VARY THE FOCUS: even if the topic is broad, focus on a SPECIFIC subtopic or aspect each time. Do not repeat the same general approach.`
       : `Eres un tutor cercano, paciente y entusiasta. Ensenas a adultos en bachillerato acelerado (PCEI). Tu mision es explicar un tema de forma clara, visual y amigable.
 
 ESTRUCTURA JSON REQUERIDA (DEBES seguir exactamente este formato):
@@ -586,7 +615,8 @@ REGLAS EJERCICIOS:
 - MCQ: "options" con 4 strings, "correctIndex" (0-3). NO usar "correctAnswer".
 - FILL_BLANK: "acceptedAnswers" OBLIGATORIO (array de strings).
 - TRUE_FALSE: "correctAnswer" OBLIGATORIO (true o false).
-- Hard: "timeLimit": null. Easy/Medium: "timeLimit" entre 20 y 40.`;
+- Hard: "timeLimit": null. Easy/Medium: "timeLimit" entre 20 y 40.
+- VARIA EL ENFOQUE: aunque el tema sea general, enfocate en un ASPECTO o SUBTEMA especifico diferente cada vez. No repitas el mismo enfoque general.`;
 
     const diagramPrompt = ctx.canHaveDiagram
       ? `Genera un diagrama educativo visual en sintaxis Mermaid.js sobre el tema.
@@ -812,9 +842,52 @@ REGLAS:
       (lessonResult.lesson as any).diagram = diagram;
     }
 
-    const [videos] = await Promise.all([
-      searchYouTubeVideos(videoSearchQuery, 3, primaryQuery),
-    ]);
+    // Try to get cached videos for this node (stale after 24h)
+    let videos: Awaited<ReturnType<typeof searchYouTubeVideos>> = [];
+    const CACHE_VIDEO_HOURS = 24;
+    if (nodeId) {
+      const cachedVideos = await db
+        .select()
+        .from(nodeVideos)
+        .where(and(
+          eq(nodeVideos.nodeId, nodeId),
+          sql`${nodeVideos.createdAt} > NOW() - INTERVAL '${sql.raw(String(CACHE_VIDEO_HOURS))} hours'`
+        ))
+        .orderBy(desc(nodeVideos.createdAt));
+
+      if (cachedVideos.length > 0) {
+        videos = cachedVideos.map((v) => ({
+          id: v.videoId,
+          title: v.title,
+          channelName: v.channelName,
+          thumbnailUrl: v.thumbnailUrl || "",
+          duration: v.duration || "",
+          embeddable: v.embeddable,
+        }));
+        console.log(`[practice] using ${videos.length} cached videos for node ${nodeId}`);
+      }
+    }
+
+    if (videos.length === 0) {
+      [videos] = await Promise.all([
+        searchYouTubeVideos(videoSearchQuery, 3, videoSearchQuery),
+      ]);
+
+      // Persist videos to nodeVideos cache if we have a nodeId
+      if (nodeId && videos.length > 0) {
+        await db.insert(nodeVideos).values(
+          videos.map((v) => ({
+            nodeId,
+            videoId: v.id,
+            title: v.title,
+            channelName: v.channelName,
+            thumbnailUrl: v.thumbnailUrl,
+            duration: v.duration,
+            embeddable: v.embeddable,
+          }))
+        ).onConflictDoNothing({ target: [nodeVideos.nodeId, nodeVideos.videoId] });
+      }
+    }
 
     const videoSearchUrl = buildSearchUrl(videoSearchQuery);
 

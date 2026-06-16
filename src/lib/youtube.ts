@@ -12,6 +12,21 @@ export function buildSearchUrl(query: string): string {
   return `https://www.youtube.com/results?search_query=${q}`;
 }
 
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  let prev = Array.from({ length: n + 1 }, (_, i) => i);
+  let curr = new Array(n + 1);
+  for (let i = 1; i <= m; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+    }
+    [prev, curr] = [curr, prev];
+  }
+  return prev[n];
+}
+
 function normalize(str: string) {
   return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
@@ -32,12 +47,29 @@ function expandKeywords(keywords: string[]): string[] {
   return [...expanded];
 }
 
+function wordMatch(word: string, keyword: string): boolean {
+  return word.includes(keyword) || levenshtein(word, keyword) <= 1;
+}
+
 function isRelevant(title: string, keywords: string[]): boolean {
   if (keywords.length === 0) return true;
   const normalized = normalize(title);
   const expanded = expandKeywords(keywords);
-  const matches = expanded.filter((k) => normalized.includes(k)).length;
-  return matches >= Math.min(expanded.length, 2);
+  const words = normalized.split(/\s+/);
+  const matches = expanded.filter((k) => words.some((w) => wordMatch(w, k))).length;
+  return matches >= 1;
+}
+
+function extractVideoId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+    /^([a-zA-Z0-9_-]{11})$/,
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
 }
 
 async function checkEmbeddable(id: string): Promise<boolean> {
@@ -74,6 +106,9 @@ export async function searchYouTubeVideos(
       `${query} ejercicios`,
       `${query} ejercicios resueltos`,
       `${query} tutorial`,
+      `${query} explicacion`,
+      `${query} clase`,
+      `${query} ejemplos`,
     ];
 
     let youtubeApi: { GetListByKeyword: (q: string, b: boolean, n: number) => Promise<{ items: unknown[] }> };
@@ -136,6 +171,21 @@ export async function searchYouTubeVideos(
       });
 
       if (validated.length >= maxResults) break;
+    }
+
+    if (validated.length === 0 && candidates.length > 0) {
+      console.warn("[youtube] no relevant matches, falling back to raw candidates");
+      for (const item of candidates.slice(0, maxResults)) {
+        const embeddable = await checkEmbeddable(item.id);
+        validated.push({
+          id: item.id,
+          title: item.title || "Sin título",
+          channelName: item.channelTitle || item.shortBylineText?.runs?.[0]?.text || "Desconocido",
+          thumbnailUrl: item.thumbnail?.thumbnails?.at(-1)?.url || "",
+          duration: item.length?.simpleText || "",
+          embeddable,
+        });
+      }
     }
 
     console.log(`[youtube] final validated videos: ${validated.length}`);
