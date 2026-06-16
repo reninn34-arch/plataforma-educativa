@@ -813,7 +813,7 @@ REGLAS:
     }
 
     const [videos] = await Promise.all([
-      searchYouTubeVideos(videoSearchQuery),
+      searchYouTubeVideos(videoSearchQuery, 3, primaryQuery),
     ]);
 
     const videoSearchUrl = buildSearchUrl(videoSearchQuery);

@@ -36,7 +36,8 @@ function isRelevant(title: string, keywords: string[]): boolean {
   if (keywords.length === 0) return true;
   const normalized = normalize(title);
   const expanded = expandKeywords(keywords);
-  return expanded.some((k) => normalized.includes(k));
+  const matches = expanded.filter((k) => normalized.includes(k)).length;
+  return matches >= Math.min(expanded.length, 2);
 }
 
 async function checkEmbeddable(id: string): Promise<boolean> {
@@ -65,7 +66,8 @@ interface YouTubeSearchItem {
 
 export async function searchYouTubeVideos(
   query: string,
-  maxResults = 3
+  maxResults = 3,
+  keywordQuery?: string
 ): Promise<YouTubeVideo[]> {
   try {
     const searchTerms = [
@@ -106,7 +108,7 @@ export async function searchYouTubeVideos(
     }
 
     const seen = new Set<string>();
-    const keywords = extractKeywords(query);
+    const keywords = extractKeywords(keywordQuery ?? query);
 
     const candidates = allItems
       .filter((item) => item.type === "video" && !seen.has(item.id) && seen.add(item.id))
