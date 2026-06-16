@@ -4,6 +4,7 @@
  * 2. Agregar las variables CSS en :root y .dark en globals.css
  */
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryProvider } from "@/lib/query-provider";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
@@ -40,8 +41,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
       <body className="min-h-screen bg-background text-foreground antialiased" suppressHydrationWarning>
-        <script
+        <Script
           id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `(function() {
               const isDark = localStorage.getItem("theme") === "dark";
