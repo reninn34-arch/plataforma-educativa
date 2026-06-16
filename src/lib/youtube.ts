@@ -12,9 +12,12 @@ export function buildSearchUrl(query: string): string {
   return `https://www.youtube.com/results?search_query=${q}`;
 }
 
+function normalize(str: string) {
+  return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 function extractKeywords(query: string): string[] {
-  return query
-    .toLowerCase()
+  return normalize(query)
     .split(/\s+/)
     .filter((w) => w.length > 3)
     .slice(0, 5);
@@ -22,8 +25,9 @@ function extractKeywords(query: string): string[] {
 
 function isRelevant(title: string, keywords: string[]): boolean {
   if (keywords.length === 0) return true;
-  const lower = title.toLowerCase();
-  return keywords.some((k) => lower.includes(k));
+  const normalized = normalize(title);
+  const matches = keywords.filter((k) => normalized.includes(k)).length;
+  return matches >= Math.min(keywords.length, 2);
 }
 
 async function checkEmbeddable(id: string): Promise<boolean> {
@@ -50,12 +54,11 @@ interface YouTubeSearchItem {
 
 export async function searchYouTubeVideos(
   query: string,
-  subject: string,
   maxResults = 3
 ): Promise<YouTubeVideo[]> {
   try {
     const searchTerms = [
-      `${query} ${subject} ejercicios`,
+      `${query} ejercicios`,
       `${query} ejercicios resueltos`,
       `${query} tutorial`,
     ];
