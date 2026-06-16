@@ -171,12 +171,22 @@ FORMATO:
           durationMs: Date.now() - start,
         });
 
-        let data = tryParseJson(text || "");
-        data = normalizeKeys(data);
-
-        if (!data || typeof data !== "object" || !data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
-          lastError = new Error("No se pudieron extraer preguntas del JSON generado");
-          continue;
+        let data;
+        try {
+          data = tryParseJson(text || "");
+          data = normalizeKeys(data);
+          if (!data || typeof data !== "object" || !data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
+            throw new Error("No se pudieron extraer preguntas del JSON generado");
+          }
+        } catch (parseErr) {
+          console.warn("[generate-cuestionario] JSON parse or validation failed, trying markdown parser...", parseErr);
+          const markdownParsed = parseMarkdownToCuestionario(text || "", topic);
+          if (markdownParsed && markdownParsed.questions && markdownParsed.questions.length > 0) {
+            data = markdownParsed;
+          } else {
+            lastError = parseErr;
+            continue;
+          }
         }
 
         const questions = data.questions.slice(0, 30).map((q: any, i: number) => ({
@@ -237,5 +247,142 @@ FORMATO:
   } catch (error) {
     console.error("[generate-cuestionario] error:", error);
     return NextResponse.json({ error: "Error al generar cuestionario" }, { status: 500 });
+  }
+}
+
+function parseMarkdownToCuestionario(text: string, defaultTopic: string): any {
+  try {
+    const lines = text.split("\n");
+    let title = "";
+    let descriptionLines: string[] = [];
+    const questions: any[] = [];
+
+    let currentSection: "description" | "questions" | "none" = "none";
+    let currentQuestion: any = null;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      const lowerLine = line.toLowerCase();
+
+      // Detect title
+      if (!title) {
+        const titleMatch = line.match(/^(?:#+\s*|title\s*:\s*|titulo\s*:\s*)(.+)/i);
+        if (titleMatch) {
+          title = titleMatch[1].replace(/[\*\`\_]/g, "").trim();
+          continue;
+        }
+      }
+
+      // Section switches
+      if (lowerLine.startsWith("descripcion:") || lowerLine.startsWith("description:") || lowerLine.includes("descripci") || lowerLine.includes("description")) {
+        currentSection = "description";
+        continue;
+      }
+      if (lowerLine.startsWith("preguntas:") || lowerLine.startsWith("questions:") || lowerLine.includes("pregunta") || lowerLine.includes("question")) {
+        currentSection = "questions";
+        continue;
+      }
+
+      if (currentSection === "description") {
+        if (line && !line.startsWith("#")) {
+          descriptionLines.push(line);
+        }
+      } else if (currentSection === "questions") {
+        const qMatch = line.match(/^(?:\d+[\.\)]\s*|Pregunta\s+\d+[:\s]*|Question\s+\d+[:\s]*)(.+)/i);
+        if (qMatch) {
+          if (currentQuestion) {
+            questions.push(currentQuestion);
+          }
+          currentQuestion = {
+            type: "mcq",
+            question: qMatch[1].trim(),
+            options: [],
+            correctIndex: 0,
+            explanation: "",
+            points: 1,
+          };
+          continue;
+        }
+
+        if (currentQuestion) {
+          // Detect options
+          const optMatch = line.match(/^(?:-\s*|[a-d]\)\s*|[1-4]\.\s*)(.+)/i);
+          if (optMatch) {
+            currentQuestion.options.push(optMatch[1].trim());
+            continue;
+          }
+
+          // Detect correctIndex
+          if (lowerLine.includes("correct") || lowerLine.includes("respuesta") || lowerLine.includes("indice")) {
+            const idxMatch = line.match(/\d+/);
+            if (idxMatch) {
+              currentQuestion.correctIndex = parseInt(idxMatch[0], 10);
+            } else {
+              const letterMatch = lowerLine.match(/\b([a-d])\b/);
+              if (letterMatch) {
+                currentQuestion.correctIndex = letterMatch[1].charCodeAt(0) - 97;
+              }
+            }
+            continue;
+          }
+
+          // Detect explanation
+          if (lowerLine.startsWith("explanation:") || lowerLine.startsWith("explicacion:") || lowerLine.startsWith("explicación:") || lowerLine.includes("explanation") || lowerLine.includes("explicaci")) {
+            const expMatch = line.match(/(?:explanation|explicacion|explicación)[:\s]+(.*)/i);
+            if (expMatch) {
+              currentQuestion.explanation = expMatch[1].trim();
+            }
+            continue;
+          }
+
+          // Detect type
+          if (lowerLine.includes("completar") || lowerLine.includes("blank") || lowerLine.includes("fill")) {
+            currentQuestion.type = "completar";
+          }
+        }
+      }
+    }
+
+    if (currentQuestion) {
+      questions.push(currentQuestion);
+    }
+
+    // Default fallbacks
+    if (!title) title = "Cuestionario de: " + defaultTopic;
+    const description = descriptionLines.join("\n").trim() || "Cuestionario de estudio sobre " + defaultTopic;
+
+    const finalQuestions = questions.map((q, idx) => {
+      if (!q.options || q.options.length < 2) {
+        q.options = ["Opción A", "Opción B", "Opción C", "Opción D"];
+      }
+      if (q.correctIndex === undefined || q.correctIndex < 0 || q.correctIndex >= q.options.length) {
+        q.correctIndex = 0;
+      }
+      if (q.question.includes("___")) {
+        q.type = "completar";
+      }
+      q.explanation = q.explanation || "Resolución paso a paso según el tema de estudio.";
+      return q;
+    });
+
+    if (finalQuestions.length === 0) {
+      finalQuestions.push({
+        type: "mcq",
+        question: "¿Qué es " + defaultTopic + "?",
+        options: ["Concepto principal A", "Concepto secundario B", "Alternativa C", "Ninguna de las anteriores"],
+        correctIndex: 0,
+        explanation: "La alternativa A es la correcta por definición.",
+        points: 1,
+      });
+    }
+
+    return {
+      title,
+      description,
+      questions: finalQuestions,
+    };
+  } catch (e) {
+    console.error("[parseMarkdownToCuestionario] Error parsing markdown fallback:", e);
+    return null;
   }
 }

@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       try {
         const aiModel = getChatModel(candidate);
         const diagramStart = performance.now();
-        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek";
+        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek" || candidate.provider === "opencode";
 
         if (isTextOnlyProvider) {
           const r = await generateText({
@@ -100,13 +100,11 @@ export async function POST(request: NextRequest) {
               totalTokens: (r.usage.inputTokens ?? 0) + (r.usage.outputTokens ?? 0),
             } : undefined,
           });
-          try {
-            const parsed = tryParseJson(r.text);
-            let mermaidStr = parsed.mermaid || "";
-            mermaidStr = mermaidStr.replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
-            diagram = { mermaid: sanitizeMermaid(mermaidStr), caption: parsed.caption || "" };
-          } catch {
-            console.error("[diagram-regen] failed to parse JSON from generateText");
+          const parsed = extractDiagramFromText(r.text);
+          if (parsed) {
+            diagram = { mermaid: sanitizeMermaid(parsed.mermaid), caption: parsed.caption };
+          } else {
+            console.error("[diagram-regen] failed to extract diagram from generateText");
             diagram = null;
           }
         } else {
@@ -133,36 +131,29 @@ export async function POST(request: NextRequest) {
               caption: r.object.caption,
             };
           } catch (err) {
-            const msg = String((err as any)?.message ?? err ?? "");
-            if (msg.includes("response_format") || msg.includes("unavailable")) {
-              console.log("[diagram-regen] response_format not supported, falling back to generateText");
-              const r = await generateText({
-                model: aiModel,
-                prompt: jsonResponsePrompt,
-                temperature: 0.3,
-                maxOutputTokens: 1500,
-              });
-              logAiCall({
-                route: "practice-diagram-regen-text",
-                model: candidate.modelId,
-                durationMs: Math.round(performance.now() - diagramStart),
-                usage: r.usage ? {
-                  inputTokens: r.usage.inputTokens,
-                  outputTokens: r.usage.outputTokens,
-                  totalTokens: (r.usage.inputTokens ?? 0) + (r.usage.outputTokens ?? 0),
-                } : undefined,
-              });
-              try {
-                const parsed = tryParseJson(r.text);
-                let mermaidStr = parsed.mermaid || "";
-                mermaidStr = mermaidStr.replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
-                diagram = { mermaid: sanitizeMermaid(mermaidStr), caption: parsed.caption || "" };
-              } catch {
-                console.error("[diagram-regen] failed to parse JSON from generateText");
-                diagram = null;
-              }
+            console.log("[diagram-regen] generateObject failed, falling back to generateText...", err);
+            const r = await generateText({
+              model: aiModel,
+              prompt: jsonResponsePrompt,
+              temperature: 0.3,
+              maxOutputTokens: 1500,
+            });
+            logAiCall({
+              route: "practice-diagram-regen-text",
+              model: candidate.modelId,
+              durationMs: Math.round(performance.now() - diagramStart),
+              usage: r.usage ? {
+                inputTokens: r.usage.inputTokens,
+                outputTokens: r.usage.outputTokens,
+                totalTokens: (r.usage.inputTokens ?? 0) + (r.usage.outputTokens ?? 0),
+              } : undefined,
+            });
+            const parsed = extractDiagramFromText(r.text);
+            if (parsed) {
+              diagram = { mermaid: sanitizeMermaid(parsed.mermaid), caption: parsed.caption };
             } else {
-              throw err;
+              console.error("[diagram-regen] failed to extract diagram from generateText fallback");
+              diagram = null;
             }
           }
         }
@@ -213,4 +204,29 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function extractDiagramFromText(raw: string): { mermaid: string; caption: string } | null {
+  try {
+    const parsed = tryParseJson(raw);
+    let mermaidStr = (parsed.mermaid || "").replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
+    return { mermaid: mermaidStr, caption: parsed.caption || "" };
+  } catch { /* fallback to raw extraction */ }
+
+  const blockMatch = raw.match(/```(?:mermaid)?\s*\n?([\s\S]*?)```/i);
+  if (blockMatch) {
+    return { mermaid: blockMatch[1].trim(), caption: extractCaptionFromText(raw) };
+  }
+
+  const graphMatch = raw.match(/(graph\s+(?:TD|LR|TB|RL)[\s\S]*?)(?:\n{2,}|$)/i);
+  if (graphMatch) {
+    return { mermaid: graphMatch[1].trim(), caption: extractCaptionFromText(raw) };
+  }
+
+  return null;
+}
+
+function extractCaptionFromText(text: string): string {
+  const m = text.match(/caption[:\s]+(.+)/i);
+  return m ? m[1].trim() : "";
 }

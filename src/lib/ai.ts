@@ -1,14 +1,13 @@
 import { createOpenAI } from "@ai-sdk/openai";
-import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { embed, embedMany } from "ai";
 import { getEnv } from "@/lib/env";
 
 const env = getEnv();
 
-export type AiProvider = "opencode" | "openai" | "anthropic" | "google" | "deepseek" | "groq";
+export type AiProvider = "opencode" | "openai" | "google" | "deepseek" | "groq" | "openrouter";
 
-const SUPPORTED_PROVIDERS: AiProvider[] = ["opencode", "openai", "anthropic", "google", "deepseek", "groq"];
+const SUPPORTED_PROVIDERS: AiProvider[] = ["opencode", "openai", "google", "deepseek", "groq", "openrouter"];
 
 export const DEFAULT_PROVIDER = env.AI_DEFAULT_PROVIDER;
 export const DEFAULT_MODEL = env.AI_DEFAULT_MODEL;
@@ -113,11 +112,6 @@ export const openai = env.OPENAI_API_KEY
     })
   : null;
 
-export const anthropic = env.ANTHROPIC_API_KEY
-  ? createAnthropic({
-      apiKey: env.ANTHROPIC_API_KEY,
-    })
-  : null;
 
 export const google = env.GOOGLE_GENERATIVE_AI_API_KEY
   ? createGoogleGenerativeAI({
@@ -139,6 +133,17 @@ export const groq = (env.GROQ_API_KEY || env.AI_API_KEY)
     })
   : null;
 
+export const openrouter = (env.OPENROUTER_API_KEY || env.AI_API_KEY)
+  ? createOpenAI({
+      baseURL: env.OPENROUTER_BASE_URL || env.AI_BASE_URL || "https://openrouter.ai/api/v1",
+      apiKey: env.OPENROUTER_API_KEY || env.AI_API_KEY,
+      headers: {
+        "HTTP-Referer": "https://github.com/reninn34-arch/plataforma-educativa",
+        "X-Title": "Atlas Edu",
+      }
+    })
+  : null;
+
 function getProviderClient(provider: AiProvider) {
   switch (provider) {
     case "opencode":
@@ -151,11 +156,6 @@ function getProviderClient(provider: AiProvider) {
         throw new Error("Proveedor openai no configurado. Falta OPENAI_API_KEY");
       }
       return openai;
-    case "anthropic":
-      if (!anthropic) {
-        throw new Error("Proveedor anthropic no configurado. Falta ANTHROPIC_API_KEY");
-      }
-      return anthropic;
     case "google":
       if (!google) {
         throw new Error("Proveedor google no configurado. Falta GOOGLE_GENERATIVE_AI_API_KEY");
@@ -171,6 +171,11 @@ function getProviderClient(provider: AiProvider) {
         throw new Error("Proveedor groq no configurado. Falta GROQ_API_KEY o AI_API_KEY");
       }
       return groq;
+    case "openrouter":
+      if (!openrouter) {
+        throw new Error("Proveedor openrouter no configurado. Falta OPENROUTER_API_KEY");
+      }
+      return openrouter;
     default:
       throw new Error(`Proveedor no soportado: ${provider as string}`);
   }
@@ -185,11 +190,11 @@ export function getChatModel(target: ResolvedModel | string) {
   // "responses" model (hits /responses) which OpenCode and most gateways
   // don't support.  .chat() hits /chat/completions which is the standard.
   if (typeof client.chat === "function") {
-    return client.chat(model);
+    return client.chat(model, { maxRetries: 1 });
   }
 
   if (typeof client === "function") {
-    return client(model);
+    return client(model, { maxRetries: 1 });
   }
 
   throw new Error(`Proveedor ${provider} no expone un modelo de chat compatible`);
@@ -312,9 +317,17 @@ export function getEmbeddingModelCandidates(requestedModel: unknown): ResolvedMo
 }
 
 export function isRetryableModelError(error: unknown): boolean {
+  const statusCode = (error as any)?.statusCode;
+  if (statusCode === 429 || statusCode === 408 || statusCode >= 500) {
+    return true;
+  }
   const message = String((error as any)?.message ?? error ?? "").toLowerCase();
+  const isZodError = error instanceof Error && (error.name === "ZodError" || error.stack?.includes("ZodError"));
+  const isValidationError = message.includes("invalid input") || message.includes("invalid_type") || message.includes("expected");
   return (
-    message.includes("not found")
+    isZodError
+    || isValidationError
+    || message.includes("not found")
     || message.includes("404")
     || message.includes("model")
     || message.includes("unsupported")
@@ -322,6 +335,11 @@ export function isRetryableModelError(error: unknown): boolean {
     || message.includes("response_format")
     || message.includes("unavailable")
     || message.includes("failed to validate")
+    || message.includes("429")
+    || message.includes("rate limit")
+    || message.includes("too many requests")
+    || message.includes("limit exceeded")
+    || message.includes("quota")
     || (message.includes("json") && !message.includes("success"))
   );
 }
@@ -463,7 +481,11 @@ export function getDefaultChatModel() {
   });
 }
 
-export const opencodeGoModel = getDefaultChatModel();
+export const opencodeGoModel = new Proxy({} as any, {
+  get(target, prop, receiver) {
+    return Reflect.get(getDefaultChatModel(), prop, receiver);
+  }
+});
 
 interface AiCallLog {
   route: string;

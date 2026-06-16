@@ -52,6 +52,9 @@ export async function POST(request: NextRequest) {
 
     for (const candidate of candidates) {
       const abortController = new AbortController();
+      // Free OpenRouter models are slow — give them more time for coach hints
+      const isSlowFreeModel = candidate.provider === "openrouter" && candidate.model.endsWith(":free");
+      const COACH_TIMEOUT_MS = isSlowFreeModel ? 30_000 : 8_000;
       try {
         const attempt = await Promise.race([
           generateText({
@@ -69,7 +72,7 @@ Genera una mini-ayuda motivadora para el estudiante:`,
           new Promise<null>((resolve) => setTimeout(() => {
             abortController.abort();
             resolve(null);
-          }, 5000)),
+          }, COACH_TIMEOUT_MS)),
         ]);
 
         if (!attempt) {

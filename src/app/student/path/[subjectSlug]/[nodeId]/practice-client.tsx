@@ -407,10 +407,14 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
           nodeId,
         }),
       });
-      if (!res.ok) return null;
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error al generar el diagrama (${res.status})`);
+      }
       return await res.json();
-    } catch {
-      return null;
+    } catch (err: any) {
+      console.error("Error regenerating diagram:", err);
+      throw err;
     }
   }, [subjectSlug, aiPromptContext, nodeTitle, nodeId]);
 

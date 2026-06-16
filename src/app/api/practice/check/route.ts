@@ -40,7 +40,10 @@ Respuestas aceptadas: ${JSON.stringify(acceptedAnswers)}
 
 Evalua si la respuesta del estudiante es semanticamente equivalente a alguna de las aceptadas.`;
 
-      const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek";
+      const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek" || candidate.provider === "opencode";
+      // Free OpenRouter models are slow — give them more time even for tiny responses
+      const isSlowFreeModel = candidate.provider === "openrouter" && candidate.model.endsWith(":free");
+      const CHECK_TIMEOUT_MS = isSlowFreeModel ? 20_000 : 4_000;
 
       if (isTextOnlyProvider) {
         const textPrompt = prompt + "\n\nResponde SOLO con un JSON valido: {\"isCorrect\": true} o {\"isCorrect\": false}. No uses bloques de markdown ni texto adicional.";
@@ -52,7 +55,7 @@ Evalua si la respuesta del estudiante es semanticamente equivalente a alguna de 
             maxOutputTokens: 30,
             temperature: 0,
           }),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), CHECK_TIMEOUT_MS)),
         ]);
 
         if (!resultText) continue;
@@ -61,25 +64,57 @@ Evalua si la respuesta del estudiante es semanticamente equivalente a alguna de 
           const parsed = tryParseJson(resultText.text);
           return semanticCheckResponseSchema.parse(parsed).isCorrect;
         } catch {
+          const cleanText = resultText.text.toLowerCase();
+          if (cleanText.includes("true") || cleanText.includes("correct")) return true;
+          if (cleanText.includes("false") || cleanText.includes("incorrect")) return false;
           continue;
         }
       } else {
-        // Race with timeout
-        const result = await Promise.race([
-          generateObject({
-            model,
-            schema: semanticCheckResponseSchema,
-            system: SEMANTIC_CHECK_PROMPT,
-            prompt,
-            maxOutputTokens: 30,
-            temperature: 0,
-          }),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
-        ]);
+        try {
+          // Race with timeout
+          const result = await Promise.race([
+            generateObject({
+              model,
+              schema: semanticCheckResponseSchema,
+              system: SEMANTIC_CHECK_PROMPT,
+              prompt,
+              maxOutputTokens: 30,
+              temperature: 0,
+            }),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), CHECK_TIMEOUT_MS)),
+          ]);
 
-        if (!result) continue;
+          if (!result) continue;
 
-        return result.object.isCorrect;
+          return result.object.isCorrect;
+        } catch (objError) {
+          console.warn("[practice-check] generateObject failed, trying generateText fallback...", objError);
+          try {
+            const resultText = await Promise.race([
+              generateText({
+                model,
+                system: SEMANTIC_CHECK_PROMPT,
+                prompt: prompt + "\n\nResponde SOLO con un JSON valido: {\"isCorrect\": true} o {\"isCorrect\": false}.",
+                maxOutputTokens: 30,
+                temperature: 0,
+              }),
+              new Promise<null>((resolve) => setTimeout(() => resolve(null), CHECK_TIMEOUT_MS)),
+            ]);
+
+            if (!resultText) continue;
+
+            try {
+              const parsed = tryParseJson(resultText.text);
+              return semanticCheckResponseSchema.parse(parsed).isCorrect;
+            } catch {
+              const cleanText = resultText.text.toLowerCase();
+              if (cleanText.includes("true") || cleanText.includes("correct")) return true;
+              if (cleanText.includes("false") || cleanText.includes("incorrect")) return false;
+            }
+          } catch {
+            // ignore and continue
+          }
+        }
       }
     } catch (error) {
       if (!isRetryableModelError(error)) return null;

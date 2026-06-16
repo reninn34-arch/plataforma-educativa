@@ -203,7 +203,7 @@ Debes responder UNICAMENTE con un objeto JSON valido que coincida exactamente co
 
       try {
         const start = Date.now();
-        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek";
+        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek" || candidate.provider === "opencode";
 
         if (isTextOnlyProvider) {
           const textResponse = await generateText({
@@ -214,21 +214,33 @@ Debes responder UNICAMENTE con un objeto JSON valido que coincida exactamente co
             abortSignal: abortController.signal,
           });
 
-          let parsed;
-          try {
-            parsed = tryParseJson(textResponse.text);
-          } catch (parseErr) {
-            console.error("[generate-assignment] tryParseJson failed. Raw text was:", textResponse.text);
-            throw parseErr;
-          }
-
           let validated;
           try {
-            validated = generateResponseSchema.parse(parsed);
-          } catch (zodErr) {
-            console.error("[generate-assignment] Zod parsing error (isTextOnlyProvider block). Raw text:", textResponse.text);
-            console.error("[generate-assignment] parsed JSON:", JSON.stringify(parsed, null, 2));
-            throw zodErr;
+            const parsed = tryParseJson(textResponse.text);
+            try {
+              validated = generateResponseSchema.parse(parsed);
+            } catch (zodErr) {
+              console.warn("[generate-assignment] Zod parse error in text provider, trying markdown parser...", zodErr);
+              const markdownParsed = parseMarkdownToAssignment(textResponse.text, topic);
+              if (markdownParsed) {
+                validated = generateResponseSchema.parse(markdownParsed);
+              } else {
+                throw zodErr;
+              }
+            }
+          } catch (parseErr) {
+            console.warn("[generate-assignment] tryParseJson failed in text provider, trying markdown parser...", parseErr);
+            const markdownParsed = parseMarkdownToAssignment(textResponse.text, topic);
+            if (markdownParsed) {
+              try {
+                validated = generateResponseSchema.parse(markdownParsed);
+              } catch (zodErr) {
+                console.error("[generate-assignment] Zod parse error on markdown fallback in text provider:", zodErr);
+                throw zodErr;
+              }
+            } else {
+              throw parseErr;
+            }
           }
 
           clearTimeout(timeoutId);
@@ -282,80 +294,89 @@ Debes responder UNICAMENTE con un objeto JSON valido que coincida exactamente co
         const msg = String(aiError?.message || aiError || "");
         const wasAborted = aiError?.name === "AbortError" || msg.includes("abort");
 
-        if (msg.includes("response_format") || msg.includes("unavailable")) {
-          const start = Date.now();
-          try {
-            const textResponse = await generateText({
-              model: getChatModel(candidate),
-              prompt: prompt + `\n\nResponde SOLO con un JSON valido. No incluyas texto adicional, solo el JSON.`,
-              temperature: 0.6,
-              maxOutputTokens: 4000,
-              abortSignal: abortController.signal,
-            });
+        // Fallback to generateText for any error
+        const start = Date.now();
+        try {
+          const textResponse = await generateText({
+            model: getChatModel(candidate),
+            prompt: prompt + `\n\nResponde SOLO con un JSON valido. No incluyes texto adicional, solo el JSON.`,
+            temperature: 0.6,
+            maxOutputTokens: 4000,
+            abortSignal: abortController.signal,
+          });
 
+          try {
+            let parsed;
             try {
-              let parsed;
+              parsed = tryParseJson(textResponse.text);
               try {
-                parsed = tryParseJson(textResponse.text);
-              } catch (parseErr) {
-                console.error("[generate-assignment] tryParseJson failed in catch fallback. Raw text was:", textResponse.text);
+                parsed = generateResponseSchema.parse(parsed);
+              } catch (zodErr) {
+                console.warn("[generate-assignment] Zod parse error in fallback, trying markdown parser...", zodErr);
+                const markdownParsed = parseMarkdownToAssignment(textResponse.text, topic);
+                if (markdownParsed) {
+                  parsed = generateResponseSchema.parse(markdownParsed);
+                } else {
+                  throw zodErr;
+                }
+              }
+            } catch (parseErr) {
+              console.warn("[generate-assignment] tryParseJson failed in fallback, trying markdown parser...", parseErr);
+              const markdownParsed = parseMarkdownToAssignment(textResponse.text, topic);
+              if (markdownParsed) {
+                try {
+                  parsed = generateResponseSchema.parse(markdownParsed);
+                } catch (zodErr) {
+                  console.error("[generate-assignment] Zod parse error on markdown fallback:", zodErr);
+                  throw zodErr;
+                }
+              } else {
                 throw parseErr;
               }
-
-              let validated;
-              try {
-                validated = generateResponseSchema.parse(parsed);
-              } catch (zodErr) {
-                console.error("[generate-assignment] Zod parsing error (catch fallback block). Raw text:", textResponse.text);
-                console.error("[generate-assignment] parsed JSON:", JSON.stringify(parsed, null, 2));
-                throw zodErr;
-              }
-
-              logAiCall({
-                route: "teacher/ai/generate-assignment",
-                model: candidate.modelId,
-                durationMs: Date.now() - start,
-                usage: textResponse.usage ? {
-                  inputTokens: textResponse.usage.inputTokens,
-                  outputTokens: textResponse.usage.outputTokens,
-                  totalTokens: (textResponse.usage.inputTokens ?? 0) + (textResponse.usage.outputTokens ?? 0),
-                } : undefined,
-              });
-
-              return NextResponse.json({
-                success: true,
-                data: validated,
-                modelUsed: candidate.modelId,
-              });
-            } catch (parseError: any) {
-              lastError = parseError;
-              logAiCall({
-                route: "teacher/ai/generate-assignment",
-                model: candidate.modelId,
-                durationMs: Date.now() - start,
-                error: `generateText fallback parse error: ${parseError.message || "unknown"}`,
-              });
-              continue;
             }
-          } catch (textModelError: any) {
-            lastError = textModelError;
+
             logAiCall({
               route: "teacher/ai/generate-assignment",
               model: candidate.modelId,
               durationMs: Date.now() - start,
-              error: `generateText fallback model error: ${textModelError.message || "unknown"}`,
+              usage: textResponse.usage ? {
+                inputTokens: textResponse.usage.inputTokens,
+                outputTokens: textResponse.usage.outputTokens,
+                totalTokens: (textResponse.usage.inputTokens ?? 0) + (textResponse.usage.outputTokens ?? 0),
+              } : undefined,
             });
-            if (!isRetryableModelError(textModelError)) {
-              return NextResponse.json(
-                { error: "Error al generar con IA. Intenta de nuevo." },
-                { status: 502 }
-              );
-            }
+
+            return NextResponse.json({
+              success: true,
+              data: parsed,
+              modelUsed: candidate.modelId,
+            });
+          } catch (parseError: any) {
+            lastError = parseError;
+            logAiCall({
+              route: "teacher/ai/generate-assignment",
+              model: candidate.modelId,
+              durationMs: Date.now() - start,
+              error: `generateText fallback parse error: ${parseError.message || "unknown"}`,
+            });
             continue;
           }
+        } catch (textModelError: any) {
+          lastError = textModelError;
+          logAiCall({
+            route: "teacher/ai/generate-assignment",
+            model: candidate.modelId,
+            durationMs: Date.now() - start,
+            error: `generateText fallback model error: ${textModelError.message || "unknown"}`,
+          });
+          if (!isRetryableModelError(textModelError)) {
+            return NextResponse.json(
+              { error: "Error al generar con IA. Intenta de nuevo." },
+              { status: 502 }
+            );
+          }
+          continue;
         }
-
-        lastError = aiError;
 
         logAiCall({
           route: "teacher/ai/generate-assignment",
@@ -397,5 +418,143 @@ Debes responder UNICAMENTE con un objeto JSON valido que coincida exactamente co
       { error: "Error al generar la tarea" },
       { status: 500 }
     );
+  }
+}
+
+function parseMarkdownToAssignment(text: string, defaultTopic: string): any {
+  try {
+    const lines = text.split("\n");
+    let title = "";
+    let descriptionLines: string[] = [];
+    const questions: any[] = [];
+
+    let currentSection: "description" | "questions" | "none" = "none";
+    let currentQuestion: any = null;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      const lowerLine = line.toLowerCase();
+
+      // Detect title
+      if (!title) {
+        const titleMatch = line.match(/^(?:#+\s*|title\s*:\s*|titulo\s*:\s*)(.+)/i);
+        if (titleMatch) {
+          title = titleMatch[1].replace(/[\*\`\_]/g, "").trim();
+          continue;
+        }
+      }
+
+      // Section switches
+      if (lowerLine.startsWith("descripcion:") || lowerLine.startsWith("description:") || lowerLine.includes("descripci") || lowerLine.includes("description")) {
+        currentSection = "description";
+        continue;
+      }
+      if (lowerLine.startsWith("preguntas:") || lowerLine.startsWith("questions:") || lowerLine.includes("pregunta") || lowerLine.includes("question")) {
+        currentSection = "questions";
+        continue;
+      }
+
+      if (currentSection === "description") {
+        if (line && !line.startsWith("#")) {
+          descriptionLines.push(line);
+        }
+      } else if (currentSection === "questions") {
+        // Detect question start
+        const qMatch = line.match(/^(?:\d+[\.\)]\s*|Pregunta\s+\d+[:\s]*|Question\s+\d+[:\s]*)(.+)/i);
+        if (qMatch) {
+          if (currentQuestion) {
+            questions.push(currentQuestion);
+          }
+          currentQuestion = {
+            type: "mcq",
+            question: qMatch[1].trim(),
+            options: [],
+            correctIndex: 0,
+            points: 1,
+          };
+          continue;
+        }
+
+        if (currentQuestion) {
+          // Detect options
+          const optMatch = line.match(/^(?:-\s*|[a-d]\)\s*|[1-4]\.\s*)(.+)/i);
+          if (optMatch) {
+            currentQuestion.options.push(optMatch[1].trim());
+            continue;
+          }
+
+          // Detect correct index/letter
+          if (lowerLine.includes("correct") || lowerLine.includes("respuesta") || lowerLine.includes("indice")) {
+            const idxMatch = line.match(/\d+/);
+            if (idxMatch) {
+              currentQuestion.correctIndex = parseInt(idxMatch[0], 10);
+            } else {
+              const letterMatch = lowerLine.match(/\b([a-d])\b/);
+              if (letterMatch) {
+                currentQuestion.correctIndex = letterMatch[1].charCodeAt(0) - 97;
+              }
+            }
+            continue;
+          }
+
+          // Detect points
+          if (lowerLine.includes("point") || lowerLine.includes("punto")) {
+            const ptsMatch = line.match(/\d+/);
+            if (ptsMatch) {
+              currentQuestion.points = parseInt(ptsMatch[0], 10);
+            }
+            continue;
+          }
+
+          // Detect type
+          if (lowerLine.includes("file_upload") || lowerLine.includes("archivo") || lowerLine.includes("subir")) {
+            currentQuestion.type = "file_upload";
+            delete currentQuestion.options;
+            delete currentQuestion.correctIndex;
+          }
+        }
+      }
+    }
+
+    if (currentQuestion) {
+      questions.push(currentQuestion);
+    }
+
+    // Default fallbacks
+    if (!title) title = "Tarea sobre " + defaultTopic;
+    const description = descriptionLines.join("\n").trim() || "Instrucciones de la tarea sobre " + defaultTopic + ". Resuelve los siguientes ejercicios de manera ordenada.";
+
+    // Normalize questions
+    const finalQuestions = questions.map((q, idx) => {
+      if (q.type === "mcq") {
+        if (!q.options || q.options.length < 2) {
+          q.options = ["Opción A", "Opción B", "Opción C", "Opción D"];
+        }
+        if (q.correctIndex === undefined || q.correctIndex < 0 || q.correctIndex >= q.options.length) {
+          q.correctIndex = 0;
+        }
+      }
+      q.points = q.points || 1;
+      return q;
+    });
+
+    if (finalQuestions.length === 0) {
+      finalQuestions.push({
+        type: "mcq",
+        question: "¿Qué es " + defaultTopic + "?",
+        options: ["Concepto principal A", "Concepto secundario B", "Alternativa C", "Ninguna de las anteriores"],
+        correctIndex: 0,
+        points: 2,
+      });
+    }
+
+    return {
+      title,
+      description,
+      questions: finalQuestions,
+    };
+  } catch (e) {
+    console.error("[parseMarkdownToAssignment] Error parsing markdown fallback:", e);
+    return null;
   }
 }

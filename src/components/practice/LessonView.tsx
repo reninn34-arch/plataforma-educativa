@@ -61,7 +61,17 @@ interface LessonViewProps {
   onRegenerateDiagram?: () => Promise<{ mermaid: string; caption: string } | null>;
 }
 
-function MermaidDiagram({ code, large, onRetry }: { code: string; large?: boolean; onRetry?: () => Promise<{ mermaid: string; caption: string } | null> }) {
+function MermaidDiagram({
+  code,
+  large,
+  onRetry,
+  subjectSlug,
+}: {
+  code: string;
+  large?: boolean;
+  onRetry?: () => Promise<{ mermaid: string; caption: string } | null>;
+  subjectSlug?: string;
+}) {
   const [svg, setSvg] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [id] = useState(() => `mermaid-${Math.random().toString(36).slice(2, 8)}`);
@@ -74,25 +84,38 @@ function MermaidDiagram({ code, large, onRetry }: { code: string; large?: boolea
     async function renderDiagram(codeToRender: string) {
       const mermaid = await import("mermaid");
       if (cancelled) return;
-      mermaid.default.initialize({ startOnLoad: false, theme: "neutral" });
+
+      let primaryColor = "#3b82f6"; // blue-500
+      if (subjectSlug === "fisica") primaryColor = "#10b981"; // emerald-500
+      else if (subjectSlug === "quimica") primaryColor = "#f59e0b"; // amber-500
+      else if (subjectSlug === "ingles") primaryColor = "#8b5cf6"; // violet-500
+
+      mermaid.default.initialize({
+        startOnLoad: false,
+        theme: "base",
+        themeVariables: {
+          primaryColor: "#ffffff",
+          primaryTextColor: "#0f172a",
+          primaryBorderColor: primaryColor,
+          lineColor: "#64748b",
+          fontFamily: "system-ui, -apple-system, sans-serif",
+          fontSize: "14px",
+          nodeBorder: primaryColor,
+          mainBkg: "#ffffff",
+          textColor: "#0f172a",
+        },
+      });
       const { svg: rendered } = await mermaid.default.render(id, codeToRender);
       if (!cancelled) setSvg(rendered);
     }
 
-    renderDiagram(code).catch(() => {
-      if (cancelled) return;
-      const sanitized = sanitizeMermaid(code);
-      if (sanitized === code) {
-        if (!cancelled) setError(true);
-        return;
-      }
-      renderDiagram(sanitized).catch(() => {
-        if (!cancelled) setError(true);
-      });
+    const sanitized = sanitizeMermaid(code);
+    renderDiagram(sanitized).catch(() => {
+      if (!cancelled) setError(true);
     });
 
     return () => { cancelled = true; };
-  }, [code, id]);
+  }, [code, id, subjectSlug]);
 
   if (error) return (
     <div className="flex flex-col items-center justify-center p-6 space-y-3">
@@ -207,29 +230,74 @@ function VideoSlide({ videos, videoSearchUrl }: { videos: VideoData[]; videoSear
   );
 }
 
-function DiagramView({ diagram, onRetry }: { diagram: NonNullable<LessonData["diagram"]>; onRetry?: () => Promise<{ mermaid: string; caption: string } | null> }) {
+function DiagramView({
+  diagram,
+  onRetry,
+  subjectSlug,
+}: {
+  diagram: NonNullable<LessonData["diagram"]>;
+  onRetry?: () => Promise<{ mermaid: string; caption: string } | null>;
+  subjectSlug?: string;
+}) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [retrying, setRetrying] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [currentDiagram, setCurrentDiagram] = useState(diagram);
 
-  useEffect(() => { setCurrentDiagram(diagram); }, [diagram]);
+  useEffect(() => {
+    setCurrentDiagram(diagram);
+    setErrorMessage(null);
+  }, [diagram]);
 
   const handleRetry: () => Promise<{ mermaid: string; caption: string } | null> = async () => {
     if (!onRetry || retrying) return null;
     setRetrying(true);
+    setErrorMessage(null);
     try {
       const result = await onRetry();
-      if (result) setCurrentDiagram(result);
+      if (result) {
+        setCurrentDiagram(result);
+      } else {
+        setErrorMessage("No se pudo obtener un diagrama válido.");
+      }
       return result;
+    } catch (err: any) {
+      setErrorMessage(err.message || "Error al generar el diagrama.");
+      return null;
     } finally {
       setRetrying(false);
     }
   };
 
   const renderContent = (large = false) => {
+    if (retrying) {
+      return (
+        <div className="flex flex-col items-center justify-center p-8 space-y-3">
+          <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+          <p className="text-sm text-blue-600 font-medium animate-pulse">Generando nuevo diagrama...</p>
+        </div>
+      );
+    }
+    if (errorMessage) {
+      return (
+        <div className="flex flex-col items-center justify-center p-6 space-y-3 text-center">
+          <AlertTriangle className="h-8 w-8 text-red-500" />
+          <p className="text-sm text-red-700 font-medium max-w-xs">{errorMessage}</p>
+          {onRetry && (
+            <button
+              onClick={handleRetry}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 transition-colors"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Regenerar diagrama
+            </button>
+          )}
+        </div>
+      );
+    }
     if (currentDiagram.mermaid) {
-      return <MermaidDiagram code={currentDiagram.mermaid} large={large} onRetry={handleRetry} />;
+      return <MermaidDiagram code={currentDiagram.mermaid} large={large} onRetry={handleRetry} subjectSlug={subjectSlug} />;
     }
     if (currentDiagram.svg) {
       return (
@@ -630,7 +698,7 @@ export function LessonView({ lesson, onStartPractice, subjectSlug, onRegenerateD
 
           {/* Diagram slide */}
           {slides[currentSlide]?.type === "diagram" && lesson.diagram && (
-            <DiagramView diagram={lesson.diagram} onRetry={onRegenerateDiagram} />
+            <DiagramView diagram={lesson.diagram} onRetry={onRegenerateDiagram} subjectSlug={subjectSlug} />
           )}
 
           {/* Example slide */}

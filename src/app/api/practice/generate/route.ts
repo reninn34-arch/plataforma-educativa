@@ -43,6 +43,9 @@ const SCHEMA_KEY_MAP: Record<string, string> = {
   limitetiempo: "timeLimit",
   timelimit: "timeLimit",
   dificultad: "difficulty",
+  commonmistakecorrection: "commonMistakeCorrection",
+  errorcomuncorreccion: "commonMistakeCorrection",
+  correccionerrorcomun: "commonMistakeCorrection",
   channelname: "channelName",
   thumbnailurl: "thumbnailUrl",
 };
@@ -149,6 +152,22 @@ const baseLessonSchema = z.object({
       if ((val.respuestacorrecta || val.indicecorrecto || val.correctindex) && val.correctIndex === undefined) {
         val.correctIndex = val.respuestacorrecta ?? val.indicecorrecto ?? val.correctindex;
       }
+      
+      // Defensively fix fields
+      if (!val.question) val.question = "¿Comprendiste el concepto principal?";
+      if (!val.options || !Array.isArray(val.options) || val.options.length < 4) {
+        val.options = ["Opción A", "Opción B", "Opción C", "Opción D"];
+      } else if (val.options.length > 4) {
+        val.options = val.options.slice(0, 4);
+      }
+      if (typeof val.correctIndex !== "number") {
+        const parsedIdx = parseInt(val.correctIndex, 10);
+        val.correctIndex = isNaN(parsedIdx) ? 0 : parsedIdx;
+      }
+      if (val.correctIndex < 0 || val.correctIndex > 3) {
+        val.correctIndex = 0;
+      }
+      if (!val.feedback) val.feedback = "¡Buen trabajo!";
     }
     return val;
   }, z.object({
@@ -164,14 +183,55 @@ const lessonSchema = z.preprocess((val: any) => {
     if (val.titulo && !val.title) val.title = val.titulo;
     if (val.explicacion && !val.explanation) val.explanation = val.explicacion;
     if (val.ejemplo && !val.example) val.example = val.ejemplo;
+    
+    // Normalize commonMistake if it comes with separate correction
     if ((val.errorcomun || val.error) && !val.commonMistake) {
       val.commonMistake = val.errorcomun || val.error;
     }
+    const corr = val.commonMistakeCorrection ?? val.correction ?? val.correccion ?? val.errorcomuncorreccion ?? val.correccionerrorcomun;
+    if (val.commonMistake && typeof val.commonMistake === "string" && corr) {
+      val.commonMistake = {
+        description: val.commonMistake,
+        correction: corr
+      };
+    }
+
     if ((val.comprobacionrapida || val.comprobacion) && !val.quickCheck) {
       val.quickCheck = val.comprobacionrapida || val.comprobacion;
     }
+
+    // Default fallbacks if missing entirely
     if (!val.title) {
       val.title = "Lección de Estudio";
+    }
+    if (!val.explanation) {
+      val.explanation = "Introducción conceptual al tema de estudio.";
+    }
+    if (!val.example) {
+      val.example = {
+        problem: "Ejemplo práctico de aplicación",
+        steps: [{ text: "Analizar los datos del problema y aplicar la fórmula o regla.", svg: undefined }],
+        answer: "Solución obtenida."
+      };
+    }
+    if (!val.commonMistake) {
+      val.commonMistake = {
+        description: "Confundir los conceptos básicos del tema.",
+        correction: "Lee con atención las definiciones y repasa los ejemplos paso a paso."
+      };
+    }
+    if (!val.quickCheck) {
+      val.quickCheck = {
+        question: "¿Comprendiste el concepto principal presentado en la explicación?",
+        options: [
+          "Sí, comprendo la idea principal",
+          "Tengo algunas dudas todavía",
+          "No me queda claro el concepto",
+          "Prefiero ver más ejemplos"
+        ],
+        correctIndex: 0,
+        feedback: "¡Excelente! Continuemos para poner en práctica lo aprendido."
+      };
     }
   }
   return val;
@@ -337,6 +397,17 @@ const practiceResponseSchema = z.preprocess((val: any) => {
         }
         return ex;
       });
+
+      // Defensively force exactly 8 exercises to satisfy .length(8)
+      if (normalized.exercises.length > 8) {
+        normalized.exercises = normalized.exercises.slice(0, 8);
+      } else if (normalized.exercises.length < 8 && normalized.exercises.length > 0) {
+        const originalLength = normalized.exercises.length;
+        while (normalized.exercises.length < 8) {
+          const copySrc = normalized.exercises[normalized.exercises.length % originalLength];
+          normalized.exercises.push({ ...copySrc });
+        }
+      }
     }
   }
   return normalized;
@@ -460,7 +531,6 @@ export async function POST(request: NextRequest) {
     const materialBlock = studyMaterial
       ? `\n\nMATERIAL DE ESTUDIO DEL CURSO (basa los ejercicios en este contenido):\n${materialContent}`
       : "";
-
     const lessonPrompt = isEnglish
       ? `You are a friendly, patient, and enthusiastic tutor. You teach adults in an accelerated high school program (PCEI). Your mission is to explain a topic clearly, visually, and in a friendly way.
 
@@ -516,7 +586,7 @@ QUICK CHECK ("quickCheck"):
 
 EXERCISE RULES:
 - EXACTLY 8 exercises.
-- Vary types: maximum 2 of the same type (mcq, fill_blank, true_false).
+- Vary types: distribute the types evenly among mcq, fill_blank, and true_false to complete the 8 exercises (e.g. 3 mcq, 3 fill_blank, 2 true_false). Do NOT use other types.
 - Varied difficulty: at least 1 easy, 1 medium, 1 hard.
 - MCQ: "options" with 4 strings, "correctIndex" (0-3). DO NOT use "correctAnswer".
 - FILL_BLANK: "acceptedAnswers" REQUIRED (array of strings).
@@ -573,7 +643,7 @@ COMPROBACION RAPIDA ("quickCheck"):
 
 REGLAS EJERCICIOS:
 - EXACTAMENTE 8 ejercicios.
-- Variar tipos: maximo 2 del mismo tipo (mcq, fill_blank, true_false).
+- Variar tipos: distribuye los tipos equitativamente entre mcq, fill_blank y true_false para completar los 8 ejercicios (por ejemplo: 3 mcq, 3 fill_blank, 2 true_false). NO uses otros tipos.
 - Dificultad variada: al menos 1 easy, 1 medium, 1 hard.
 - MCQ: "options" con 4 strings, "correctIndex" (0-3). NO usar "correctAnswer".
 - FILL_BLANK: "acceptedAnswers" OBLIGATORIO (array de strings).
@@ -594,7 +664,6 @@ REGLAS:
 - caption: maximo 6 palabras descriptivas.`
       : null;
 
-    const LESSON_TIMEOUT_MS = 70_000;
     const DIAGRAM_TIMEOUT_MS = 60_000;
     let lessonResult: z.infer<typeof practiceResponseSchema> | null = null;
     let diagram: z.infer<typeof diagramSchema> | null = null;
@@ -602,6 +671,9 @@ REGLAS:
     let lastError: unknown;
 
     for (const candidate of candidates) {
+      // Free OpenRouter models are slow — give them more time
+      const isSlowFreeModel = candidate.provider === "openrouter" && candidate.model.endsWith(":free");
+      const LESSON_TIMEOUT_MS = isSlowFreeModel ? 110_000 : 70_000;
       const lessonAbort = new AbortController();
       const diagramAbort = new AbortController();
       const lessonTimeoutId = setTimeout(() => lessonAbort.abort(), LESSON_TIMEOUT_MS);
@@ -616,7 +688,7 @@ REGLAS:
 
         const startTime = performance.now();
 
-        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek";
+        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek" || candidate.provider === "opencode";
 
         const lessonPromise = (async () => {
           if (isTextOnlyProvider) {
@@ -627,13 +699,29 @@ REGLAS:
               maxOutputTokens: 4096,
               abortSignal: lessonAbort.signal,
             });
-            const parsedJson = tryParseJson(r.text);
             try {
-              return { object: practiceResponseSchema.parse(parsedJson), usage: r.usage };
-            } catch (zodErr) {
-              console.error("[practice-generate] Zod parsing error (fallback textOnly). Raw text:", r.text);
-              console.error("[practice-generate] parsedJson:", JSON.stringify(parsedJson, null, 2));
-              throw zodErr;
+              const parsedJson = tryParseJson(r.text);
+              try {
+                return { object: practiceResponseSchema.parse(parsedJson), usage: r.usage };
+              } catch (zodErr) {
+                console.warn("[practice-generate] Zod parsing error on parsed JSON, attempting markdown fallback...", zodErr);
+                const markdownParsed = parseMarkdownToPractice(r.text, topicContext);
+                if (markdownParsed) {
+                  return { object: practiceResponseSchema.parse(markdownParsed), usage: r.usage };
+                }
+                throw zodErr;
+              }
+            } catch (jsonErr) {
+              console.warn("[practice-generate] JSON parsing failed, attempting markdown fallback...", jsonErr);
+              const markdownParsed = parseMarkdownToPractice(r.text, topicContext);
+              if (markdownParsed) {
+                try {
+                  return { object: practiceResponseSchema.parse(markdownParsed), usage: r.usage };
+                } catch (zodErr) {
+                  console.error("[practice-generate] Zod parsing error on markdown fallback:", zodErr);
+                }
+              }
+              throw jsonErr;
             }
           } else {
             try {
@@ -650,7 +738,9 @@ REGLAS:
               console.warn(`[practice-generate] generateObject falló para ${candidate.modelId}, intentando fallback con generateText... Error:`, objError);
               clearTimeout(lessonTimeoutId);
               const fallbackAbort = new AbortController();
-              const fallbackTimeout = setTimeout(() => fallbackAbort.abort(), 30_000);
+              // Slow free models need more time for the text fallback
+              const fallbackTimeoutMs = isSlowFreeModel ? 70_000 : 40_000;
+              const fallbackTimeout = setTimeout(() => fallbackAbort.abort(), fallbackTimeoutMs);
               try {
                 const r = await generateText({
                   model: aiModel,
@@ -659,13 +749,29 @@ REGLAS:
                   maxOutputTokens: 4096,
                   abortSignal: fallbackAbort.signal,
                 });
-                const parsedJson = tryParseJson(r.text);
                 try {
-                  return { object: practiceResponseSchema.parse(parsedJson), usage: r.usage };
-                } catch (zodErr) {
-                  console.error("[practice-generate] Zod parsing error (generateObject catch block). Raw text:", r.text);
-                  console.error("[practice-generate] parsedJson:", JSON.stringify(parsedJson, null, 2));
-                  throw zodErr;
+                  const parsedJson = tryParseJson(r.text);
+                  try {
+                    return { object: practiceResponseSchema.parse(parsedJson), usage: r.usage };
+                  } catch (zodErr) {
+                    console.warn("[practice-generate] Zod parsing error on fallback parsed JSON, attempting markdown fallback...", zodErr);
+                    const markdownParsed = parseMarkdownToPractice(r.text, topicContext);
+                    if (markdownParsed) {
+                      return { object: practiceResponseSchema.parse(markdownParsed), usage: r.usage };
+                    }
+                    throw zodErr;
+                  }
+                } catch (jsonErr) {
+                  console.warn("[practice-generate] JSON parsing failed on fallback, attempting markdown fallback...", jsonErr);
+                  const markdownParsed = parseMarkdownToPractice(r.text, topicContext);
+                  if (markdownParsed) {
+                    try {
+                      return { object: practiceResponseSchema.parse(markdownParsed), usage: r.usage };
+                    } catch (zodErr) {
+                      console.error("[practice-generate] Zod parsing error on fallback markdown fallback:", zodErr);
+                    }
+                  }
+                  throw jsonErr;
                 }
               } finally {
                 clearTimeout(fallbackTimeout);
@@ -799,9 +905,25 @@ REGLAS:
 
     lessonResult.exercises = lessonResult.exercises.map((ex, i) => ({ ...ex, id: i + 1 }));
 
+    const isEnglishLesson = subject === "ingles";
+    if (!diagram || !isValidMermaid(diagram.mermaid)) {
+      if (ctx.canHaveDiagram) {
+        const safeTopic = topicContext.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑüÜ\s]/g, " ").trim();
+        diagram = {
+          mermaid: isEnglishLesson
+            ? `graph TD\n  A[Diagram of ${safeTopic}] --> B[Click the button below to regenerate]`
+            : `graph TD\n  A[Diagrama de ${safeTopic}] --> B[Haz clic en el botón de abajo para regenerar]`,
+          caption: isEnglishLesson ? "Topic diagram" : "Diagrama del tema"
+        };
+      }
+    }
+
     if (diagram && isValidMermaid(diagram.mermaid)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (lessonResult.lesson as any).diagram = diagram;
+      (lessonResult.lesson as any).diagram = {
+        ...diagram,
+        caption: isEnglishLesson ? (diagram.caption || "Topic diagram") : (diagram.caption || "Diagrama del tema"),
+      };
     }
 
     const [videos] = await Promise.all([
@@ -868,4 +990,332 @@ function extractDiagramFromText(raw: string): { mermaid: string; caption: string
 function extractCaptionFromText(text: string): string {
   const m = text.match(/caption[:\s]+(.+)/i);
   return m ? m[1].trim() : "";
+}
+
+function parseMarkdownToPractice(text: string, defaultTopic: string): any {
+  try {
+    const lines = text.split("\n");
+    let title = "";
+    let explanationLines: string[] = [];
+    let problem = "";
+    let steps: Array<{ text: string, svg?: string }> = [];
+    let answer = "";
+    let commonMistakeDesc = "";
+    let commonMistakeCorr = "";
+    let quickCheckQuestion = "";
+    let quickCheckOptions: string[] = [];
+    let quickCheckCorrectIndex = 0;
+    let quickCheckFeedback = "";
+
+    let currentSection: "explanation" | "example" | "commonMistake" | "quickCheck" | "none" = "none";
+    let inSteps = false;
+
+    // Scan lines to extract lesson info
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      const lowerLine = line.toLowerCase();
+
+      // Detect title
+      if (!title) {
+        const titleMatch = line.match(/^(?:#+\s*|title\s*:\s*|titulo\s*:\s*)(.+)/i);
+        if (titleMatch) {
+          title = titleMatch[1].replace(/[\*\`\_]/g, "").trim();
+          continue;
+        }
+      }
+
+      // Detect section headings
+      if (lowerLine.includes("explicacion") || lowerLine.includes("explicación") || lowerLine.includes("explanation")) {
+        currentSection = "explanation";
+        inSteps = false;
+        continue;
+      }
+      if (lowerLine.includes("ejemplo") || lowerLine.includes("example") || lowerLine.includes("problema")) {
+        currentSection = "example";
+        inSteps = false;
+        continue;
+      }
+      if (lowerLine.includes("errorcomun") || lowerLine.includes("error comun") || lowerLine.includes("error común") || lowerLine.includes("commonmistake") || lowerLine.includes("common mistake")) {
+        currentSection = "commonMistake";
+        inSteps = false;
+        continue;
+      }
+      if (lowerLine.includes("comprobacion") || lowerLine.includes("comprobación") || lowerLine.includes("quickcheck") || lowerLine.includes("quick check")) {
+        currentSection = "quickCheck";
+        inSteps = false;
+        continue;
+      }
+      if (lowerLine.includes("ejercicio") || lowerLine.includes("exercise") || lowerLine.includes("quiz") || lowerLine.includes("preguntas") || lowerLine.includes("questions")) {
+        // Stop parsing lesson, start exercises parsing next
+        break;
+      }
+
+      // Process lines based on current section
+      if (currentSection === "explanation") {
+        if (line && !line.startsWith("#")) {
+          explanationLines.push(line);
+        }
+      } else if (currentSection === "example") {
+        if (lowerLine.includes("paso") || lowerLine.includes("step") || /^\d+\.?\s+/.test(line)) {
+          inSteps = true;
+        }
+        if (lowerLine.includes("respuesta") || lowerLine.includes("answer") || lowerLine.includes("resultado")) {
+          inSteps = false;
+          const ansMatch = line.match(/(?:respuesta|answer|resultado)[:\s]+(.*)/i);
+          if (ansMatch) {
+            answer = ansMatch[1].trim();
+          }
+        } else if (inSteps) {
+          if (line) {
+            steps.push({ text: line });
+          }
+        } else {
+          if (!problem && line && !line.startsWith("#")) {
+            problem = line;
+          }
+        }
+      } else if (currentSection === "commonMistake") {
+        if (line && !line.startsWith("#")) {
+          if (!commonMistakeDesc) {
+            commonMistakeDesc = line;
+          } else if (!commonMistakeCorr) {
+            commonMistakeCorr = line;
+          }
+        }
+      } else if (currentSection === "quickCheck") {
+        if (line && !line.startsWith("#")) {
+          const optMatch = line.match(/^(?:-\s*|[a-d]\)\s*|[1-4]\.\s*)(.+)/i);
+          if (optMatch) {
+            quickCheckOptions.push(optMatch[1].trim());
+          } else if (lowerLine.includes("correct") || lowerLine.includes("respuesta") || lowerLine.includes("indice")) {
+            const idxMatch = line.match(/\d+/);
+            if (idxMatch) {
+              quickCheckCorrectIndex = parseInt(idxMatch[0], 10);
+            } else {
+              const letterMatch = lowerLine.match(/\b([a-d])\b/);
+              if (letterMatch) {
+                quickCheckCorrectIndex = letterMatch[1].charCodeAt(0) - 97; // a=0, b=1, c=2, d=3
+              }
+            }
+          } else if (lowerLine.includes("feedback") || lowerLine.includes("retroalimentacion") || lowerLine.includes("retroalimentación")) {
+            const fbMatch = line.match(/(?:feedback|retroalimentacion|retroalimentación)[:\s]+(.*)/i);
+            if (fbMatch) {
+              quickCheckFeedback = fbMatch[1].trim();
+            }
+          } else if (!quickCheckQuestion) {
+            quickCheckQuestion = line;
+          }
+        }
+      }
+    }
+
+    // Default lesson fallbacks
+    if (!title) title = defaultTopic;
+    const explanation = explanationLines.join("\n").trim() || "Explicación conceptual de " + defaultTopic;
+    if (!problem) problem = "Problema práctico de " + defaultTopic;
+    if (steps.length === 0) steps = [{ text: "Paso 1: Analizar la pregunta y aplicar los conceptos estudiados." }];
+    if (!answer) answer = "Solución correspondiente.";
+    if (!commonMistakeDesc) commonMistakeDesc = "Confundir los términos o conceptos básicos.";
+    if (!commonMistakeCorr) commonMistakeCorr = "Repasar las definiciones y hacer el procedimiento paso a paso.";
+    if (!quickCheckQuestion) quickCheckQuestion = "¿Comprendiste el tema?";
+    if (quickCheckOptions.length < 4) quickCheckOptions = ["Sí", "No", "Tengo dudas", "Requiere más práctica"];
+    if (quickCheckCorrectIndex < 0 || quickCheckCorrectIndex > 3) quickCheckCorrectIndex = 0;
+    if (!quickCheckFeedback) quickCheckFeedback = "¡Buen trabajo!";
+
+    // Parse exercises
+    const exercisesList: any[] = [];
+    const rawExercises = text.split(/(?:ejercicio|exercise|pregunta|question)\s+\d+/i);
+    // The first segment contains the lesson, subsequent segments contain the exercises
+    for (let i = 1; i < rawExercises.length; i++) {
+      const segment = rawExercises[i].trim();
+      const lines = segment.split("\n").map(l => l.trim()).filter(Boolean);
+      if (lines.length === 0) continue;
+
+      let question = "";
+      let type: "mcq" | "fill_blank" | "true_false" = "mcq";
+      let options: string[] = [];
+      let correctIndex: number | undefined = undefined;
+      let correctAnswer: boolean | undefined = undefined;
+      let acceptedAnswers: string[] | undefined = undefined;
+      let difficulty: "easy" | "medium" | "hard" = "medium";
+      let timeLimit: number | null = 30;
+
+      for (const line of lines) {
+        const lowerLine = line.toLowerCase();
+
+        // Question text is the first lines before options or type
+        if (!question && !line.startsWith("-") && !line.match(/^[a-d]\)/i) && !lowerLine.startsWith("tipo") && !lowerLine.startsWith("type") && !lowerLine.startsWith("correct") && !lowerLine.startsWith("difficulty") && !lowerLine.startsWith("dificultad")) {
+          question = line;
+          continue;
+        }
+
+        // Detect type
+        if (lowerLine.startsWith("type:") || lowerLine.startsWith("tipo:")) {
+          const typeMatch = lowerLine.match(/(?:type|tipo)[:\s]+(\w+)/);
+          if (typeMatch) {
+            const rawType = typeMatch[1];
+            if (rawType.includes("mcq") || rawType.includes("multiple")) type = "mcq";
+            else if (rawType.includes("blank") || rawType.includes("completar") || rawType.includes("fill")) type = "fill_blank";
+            else if (rawType.includes("true") || rawType.includes("false") || rawType.includes("verdadero") || rawType.includes("falso")) type = "true_false";
+          }
+          continue;
+        }
+
+        // Detect difficulty
+        if (lowerLine.startsWith("difficulty:") || lowerLine.startsWith("dificultad:")) {
+          if (lowerLine.includes("easy") || lowerLine.includes("facil") || lowerLine.includes("fácil")) difficulty = "easy";
+          else if (lowerLine.includes("hard") || lowerLine.includes("dificil") || lowerLine.includes("difícil")) difficulty = "hard";
+          else difficulty = "medium";
+          continue;
+        }
+
+        // Detect timeLimit
+        if (lowerLine.includes("time") || lowerLine.includes("tiempo") || lowerLine.includes("limit")) {
+          const limitMatch = line.match(/\d+/);
+          if (limitMatch) {
+            timeLimit = parseInt(limitMatch[0], 10);
+          } else if (lowerLine.includes("null") || lowerLine.includes("ninguno")) {
+            timeLimit = null;
+          }
+          continue;
+        }
+
+        // Detect options
+        const optMatch = line.match(/^(?:-\s*|[a-d]\)\s*|[1-4]\.\s*)(.+)/i);
+        if (optMatch) {
+          options.push(optMatch[1].trim());
+          continue;
+        }
+
+        // Detect answers/correctness
+        if (lowerLine.includes("correct") || lowerLine.includes("respuesta") || lowerLine.includes("indice") || lowerLine.includes("accepted")) {
+          // If true_false
+          if (lowerLine.includes("true") || lowerLine.includes("false") || lowerLine.includes("verdadero") || lowerLine.includes("falso")) {
+            type = "true_false";
+            correctAnswer = lowerLine.includes("true") || lowerLine.includes("verdadero");
+          } else {
+            const idxMatch = line.match(/\d+/);
+            if (idxMatch) {
+              correctIndex = parseInt(idxMatch[0], 10);
+            } else {
+              const letterMatch = lowerLine.match(/\b([a-d])\b/);
+              if (letterMatch) {
+                correctIndex = letterMatch[1].charCodeAt(0) - 97;
+              } else {
+                // If it's a fill in the blank, accepted answers might be written after a colon
+                const ansMatch = line.match(/(?:answer|accepted|respuesta|respuestas)[:\s]+(.+)/i);
+                if (ansMatch) {
+                  type = "fill_blank";
+                  acceptedAnswers = ansMatch[1].split(",").map(s => s.trim().replace(/[\"\'\-\[\]]/g, ""));
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Sanitize exercise based on type
+      if (!question) question = "Pregunta de práctica";
+      if (options.length > 0 && type !== "true_false") {
+        type = "mcq";
+      }
+      if (question.includes("___") && type !== "mcq") {
+        type = "fill_blank";
+      }
+
+      let optionsToSend: string[] | undefined = options;
+      if (type === "mcq") {
+        if (options.length < 4) {
+          optionsToSend = [...options, "Opción B", "Opción C", "Opción D"].slice(0, 4);
+        }
+        if (correctIndex === undefined || correctIndex < 0 || correctIndex > 3) {
+          correctIndex = 0;
+        }
+      } else if (type === "true_false") {
+        optionsToSend = undefined;
+        if (correctAnswer === undefined) {
+          correctAnswer = true;
+        }
+      } else if (type === "fill_blank") {
+        optionsToSend = undefined;
+        if (!acceptedAnswers || acceptedAnswers.length === 0) {
+          acceptedAnswers = ["respuesta"];
+        }
+      }
+
+      if (difficulty === "hard") {
+        timeLimit = null;
+      }
+
+      exercisesList.push({
+        id: i,
+        type,
+        question,
+        options: optionsToSend,
+        correctIndex,
+        correctAnswer,
+        acceptedAnswers,
+        difficulty,
+        timeLimit,
+      });
+    }
+
+    // If we couldn't parse exercises using headings, try parsing lines of text containing exercises
+    if (exercisesList.length < 3) {
+      let currentEx: any = null;
+      for (let line of lines) {
+        line = line.trim();
+        const lowerLine = line.toLowerCase();
+        if (/^\d+\.\s+/.test(line)) {
+          if (currentEx) exercisesList.push(currentEx);
+          currentEx = {
+            id: exercisesList.length + 1,
+            type: "mcq",
+            question: line.replace(/^\d+\.\s+/, "").trim(),
+            options: [],
+            correctIndex: 0,
+            difficulty: "medium",
+            timeLimit: 30
+          };
+        } else if (currentEx && (line.startsWith("-") || line.match(/^[a-d]\)/i))) {
+          const optText = line.replace(/^(?:-\s*|[a-d]\)\s*)/, "").trim();
+          currentEx.options.push(optText);
+        } else if (currentEx && (lowerLine.includes("correct") || lowerLine.includes("respuesta"))) {
+          const idxMatch = line.match(/\d+/);
+          if (idxMatch) {
+            currentEx.correctIndex = parseInt(idxMatch[0], 10);
+          } else {
+            const letterMatch = lowerLine.match(/\b([a-d])\b/);
+            if (letterMatch) {
+              currentEx.correctIndex = letterMatch[1].charCodeAt(0) - 97;
+            }
+          }
+        }
+      }
+      if (currentEx) exercisesList.push(currentEx);
+    }
+
+    // Default exercises fallback
+    if (exercisesList.length === 0) {
+      exercisesList.push(
+        { type: "mcq", question: `Pregunta sobre ${defaultTopic}`, options: ["Opción A", "Opción B", "Opción C", "Opción D"], correctIndex: 0, difficulty: "easy", timeLimit: 30 },
+        { type: "fill_blank", question: `Completa la frase: El concepto de ${defaultTopic} es ___`, acceptedAnswers: ["importante", "clave"], difficulty: "medium", timeLimit: 35 },
+        { type: "true_false", question: `¿Es ${defaultTopic} un tema relevante?`, correctAnswer: true, difficulty: "hard", timeLimit: null }
+      );
+    }
+
+    return {
+      lesson: {
+        title,
+        explanation,
+        example: { problem, steps, answer },
+        commonMistake: { description: commonMistakeDesc, correction: commonMistakeCorr },
+        quickCheck: { question: quickCheckQuestion, options: quickCheckOptions, correctIndex: quickCheckCorrectIndex, feedback: quickCheckFeedback }
+      },
+      exercises: exercisesList
+    };
+  } catch (e) {
+    console.error("[parseMarkdownToPractice] Error parsing markdown fallback:", e);
+    return null;
+  }
 }

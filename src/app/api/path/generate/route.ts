@@ -36,7 +36,97 @@ const SUBJECT_META: Record<string, string> = {
   fisica: "Fisica - Bachillerato Acelerado para Adultos (PCEI)",
   ingles: "Ingles - Bachillerato Acelerado para Adultos (PCEI)",
   quimica: "Quimica - Bachillerato Acelerado para Adultos (PCEI)",
-};
+};function parseMarkdownTableToPath(text: string, defaultTopic: string): z.infer<typeof pathSchema> | null {
+  try {
+    const lines = text.split("\n");
+    let moduleTitle = "";
+    const nodesList: any[] = [];
+
+    // Try to find moduleTitle
+    for (const line of lines) {
+      const match = line.match(/(?:\*\*?)?moduleTitle(?:\*\*?)?\s*:\s*(.+)/i);
+      if (match) {
+        moduleTitle = match[1].replace(/[\*\`\_]/g, "").trim();
+        break;
+      }
+    }
+    if (!moduleTitle) {
+      moduleTitle = defaultTopic;
+    }
+
+    // Try to parse markdown table
+    let headers: string[] = [];
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("|") || !trimmed.endsWith("|")) continue;
+
+      const cols = trimmed.split("|").map(c => c.trim()).filter((c, i, arr) => i > 0 && i < arr.length - 1);
+      
+      // Check if this is the header row
+      if (cols.some(c => c.toLowerCase() === "title") && cols.some(c => c.toLowerCase() === "aipromptcontext" || c.toLowerCase() === "context")) {
+        headers = cols.map(c => c.toLowerCase());
+        continue;
+      }
+
+      // Skip separator rows
+      if (cols.every(c => c.startsWith("-") || c === "")) {
+        continue;
+      }
+
+      if (headers.length > 0 && cols.length >= 3) {
+        const titleIdx = headers.findIndex(h => h.includes("title"));
+        const typeIdx = headers.findIndex(h => h.includes("type"));
+        const contextIdx = headers.findIndex(h => h.includes("prompt") || h.includes("context"));
+
+        if (titleIdx >= 0 && typeIdx >= 0 && contextIdx >= 0) {
+          const title = cols[titleIdx];
+          let typeRaw = cols[typeIdx].toLowerCase();
+          let type: "concept" | "quiz" | "challenge" = "concept";
+          if (typeRaw.includes("quiz") || typeRaw.includes("cuestionario") || typeRaw.includes("evaluacion") || typeRaw.includes("evaluación")) {
+            type = "quiz";
+          } else if (typeRaw.includes("challenge") || typeRaw.includes("desafio") || typeRaw.includes("desafío") || typeRaw.includes("practica") || typeRaw.includes("práctica")) {
+            type = "challenge";
+          }
+
+          const aiPromptContext = cols[contextIdx];
+          if (title && aiPromptContext) {
+            nodesList.push({ title, type, aiPromptContext });
+          }
+        }
+      } else if (cols.length >= 3) {
+        let titleCol = 0;
+        let typeCol = 1;
+        let contextCol = 2;
+        if (/^\d+$/.test(cols[0])) {
+          titleCol = 1;
+          typeCol = 2;
+          contextCol = 3;
+        }
+        
+        const title = cols[titleCol];
+        const typeRaw = cols[typeCol]?.toLowerCase() || "";
+        let type: "concept" | "quiz" | "challenge" = "concept";
+        if (typeRaw.includes("quiz") || typeRaw.includes("cuestionario") || typeRaw.includes("evaluacion") || typeRaw.includes("evaluación")) {
+          type = "quiz";
+        } else if (typeRaw.includes("challenge") || typeRaw.includes("desafio") || typeRaw.includes("desafío") || typeRaw.includes("practica") || typeRaw.includes("práctica")) {
+          type = "challenge";
+        }
+
+        const aiPromptContext = cols[contextCol];
+        if (title && aiPromptContext) {
+          nodesList.push({ title, type, aiPromptContext });
+        }
+      }
+    }
+
+    if (nodesList.length >= 3) {
+      return { moduleTitle, nodes: nodesList };
+    }
+  } catch (e) {
+    console.error("[parseMarkdownTableToPath] Error parsing markdown fallback:", e);
+  }
+  return null;
+}
 
 function normalizeTopic(t: string): string {
   return t
@@ -125,7 +215,7 @@ REGLAS:
                             candidate.model.toLowerCase().includes("o3") || 
                             candidate.model.toLowerCase().includes("reasoner");
 
-        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek";
+        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek" || candidate.provider === "opencode";
 
         const promptText = isReasoning
           ? `${systemPrompt}\n\nAREA: ${areaContext}\nTEMA SOLICITADO POR EL ESTUDIANTE: "${topic}"${materialBlock}\n\nGenera un Learning Path de 6-8 nodos para este tema, basandote en el MATERIAL DE ESTUDIO DEL CURSO proporcionado. Los primeros nodos deben ser de tipo "concept" (ensenanza) y los ultimos de tipo "quiz" o "challenge" (practica).`
@@ -136,19 +226,28 @@ REGLAS:
           const responseText = await generateText({
             model: getChatModel(candidate),
             prompt: fallbackPrompt,
-            ...(isReasoning ? {} : { system: systemPrompt, temperature: 0.8 }),
+            ...(isReasoning ? {} : { system: systemPrompt, temperature: 0.3 }),
             maxOutputTokens: 4000,
             abortSignal: abortController.signal,
           });
-          const parsed = tryParseJson(responseText.text);
-          outputParsed = pathSchema.parse(parsed);
+          try {
+            const parsed = tryParseJson(responseText.text);
+            outputParsed = pathSchema.parse(parsed);
+          } catch (jsonErr) {
+            const tableParsed = parseMarkdownTableToPath(responseText.text, topic);
+            if (tableParsed) {
+              outputParsed = tableParsed;
+            } else {
+              throw jsonErr;
+            }
+          }
         } else {
           try {
             const response = await generateObject({
               model: getChatModel(candidate),
               schema: pathSchema,
               prompt: promptText,
-              ...(isReasoning ? {} : { system: systemPrompt, temperature: 0.8 }),
+              ...(isReasoning ? {} : { system: systemPrompt, temperature: 0.3 }),
               maxOutputTokens: 4000,
               abortSignal: abortController.signal,
             });
@@ -159,12 +258,21 @@ REGLAS:
             const responseText = await generateText({
               model: getChatModel(candidate),
               prompt: fallbackPrompt,
-              ...(isReasoning ? {} : { system: systemPrompt, temperature: 0.8 }),
+              ...(isReasoning ? {} : { system: systemPrompt, temperature: 0.3 }),
               maxOutputTokens: 4000,
               abortSignal: abortController.signal,
             });
-            const parsed = tryParseJson(responseText.text);
-            outputParsed = pathSchema.parse(parsed);
+            try {
+              const parsed = tryParseJson(responseText.text);
+              outputParsed = pathSchema.parse(parsed);
+            } catch (jsonErr) {
+              const tableParsed = parseMarkdownTableToPath(responseText.text, topic);
+              if (tableParsed) {
+                outputParsed = tableParsed;
+              } else {
+                throw jsonErr;
+              }
+            }
           }
         }
         clearTimeout(timeoutId);
@@ -191,7 +299,7 @@ Responde SOLO con un JSON valido con la siguiente estructura:
     { "title": "string", "type": "concept|quiz|challenge", "aiPromptContext": "string" }
   ]
 }`,
-              temperature: 0.8,
+              temperature: 0.3,
               maxOutputTokens: 4000,
               abortSignal: abortController.signal,
             });
@@ -203,6 +311,12 @@ Responde SOLO con un JSON valido con la siguiente estructura:
               usedModel = candidate;
               break;
             } catch (parseError) {
+              const tableParsed = parseMarkdownTableToPath(textResponse.text, topic);
+              if (tableParsed) {
+                outputParsed = tableParsed;
+                usedModel = candidate;
+                break;
+              }
               lastError = parseError;
               continue;
             }

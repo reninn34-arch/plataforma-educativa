@@ -32,7 +32,13 @@ export default async function middleware(request: NextRequest) {
   const method = request.method;
 
   if (publicPaths.some((p) => pathname.startsWith(p))) {
-    const response = NextResponse.next();
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-pathname", pathname);
+    const response = NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
     if (method === "GET" && !request.cookies.get(CSRF_COOKIE)) {
       const csrfToken = crypto.randomUUID();
       response.cookies.set(CSRF_COOKIE, csrfToken, {
@@ -91,6 +97,7 @@ export default async function middleware(request: NextRequest) {
   }));
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-user-payload", encodedPayload);
+  requestHeaders.set("x-pathname", pathname);
   const response = NextResponse.next({ request: { headers: requestHeaders } });
 
   if (method === "GET" && !request.cookies.get(CSRF_COOKIE)) {

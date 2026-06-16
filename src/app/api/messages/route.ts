@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { directMessages, users } from "@/lib/db/schema";
+import { directMessages, users, cursoEstudiantes } from "@/lib/db/schema";
 import { eq, or, and, desc } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { messageSchema } from "@/lib/api-helpers";
@@ -70,28 +70,71 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   try {
-  const body = await request.json();
-  const parsed = messageSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
-  }
-  const { receiverId, content } = parsed.data;
+    const body = await request.json();
 
-  const [msg] = await db.insert(directMessages).values({
-    senderId: user.id,
-    receiverId,
-    content,
-  } as any).returning();
+    // Check if sending message to a whole course
+    if (body.cursoId !== undefined && body.cursoId !== null) {
+      const cursoId = Number(body.cursoId);
+      const messageText = body.message || body.content || "";
+      if (!messageText.trim()) {
+        return NextResponse.json({ error: "El mensaje no puede estar vacio" }, { status: 400 });
+      }
 
-  await notifyUser({
-    userId: receiverId,
-    type: "message",
-    title: `Nuevo mensaje de ${user.role === "teacher" ? "tu profesor" : "un estudiante"}`,
-    message: content.slice(0, 120),
-  });
+      // Fetch active students in this course
+      const students = await db
+        .select({ id: users.id })
+        .from(users)
+        .innerJoin(cursoEstudiantes, eq(cursoEstudiantes.estudianteId, users.id))
+        .where(and(eq(cursoEstudiantes.cursoId, cursoId), eq(users.activo, true)));
 
-  return NextResponse.json({ message: msg });
-  } catch {
+      if (students.length === 0) {
+        return NextResponse.json({ error: "No hay estudiantes activos en este curso" }, { status: 400 });
+      }
+
+      // Insert message for each student and send notification
+      for (const s of students) {
+        await db.insert(directMessages).values({
+          senderId: user.id,
+          receiverId: s.id,
+          content: messageText.trim(),
+        } as any);
+
+        await notifyUser({
+          userId: s.id,
+          type: "message",
+          title: `Nuevo mensaje de ${user.role === "teacher" ? "tu profesor" : "un estudiante"}`,
+          message: messageText.trim().slice(0, 120),
+          link: `/messages?contact=${user.id}`,
+        });
+      }
+
+      return NextResponse.json({ success: true, count: students.length });
+    }
+
+    // Normal single-user message
+    const parsed = messageSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+    }
+    const { receiverId, content } = parsed.data;
+
+    const [msg] = await db.insert(directMessages).values({
+      senderId: user.id,
+      receiverId,
+      content,
+    } as any).returning();
+
+    await notifyUser({
+      userId: receiverId,
+      type: "message",
+      title: `Nuevo mensaje de ${user.role === "teacher" ? "tu profesor" : "un estudiante"}`,
+      message: content.slice(0, 120),
+      link: `/messages?contact=${user.id}`,
+    });
+
+    return NextResponse.json({ message: msg });
+  } catch (err: any) {
+    console.error("Error in messages POST:", err);
     return NextResponse.json({ error: "Error al enviar mensaje" }, { status: 500 });
   }
 }
