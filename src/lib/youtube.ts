@@ -23,10 +23,20 @@ function extractKeywords(query: string): string[] {
     .slice(0, 5);
 }
 
+function expandKeywords(keywords: string[]): string[] {
+  const expanded = new Set(keywords);
+  for (const k of keywords) {
+    const singular = k.endsWith("es") ? k.slice(0, -2) : k.endsWith("s") ? k.slice(0, -1) : null;
+    if (singular) expanded.add(singular);
+  }
+  return [...expanded];
+}
+
 function isRelevant(title: string, keywords: string[]): boolean {
   if (keywords.length === 0) return true;
   const normalized = normalize(title);
-  return keywords.some((k) => normalized.includes(k));
+  const expanded = expandKeywords(keywords);
+  return expanded.some((k) => normalized.includes(k));
 }
 
 async function checkEmbeddable(id: string): Promise<boolean> {
