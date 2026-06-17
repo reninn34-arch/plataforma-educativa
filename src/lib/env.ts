@@ -29,9 +29,9 @@ const envSchema = z.object({
   ),
   AI_DEFAULT_MODEL: z.preprocess(
     (val) => val ?? process.env.AI_MODEL,
-    z.string().min(1).default("kimi-k2.5")
+    z.string().min(1).default("deepseek-v4-flash")
   ),
-  AI_ALLOWED_MODELS: z.string().default("opencode:kimi-k2.5"),
+  AI_ALLOWED_MODELS: z.string().default("opencode:deepseek-v4-flash"),
   AI_ENFORCE_ALLOWLIST: booleanFromEnv.default(false),
   AI_FALLBACK_MODELS: z.string().default(""),
   AI_DEFAULT_EMBEDDING_PROVIDER: z.enum(["opencode", "openai", "anthropic", "google"]).default("opencode"),

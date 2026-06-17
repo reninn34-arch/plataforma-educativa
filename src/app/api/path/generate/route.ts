@@ -128,7 +128,7 @@ REGLAS:
                             candidate.model.toLowerCase().includes("o3") || 
                             candidate.model.toLowerCase().includes("reasoner");
 
-        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek";
+        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek" || candidate.provider === "opencode";
 
         const promptText = isReasoning
           ? `${systemPrompt}\n\nAREA: ${areaContext}\nTEMA SOLICITADO POR EL ESTUDIANTE: "${topic}"${materialBlock}\n\nGenera un Learning Path de 6-8 nodos para este tema, basandote en el MATERIAL DE ESTUDIO DEL CURSO proporcionado. Los primeros nodos deben ser de tipo "concept" (ensenanza) y los ultimos de tipo "quiz" o "challenge" (practica).`

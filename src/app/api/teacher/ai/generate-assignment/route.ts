@@ -203,7 +203,7 @@ Debes responder UNICAMENTE con un objeto JSON valido que coincida exactamente co
 
       try {
         const start = Date.now();
-        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek";
+        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek" || candidate.provider === "opencode";
 
         if (isTextOnlyProvider) {
           const textResponse = await generateText({

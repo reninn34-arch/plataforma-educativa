@@ -138,7 +138,7 @@ FORMATO:
 
       try {
         const start = Date.now();
-        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek";
+        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek" || candidate.provider === "opencode";
 
         let text: string;
 

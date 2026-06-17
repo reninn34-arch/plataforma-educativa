@@ -206,9 +206,9 @@ const exerciseTypeSchema = z.preprocess((val) => {
     .replace(/-/g, " ")
     .trim();
   if (str === "mcq" || str.includes("opcion multiple") || str.includes("multiple choice") || str.includes("seleccion multiple")) return "mcq";
-  if (str === "fill blank" || str.includes("completar") || str.includes("rellenar espacios") || str.includes("completar espacio")) return "fill_blank";
+  if (str.includes("rellenar") || str.includes("completar") || str.includes("fill blank") || str.includes("short answer") || str.includes("completion") || str.includes("completacion")) return "fill_blank";
   if (str === "true false" || str.includes("verdadero falso") || str.includes("verdadero o falso")) return "true_false";
-  return val;
+  return "fill_blank";
 }, z.enum(["mcq", "fill_blank", "true_false"]));
 
 const exerciseItemSchema = z.preprocess((val: any) => {
@@ -632,8 +632,8 @@ REGLAS:
 - caption: maximo 6 palabras descriptivas.`
       : null;
 
-    const LESSON_TIMEOUT_MS = 70_000;
-    const DIAGRAM_TIMEOUT_MS = 60_000;
+    const LESSON_TIMEOUT_MS = 120_000;
+    const DIAGRAM_TIMEOUT_MS = 120_000;
     let lessonResult: z.infer<typeof practiceResponseSchema> | null = null;
     let diagram: z.infer<typeof diagramSchema> | null = null;
     let usedModel = resolved;
@@ -650,11 +650,12 @@ REGLAS:
         const isReasoning = candidate.model.toLowerCase().includes("gpt-5") || 
                             candidate.model.toLowerCase().includes("o1") || 
                             candidate.model.toLowerCase().includes("o3") || 
-                            candidate.model.toLowerCase().includes("reasoner");
+                            candidate.model.toLowerCase().includes("reasoner") ||
+                            candidate.model.toLowerCase().includes("kimi");
 
         const startTime = performance.now();
 
-        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek";
+        const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek" || candidate.provider === "opencode";
 
         const lessonPromise = (async () => {
           if (isTextOnlyProvider) {
@@ -662,7 +663,7 @@ REGLAS:
               model: aiModel,
               prompt: lessonPrompt + "\n\nResponde UNICAMENTE con un objeto JSON valido estructurado de acuerdo al esquema esperado, sin usar bloques de markdown ni texto adicional.",
               ...(isReasoning ? {} : { temperature: 0.6 }),
-              maxOutputTokens: 4096,
+              maxOutputTokens: 16384,
               abortSignal: lessonAbort.signal,
             });
             const parsedJson = tryParseJson(r.text);
@@ -680,7 +681,7 @@ REGLAS:
                 schema: practiceResponseSchema,
                 prompt: lessonPrompt,
                 ...(isReasoning ? {} : { temperature: 0.6 }),
-                maxOutputTokens: 4096,
+                maxOutputTokens: 16384,
                 abortSignal: lessonAbort.signal,
               });
               return { object: r.object, usage: r.usage };
@@ -694,7 +695,7 @@ REGLAS:
                   model: aiModel,
                   prompt: lessonPrompt + "\n\nResponde UNICAMENTE con un objeto JSON valido estructurado de acuerdo al esquema esperado, sin usar bloques de markdown ni texto adicional.",
                   ...(isReasoning ? {} : { temperature: 0.6 }),
-                  maxOutputTokens: 4096,
+                  maxOutputTokens: 16384,
                   abortSignal: fallbackAbort.signal,
                 });
                 const parsedJson = tryParseJson(r.text);
@@ -721,7 +722,7 @@ REGLAS:
                 model: aiModel,
                 prompt: diagramPrompt + "\n\nResponde SOLO con un JSON valido con dos campos: \"mermaid\" (string con el diagrama) y \"caption\" (string corta).",
                 ...(isReasoning ? {} : { temperature: 0.3 }),
-                maxOutputTokens: 1500,
+                maxOutputTokens: 8192,
                 abortSignal: diagramAbort.signal,
               });
               logAiCall({
@@ -749,7 +750,7 @@ REGLAS:
                   schema: diagramSchema,
                   prompt: diagramPrompt,
                   ...(isReasoning ? {} : { temperature: 0.3 }),
-                  maxOutputTokens: 1500,
+                  maxOutputTokens: 8192,
                   abortSignal: diagramAbort.signal,
                 });
                 logAiCall({
@@ -773,7 +774,7 @@ REGLAS:
                     model: aiModel,
                     prompt: diagramPrompt + "\n\nResponde SOLO con un JSON valido con dos campos: \"mermaid\" (string con el diagrama) y \"caption\" (string corta).",
                     ...(isReasoning ? {} : { temperature: 0.3 }),
-                    maxOutputTokens: 1500,
+                    maxOutputTokens: 8192,
                     abortSignal: diagramAbort.signal,
                   });
                   logAiCall({
@@ -938,9 +939,9 @@ function extractDiagramFromText(raw: string): { mermaid: string; caption: string
     return { mermaid: blockMatch[1].trim(), caption: extractCaptionFromText(raw) };
   }
 
-  const graphMatch = raw.match(/(graph\s+(?:TD|LR|TB|RL)[\s\S]*?)(?:\n{2,}|$)/i);
-  if (graphMatch) {
-    return { mermaid: graphMatch[1].trim(), caption: extractCaptionFromText(raw) };
+  const mermaidMatch = raw.match(/((?:graph|flowchart)\s+(?:TD|LR|TB|RL|BT)[\s\S]*?)(?:\n{2,}|$)/i);
+  if (mermaidMatch) {
+    return { mermaid: mermaidMatch[1].trim(), caption: extractCaptionFromText(raw) };
   }
 
   return null;
