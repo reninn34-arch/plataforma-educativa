@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     let result: Awaited<ReturnType<typeof generateText>> | null = null;
     let usedModel = resolved;
     let lastError: unknown;
-    const REQUEST_TIMEOUT_MS = 60_000;
+    const REQUEST_TIMEOUT_MS = 120_000;
 
     for (const candidate of candidates) {
       const abortController = new AbortController();

@@ -193,7 +193,7 @@ Debes responder UNICAMENTE con un objeto JSON valido que coincida exactamente co
   ]
 }`;
 
-    const REQUEST_TIMEOUT_MS = 60_000;
+    const REQUEST_TIMEOUT_MS = 120_000;
     const MAX_CANDIDATES = 3;
     let lastError: unknown;
 
@@ -289,7 +289,7 @@ Debes responder UNICAMENTE con un objeto JSON valido que coincida exactamente co
               model: getChatModel(candidate),
               prompt: prompt + `\n\nResponde SOLO con un JSON valido. No incluyas texto adicional, solo el JSON.`,
               temperature: 0.6,
-              maxOutputTokens: 4000,
+            maxOutputTokens: 8192,
               abortSignal: abortController.signal,
             });
 

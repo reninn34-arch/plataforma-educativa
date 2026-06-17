@@ -115,7 +115,7 @@ REGLAS:
     let outputParsed: z.infer<typeof pathSchema> | null = null;
     let usedModel = resolved;
     let lastError: unknown;
-    const REQUEST_TIMEOUT_MS = 60_000;
+    const REQUEST_TIMEOUT_MS = 120_000;
     const MAX_CANDIDATES = 3;
 
     for (const candidate of candidates.slice(0, MAX_CANDIDATES)) {

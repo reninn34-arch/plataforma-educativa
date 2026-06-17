@@ -127,7 +127,7 @@ FORMATO:
   ]
 }`;
 
-    const REQUEST_TIMEOUT_MS = 60_000;
+    const REQUEST_TIMEOUT_MS = 120_000;
     const MAX_CANDIDATES = 3;
     let lastError: unknown;
     let usedModel = resolved;
