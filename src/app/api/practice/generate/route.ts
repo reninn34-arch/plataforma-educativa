@@ -481,13 +481,13 @@ export async function POST(request: NextRequest) {
 
     console.log(`[practice] moduleTopic="${moduleTopic}" nodeTitle="${nodeTitle}"`);
 
-    const videoSearchQuery = nodeTitle || cleanContext || topic || moduleTopic || ctx.topics[0];
+    let videoSearchQuery = cleanContext || nodeTitle || topic || moduleTopic || ctx.topics[0];
 
     const studyMaterial = await getStudyMaterialForStudent(user.id, subject);
     if (studyMaterial) {
       console.log(`[practice] study material found: "${studyMaterial.title}" (${studyMaterial.content.length} chars)`);
     }
-    const MAX_MATERIAL_CHARS = 3000;
+    const MAX_MATERIAL_CHARS = 1500;
     const materialContent = studyMaterial
       ? studyMaterial.content.length > MAX_MATERIAL_CHARS
         ? studyMaterial.content.slice(0, MAX_MATERIAL_CHARS) + `\n\n[... contenido truncado de ${studyMaterial.content.length} caracteres. Solo se muestran los primeros ${MAX_MATERIAL_CHARS}.]`
@@ -498,125 +498,48 @@ export async function POST(request: NextRequest) {
       : "";
 
     const lessonPrompt = isEnglish
-      ? `You are a friendly, patient, and enthusiastic tutor. You teach adults in an accelerated high school program (PCEI). Your mission is to explain a topic clearly, visually, and in a friendly way.
+      ? `You are a friendly tutor for adults in accelerated high school (PCEI). Explain topics clearly and visually.
 
-All lesson content and exercises MUST be written in ENGLISH.
+All content MUST be in ENGLISH.
 
-REQUIRED JSON STRUCTURE (you MUST follow this exact format):
-{
-  "lesson": {
-    "title": "Lesson title",
-    "explanation": "Topic explanation...",
-    "example": {
-      "problem": "Practical problem statement",
-      "steps": [{ "text": "Step 1", "svg": "<svg>...</svg>" }, { "text": "Step 2", "svg": "<svg>...</svg>" }],
-      "answer": "Final result of the example"
-    },
-    "commonMistake": "Common mistake and how to fix it",
-    "quickCheck": { "question": "Verification question", "options": ["A", "B", "C", "D"], "correctIndex": 0, "feedback": "Brief explanation" }
-  },
-  "exercises": [
-    { "type": "mcq", "question": "...", "options": ["A", "B", "C", "D"], "correctIndex": 0, "difficulty": "easy", "timeLimit": 30 },
-    { "type": "fill_blank", "question": "...", "acceptedAnswers": ["answer"], "difficulty": "medium", "timeLimit": 35 },
-    { "type": "true_false", "question": "...", "correctAnswer": true, "difficulty": "hard", "timeLimit": null }
-  ]
-}
+JSON STRUCTURE:
+{"lesson":{"title":"","explanation":"","example":{"problem":"","steps":[{"text":"","svg":""}],"answer":""},"commonMistake":"","quickCheck":{"question":"","options":[""],"correctIndex":0,"feedback":""}},"exercises":[{"type":"mcq|fill_blank|true_false","question":"","options":[""],"correctIndex":0,"acceptedAnswers":[""],"correctAnswer":true,"difficulty":"easy|medium|hard","timeLimit":30}]}
+
+RULES:
+- Friendly tone, "Imagine that...", max 2 sentences/idea, everyday examples
+- explanation: 2-3 sentences, start with question or analogy
+- example: practical problem, EACH step MUST include "svg" (max 4 elements rect/circle/text/line; viewBox='0 0 260 120'; single quotes only; no xmlns; colors #FF6B6B #4ECDC4 #333 #FFD93D)
+- commonMistake: 1 sentence mistake + 1 sentence correction
+- quickCheck: 1 question + 4 options, 1 sentence feedback
+- EXACTLY 8 exercises. Max 2 per type. At least 1 easy, 1 medium, 1 hard
+- MCQ: options[4], correctIndex 0-3. FILL_BLANK: acceptedAnswers[]. TRUE_FALSE: correctAnswer boolean
+- Hard: timeLimit null. Easy/Medium: timeLimit 20-40
+- Vary the subtopic/focus each time
 
 AREA: ${ctx.area}
 Topic: ${topicContext}${materialBlock}
 
-TEACHING STYLE:
-- Talk like a friend explaining something new: warm, encouraging, without unnecessary jargon.
-- Use phrases like "Imagine that...", "Think about this...", "Let's go step by step".
-- Maximum 2 sentences per idea. Keep it direct and clear.
-- Use everyday life examples that any adult would recognize.
-- IMPORTANT: The explanation, examples, exercises, and all content MUST be in ENGLISH.
+Respond ONLY with valid JSON, no markdown, no extra text.`
+      : `Eres un tutor para bachillerato acelerado de adultos (PCEI). Explica claro y visual.
 
-LESSON ("explanation"):
-- 2-3 short sentences introducing the concept from scratch.
-- Start with a question or analogy that connects to real life.
+ESTRUCTURA JSON:
+{"lesson":{"title":"","explanation":"","example":{"problem":"","steps":[{"text":"","svg":""}],"answer":""},"commonMistake":"","quickCheck":{"question":"","options":[""],"correctIndex":0,"feedback":""}},"exercises":[{"type":"mcq|fill_blank|true_false","question":"","options":[""],"correctIndex":0,"acceptedAnswers":[""],"correctAnswer":true,"difficulty":"easy|medium|hard","timeLimit":30}]}
 
-EXAMPLE ("example"):
-- Pose a practical problem relevant to adults.
-- EACH step MUST include an "svg" field with an SVG diagram that visually illustrates that step (numbers, lines, geometric shapes, operations).
-- The SVG MUST be VERY simple: maximum 6 elements (rect, circle, text, line). viewBox='0 0 260 120'.
-- Use ONLY SINGLE quotes inside SVG: viewBox='0 0 260 120', rect x='10' y='10', etc.
-- Colors: #FF6B6B, #4ECDC4, #333, #FFD93D. Nothing complex.
-- Include "answer" as a clear conclusion of the example.
-
-COMMON MISTAKE ("commonMistake"):
-- 1 sentence for the mistake. 1 sentence for the correction.
-
-QUICK CHECK ("quickCheck"):
-- 1 question with 4 options. Useful feedback in 1 sentence.
-
-EXERCISE RULES:
-- EXACTLY 8 exercises.
-- Vary types: maximum 2 of the same type (mcq, fill_blank, true_false).
-- Varied difficulty: at least 1 easy, 1 medium, 1 hard.
-- MCQ: "options" with 4 strings, "correctIndex" (0-3). DO NOT use "correctAnswer".
-- FILL_BLANK: "acceptedAnswers" REQUIRED (array of strings).
-- TRUE_FALSE: "correctAnswer" REQUIRED (true or false).
-- Hard: "timeLimit": null. Easy/Medium: "timeLimit" between 20 and 40.
-- VARY THE FOCUS: even if the topic is broad, focus on a SPECIFIC subtopic or aspect each time. Do not repeat the same general approach.`
-      : `Eres un tutor cercano, paciente y entusiasta. Ensenas a adultos en bachillerato acelerado (PCEI). Tu mision es explicar un tema de forma clara, visual y amigable.
-
-ESTRUCTURA JSON REQUERIDA (DEBES seguir exactamente este formato):
-{
-  "lesson": {
-    "title": "Titulo de la leccion",
-    "explanation": "Explicacion del tema...",
-    "example": {
-      "problem": "Enunciado del problema practico",
-      "steps": [{ "text": "Paso 1", "svg": "<svg>...</svg>" }, { "text": "Paso 2", "svg": "<svg>...</svg>" }],
-      "answer": "Resultado final del ejemplo"
-    },
-    "commonMistake": "Error tipico y como corregirlo",
-    "quickCheck": { "question": "Pregunta de verificacion", "options": ["A", "B", "C", "D"], "correctIndex": 0, "feedback": "Explicacion breve" }
-  },
-  "exercises": [
-    { "type": "mcq", "question": "...", "options": ["A", "B", "C", "D"], "correctIndex": 0, "difficulty": "easy", "timeLimit": 30 },
-    { "type": "fill_blank", "question": "...", "acceptedAnswers": ["respuesta"], "difficulty": "medium", "timeLimit": 35 },
-    { "type": "true_false", "question": "...", "correctAnswer": true, "difficulty": "hard", "timeLimit": null }
-  ]
-}
+REGLAS:
+- Tono cercano, "Imagina que...", max 2 oraciones/idea, ejemplos cotidianos
+- explanation: 2-3 oraciones, empieza con pregunta o analogia
+- example: problema practico, CADA paso DEBE incluir "svg" (max 4 elementos rect/circle/text/line; viewBox='0 0 260 120'; solo comillas simples; sin xmlns; colores #FF6B6B #4ECDC4 #333 #FFD93D)
+- commonMistake: 1 oracion error + 1 oracion correccion
+- quickCheck: 1 pregunta + 4 opciones, feedback 1 oracion
+- EXACTAMENTE 8 ejercicios. Max 2 por tipo. Al menos 1 easy, 1 medium, 1 hard
+- MCQ: options[4], correctIndex 0-3. FILL_BLANK: acceptedAnswers[]. TRUE_FALSE: correctAnswer booleano
+- Hard: timeLimit null. Easy/Medium: timeLimit 20-40
+- Varia el subtema cada vez
 
 AREA: ${ctx.area}
 Tema: ${topicContext}${materialBlock}
 
-ESTILO DE ENSENANZA:
-- Habla como un amigo explicando algo nuevo: cercano, animado, sin jerga innecesaria.
-- Usa frases como "Imagina que...", "Piensa en esto...", "Vamos paso a paso".
-- Maximo 2 oraciones por idea. Se directo y claro.
-- Usa ejemplos de la vida cotidiana que cualquier adulto reconozca.
-
-EXPLICACION INICIAL ("explanation"):
-- 2-3 oraciones cortas que introduzcan el concepto desde cero.
-- Empieza con una pregunta o analogia que conecte con la vida real.
-
-EJEMPLO ("example"):
-- Plantea un problema practico y relevante para adultos.
-- CADA paso DEBE incluir un campo "svg" con un diagrama SVG que ilustre visualmente ese paso (numeros, rectas, formas geometricas, operaciones).
-- El SVG debe ser MUY simple: maximo 6 elementos (rect, circle, text, line). viewBox='0 0 260 120'.
-- Usa SOLO comillas SIMPLES dentro del SVG: viewBox='0 0 260 120', rect x='10' y='10', etc.
-- Colores: #FF6B6B, #4ECDC4, #333, #FFD93D. Nada complejo.
-- Incluye "answer" como conclusion clara del ejemplo.
-
-ERROR COMUN ("commonMistake"):
-- 1 oracion para el error. 1 oracion para la correccion.
-
-COMPROBACION RAPIDA ("quickCheck"):
-- 1 pregunta con 4 opciones. Feedback util en 1 oracion.
-
-REGLAS EJERCICIOS:
-- EXACTAMENTE 8 ejercicios.
-- Variar tipos: maximo 2 del mismo tipo (mcq, fill_blank, true_false).
-- Dificultad variada: al menos 1 easy, 1 medium, 1 hard.
-- MCQ: "options" con 4 strings, "correctIndex" (0-3). NO usar "correctAnswer".
-- FILL_BLANK: "acceptedAnswers" OBLIGATORIO (array de strings).
-- TRUE_FALSE: "correctAnswer" OBLIGATORIO (true o false).
-- Hard: "timeLimit": null. Easy/Medium: "timeLimit" entre 20 y 40.
-- VARIA EL ENFOQUE: aunque el tema sea general, enfocate en un ASPECTO o SUBTEMA especifico diferente cada vez. No repitas el mismo enfoque general.`;
+Responde SOLO con JSON valido, sin markdown, sin texto extra.`;
 
     const diagramPrompt = ctx.canHaveDiagram
       ? `Genera un diagrama educativo visual en sintaxis Mermaid.js sobre el tema.
@@ -632,7 +555,7 @@ REGLAS:
 - caption: maximo 6 palabras descriptivas.`
       : null;
 
-    const LESSON_TIMEOUT_MS = 120_000;
+    const LESSON_TIMEOUT_MS = 300_000;
     const DIAGRAM_TIMEOUT_MS = 120_000;
     let lessonResult: z.infer<typeof practiceResponseSchema> | null = null;
     let diagram: z.infer<typeof diagramSchema> | null = null;
@@ -659,14 +582,28 @@ REGLAS:
 
         const lessonPromise = (async () => {
           if (isTextOnlyProvider) {
-            const r = await generateText({
+            const makeTextCall = () => generateText({
               model: aiModel,
               prompt: lessonPrompt + "\n\nResponde UNICAMENTE con un objeto JSON valido estructurado de acuerdo al esquema esperado, sin usar bloques de markdown ni texto adicional.",
               ...(isReasoning ? {} : { temperature: 0.6 }),
-              maxOutputTokens: 16384,
+              maxOutputTokens: 14336,
               abortSignal: lessonAbort.signal,
             });
-            const parsedJson = tryParseJson(r.text);
+
+            let r = await makeTextCall();
+
+            if (!r.text || r.text.trim() === "") {
+              console.warn(`[practice-generate] respuesta vacia de ${candidate.modelId}, reintentando...`);
+              r = await makeTextCall();
+            }
+
+            let parsedJson: any;
+            try {
+              parsedJson = tryParseJson(r.text);
+            } catch (parseErr) {
+              console.error("[practice-generate] tryParseJson RAW TEXT:", r.text);
+              throw parseErr;
+            }
             try {
               return { object: practiceResponseSchema.parse(parsedJson), usage: r.usage };
             } catch (zodErr) {
@@ -681,7 +618,7 @@ REGLAS:
                 schema: practiceResponseSchema,
                 prompt: lessonPrompt,
                 ...(isReasoning ? {} : { temperature: 0.6 }),
-                maxOutputTokens: 16384,
+                maxOutputTokens: 14336,
                 abortSignal: lessonAbort.signal,
               });
               return { object: r.object, usage: r.usage };
@@ -695,10 +632,16 @@ REGLAS:
                   model: aiModel,
                   prompt: lessonPrompt + "\n\nResponde UNICAMENTE con un objeto JSON valido estructurado de acuerdo al esquema esperado, sin usar bloques de markdown ni texto adicional.",
                   ...(isReasoning ? {} : { temperature: 0.6 }),
-                  maxOutputTokens: 16384,
+                  maxOutputTokens: 14336,
                   abortSignal: fallbackAbort.signal,
                 });
-                const parsedJson = tryParseJson(r.text);
+                let parsedJson: any;
+                try {
+                  parsedJson = tryParseJson(r.text);
+                } catch (parseErr) {
+                  console.error("[practice-generate] tryParseJson RAW TEXT (generateObject fallback):", r.text);
+                  throw parseErr;
+                }
                 try {
                   return { object: practiceResponseSchema.parse(parsedJson), usage: r.usage };
                 } catch (zodErr) {
@@ -718,29 +661,40 @@ REGLAS:
           const diagramStart = performance.now();
           diagramPromise = (async () => {
             if (isTextOnlyProvider) {
-              const r = await generateText({
-                model: aiModel,
-                prompt: diagramPrompt + "\n\nResponde SOLO con un JSON valido con dos campos: \"mermaid\" (string con el diagrama) y \"caption\" (string corta).",
-                ...(isReasoning ? {} : { temperature: 0.3 }),
-                maxOutputTokens: 8192,
-                abortSignal: diagramAbort.signal,
-              });
-              logAiCall({
-                route: "practice-diagram-text",
-                model: candidate.modelId,
-                durationMs: Math.round(performance.now() - diagramStart),
-                usage: r.usage ? {
-                  inputTokens: r.usage.inputTokens,
-                  outputTokens: r.usage.outputTokens,
-                  totalTokens: (r.usage.inputTokens ?? 0) + (r.usage.outputTokens ?? 0),
-                } : undefined,
-              });
               try {
-                const parsed = extractDiagramFromText(r.text);
-                if (!parsed) throw new Error("No se pudo extraer diagrama");
-                return { mermaid: sanitizeMermaid(parsed.mermaid), caption: parsed.caption };
-              } catch {
-                console.error("[diagram] failed to parse JSON from generateText");
+                const r = await generateText({
+                  model: aiModel,
+                  prompt: diagramPrompt + "\n\nResponde SOLO con un JSON valido con dos campos: \"mermaid\" (string con el diagrama) y \"caption\" (string corta).",
+                  ...(isReasoning ? {} : { temperature: 0.3 }),
+                  maxOutputTokens: 14336,
+                  abortSignal: diagramAbort.signal,
+                });
+                logAiCall({
+                  route: "practice-diagram-text",
+                  model: candidate.modelId,
+                  durationMs: Math.round(performance.now() - diagramStart),
+                  usage: r.usage ? {
+                    inputTokens: r.usage.inputTokens,
+                    outputTokens: r.usage.outputTokens,
+                    totalTokens: (r.usage.inputTokens ?? 0) + (r.usage.outputTokens ?? 0),
+                  } : undefined,
+                });
+                try {
+                  const parsed = extractDiagramFromText(r.text);
+                  if (!parsed) throw new Error("No se pudo extraer diagrama");
+                  return { mermaid: sanitizeMermaid(parsed.mermaid), caption: parsed.caption };
+                } catch {
+                  console.error("[diagram] failed to parse JSON from generateText");
+                  return null;
+                }
+              } catch (err) {
+                console.warn("[diagram] generateText failed:", (err as any)?.message || err);
+                logAiCall({
+                  route: "practice-diagram-text",
+                  model: candidate.modelId,
+                  durationMs: Math.round(performance.now() - diagramStart),
+                  error: (err as any)?.message || "unknown",
+                });
                 return null;
               }
             } else {
@@ -750,7 +704,7 @@ REGLAS:
                   schema: diagramSchema,
                   prompt: diagramPrompt,
                   ...(isReasoning ? {} : { temperature: 0.3 }),
-                  maxOutputTokens: 8192,
+                  maxOutputTokens: 14336,
                   abortSignal: diagramAbort.signal,
                 });
                 logAiCall({
@@ -774,7 +728,7 @@ REGLAS:
                     model: aiModel,
                     prompt: diagramPrompt + "\n\nResponde SOLO con un JSON valido con dos campos: \"mermaid\" (string con el diagrama) y \"caption\" (string corta).",
                     ...(isReasoning ? {} : { temperature: 0.3 }),
-                    maxOutputTokens: 8192,
+                    maxOutputTokens: 14336,
                     abortSignal: diagramAbort.signal,
                   });
                   logAiCall({
@@ -837,6 +791,9 @@ REGLAS:
     if (!lessonResult) throw (lastError ?? new Error("No se pudo generar practica con los modelos configurados"));
 
     lessonResult.exercises = lessonResult.exercises.map((ex, i) => ({ ...ex, id: i + 1 }));
+
+    const generatedTitle = lessonResult.lesson?.title;
+    if (generatedTitle) videoSearchQuery = generatedTitle;
 
     if (diagram && isValidMermaid(diagram.mermaid)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

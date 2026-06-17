@@ -132,7 +132,7 @@ function VideoSlide({ videos, videoSearchUrl }: { videos: VideoData[]; videoSear
 
   return (
     <div className="space-y-3 h-full overflow-y-auto">
-      {embedError ? (
+      {embedError || active.embeddable === false ? (
         <div className="rounded-2xl bg-muted border border-border aspect-video flex flex-col items-center justify-center gap-3 p-6">
           <AlertTriangle className="h-8 w-8 text-amber-500" />
           <p className="text-sm font-medium text-foreground text-center">

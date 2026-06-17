@@ -40,6 +40,7 @@ interface VideoData {
   channelName: string;
   thumbnailUrl: string;
   duration: string;
+  embeddable?: boolean;
 }
 
 interface LessonData {
@@ -193,7 +194,10 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     }
   }, [subjectSlug, aiPromptContext, nodeTitle, nodeId]);
 
+  const initialFetchRef = useRef(false);
   useEffect(() => {
+    if (initialFetchRef.current) return;
+    initialFetchRef.current = true;
     fetchExercises();
   }, [fetchExercises]);
 

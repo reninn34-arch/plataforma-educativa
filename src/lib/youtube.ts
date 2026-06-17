@@ -152,39 +152,42 @@ export async function searchYouTubeVideos(
     console.log(`[youtube] candidates after dedup/filter: ${candidates.length}`);
 
     const validated: YouTubeVideo[] = [];
+
+    const toVideo = (item: YouTubeSearchItem, embeddable: boolean): YouTubeVideo => ({
+      id: item.id,
+      title: item.title || "Sin título",
+      channelName: item.channelTitle || item.shortBylineText?.runs?.[0]?.text || "Desconocido",
+      thumbnailUrl: item.thumbnail?.thumbnails?.at(-1)?.url || "",
+      duration: item.length?.simpleText || "",
+      embeddable,
+    });
+
+    // 1. Videos relevantes y embeddables
     for (const item of candidates) {
       const title = item.title || "Sin título";
-      if (!isRelevant(title, keywords)) {
-        console.log(`[youtube] filtered by relevance: "${title}"`);
-        continue;
-      }
-
-      const embeddable = await checkEmbeddable(item.id);
-
-      validated.push({
-        id: item.id,
-        title,
-        channelName: item.channelTitle || item.shortBylineText?.runs?.[0]?.text || "Desconocido",
-        thumbnailUrl: item.thumbnail?.thumbnails?.at(-1)?.url || "",
-        duration: item.length?.simpleText || "",
-        embeddable,
-      });
-
+      if (!isRelevant(title, keywords)) continue;
+      if (!(await checkEmbeddable(item.id))) continue;
+      validated.push(toVideo(item, true));
       if (validated.length >= maxResults) break;
     }
 
-    if (validated.length === 0 && candidates.length > 0) {
-      console.warn("[youtube] no relevant matches, falling back to raw candidates");
-      for (const item of candidates.slice(0, maxResults)) {
-        const embeddable = await checkEmbeddable(item.id);
-        validated.push({
-          id: item.id,
-          title: item.title || "Sin título",
-          channelName: item.channelTitle || item.shortBylineText?.runs?.[0]?.text || "Desconocido",
-          thumbnailUrl: item.thumbnail?.thumbnails?.at(-1)?.url || "",
-          duration: item.length?.simpleText || "",
-          embeddable,
-        });
+    // 2. Fallback: embeddables aunque no sean relevantes
+    if (validated.length < maxResults) {
+      for (const item of candidates) {
+        if (validated.some((v) => v.id === item.id)) continue;
+        if (!(await checkEmbeddable(item.id))) continue;
+        validated.push(toVideo(item, true));
+        if (validated.length >= maxResults) break;
+      }
+    }
+
+    // 3. Último recurso: cualquier video restante
+    if (validated.length < maxResults) {
+      console.warn("[youtube] no hay suficientes videos embeddables, incluyendo no-embeddables como último recurso");
+      for (const item of candidates) {
+        if (validated.some((v) => v.id === item.id)) continue;
+        validated.push(toVideo(item, await checkEmbeddable(item.id)));
+        if (validated.length >= maxResults) break;
       }
     }
 

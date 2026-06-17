@@ -347,7 +347,11 @@ export function isRetryableModelError(error: unknown): boolean {
 
 export function repairJson(text: string): string {
   text = text.trim();
-  text = text.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
+  const firstBrace = text.indexOf("{");
+  const lastBrace = text.lastIndexOf("}");
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    text = text.slice(firstBrace, lastBrace + 1);
+  }
   let openBraces = 0;
   let openBrackets = 0;
   let inString = false;
@@ -406,7 +410,9 @@ export function repairJson(text: string): string {
 }
 
 export function tryParseJson(text: string): any {
-  try { return JSON.parse(text); } catch { /* fallback */ }
+  try { return JSON.parse(text); } catch (e1) {
+    console.error("[tryParseJson] JSON.parse error:", (e1 as Error)?.message);
+  }
   try { return JSON.parse(repairJson(text)); } catch { /* fallback */ }
   const firstBrace = text.indexOf("{");
   const lastBrace = text.lastIndexOf("}");
