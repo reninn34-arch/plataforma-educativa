@@ -218,6 +218,9 @@ const exerciseItemSchema = z.preprocess((val: any) => {
     if ((val.respuestacorrecta || val.correctanswer) && val.correctAnswer === undefined) {
       val.correctAnswer = val.respuestacorrecta ?? val.correctanswer;
     }
+    if (val.type !== "true_false" && typeof val.correctAnswer !== "boolean") {
+      delete val.correctAnswer;
+    }
     if ((val.indicecorrecto || val.correctindex) && val.correctIndex === undefined) {
       val.correctIndex = val.indicecorrecto ?? val.correctindex;
     }
@@ -228,6 +231,7 @@ const exerciseItemSchema = z.preprocess((val: any) => {
       val.timeLimit = val.limitetiempo ?? val.timelimit;
     }
     if (val.dificultad && !val.difficulty) val.difficulty = val.dificultad;
+    if (val.timeLimit === undefined) val.timeLimit = null;
   }
   return val;
 }, z.object({
@@ -314,9 +318,14 @@ const practiceResponseSchema = z.preprocess((val: any) => {
     if (normalized.preguntas && !normalized.exercises) normalized.exercises = normalized.preguntas;
     if (normalized.questions && !normalized.exercises) normalized.exercises = normalized.questions;
 
+    // Extract exercises nested inside lesson object (model sometimes puts them there)
+    if (!normalized.exercises && normalized.lesson && typeof normalized.lesson === "object" && Array.isArray((normalized.lesson as any).exercises)) {
+      normalized.exercises = (normalized.lesson as any).exercises;
+      delete (normalized.lesson as any).exercises;
+    }
+
     // Defensively ensure each exercise has a difficulty and MCQ options are array
     if (Array.isArray(normalized.exercises)) {
-      normalized.exercises = normalized.exercises.slice(0, 8);
       const defaultDiffs = ["easy", "medium", "hard", "medium"];
       normalized.exercises = normalized.exercises.map((ex: any, idx: number) => {
         if (ex && typeof ex === "object") {
@@ -346,6 +355,17 @@ const practiceResponseSchema = z.preprocess((val: any) => {
         }
         return ex;
       });
+
+      // Pad to exactly 8 exercises if model generated fewer (for low-maxOutput models like llama-3.1-8b-instant)
+      if (normalized.exercises.length > 8) {
+        normalized.exercises = normalized.exercises.slice(0, 8);
+      } else if (normalized.exercises.length < 8 && normalized.exercises.length > 0) {
+        const originalLength = normalized.exercises.length;
+        while (normalized.exercises.length < 8) {
+          const copySrc = normalized.exercises[normalized.exercises.length % originalLength];
+          normalized.exercises.push({ ...copySrc });
+        }
+      }
     }
   }
   return normalized;
@@ -508,7 +528,7 @@ JSON STRUCTURE:
 RULES:
 - Friendly tone, "Imagine that...", max 2 sentences/idea, everyday examples
 - explanation: 2-3 sentences, start with question or analogy
-- example: practical problem, EACH step MUST include "svg" (max 4 elements rect/circle/text/line; viewBox='0 0 260 120'; single quotes only; no xmlns; colors #FF6B6B #4ECDC4 #333 #FFD93D)
+- example: practical problem, EACH step MUST include "svg" with REAL SVG markup. Example: "<svg viewBox='0 0 260 120'><rect x='10' y='10' width='50' height='50' fill='#FF6B6B'/><text x='35' y='40' fill='#333'>3</text></svg>" (max 4 elements rect/circle/text/line; use single quotes ONLY inside SVG attrs, JSON string uses double quotes; no xmlns; colors #FF6B6B #4ECDC4 #333 #FFD93D)
 - commonMistake: 1 sentence mistake + 1 sentence correction
 - quickCheck: 1 question + 4 options, 1 sentence feedback
 - EXACTLY 8 exercises. Max 2 per type. At least 1 easy, 1 medium, 1 hard
@@ -528,7 +548,7 @@ ESTRUCTURA JSON:
 REGLAS:
 - Tono cercano, "Imagina que...", max 2 oraciones/idea, ejemplos cotidianos
 - explanation: 2-3 oraciones, empieza con pregunta o analogia
-- example: problema practico, CADA paso DEBE incluir "svg" (max 4 elementos rect/circle/text/line; viewBox='0 0 260 120'; solo comillas simples; sin xmlns; colores #FF6B6B #4ECDC4 #333 #FFD93D)
+- example: problema practico, CADA paso DEBE incluir "svg" con markup SVG REAL. Ejemplo: "<svg viewBox='0 0 260 120'><rect x='10' y='10' width='50' height='50' fill='#FF6B6B'/><text x='35' y='40' fill='#333'>3</text></svg>" (max 4 elementos rect/circle/text/line; solo comillas simples DENTRO de atributos SVG, el string JSON del SVG usa comillas DOBLES; sin xmlns; colores #FF6B6B #4ECDC4 #333 #FFD93D)
 - commonMistake: 1 oracion error + 1 oracion correccion
 - quickCheck: 1 pregunta + 4 opciones, feedback 1 oracion
 - EXACTAMENTE 8 ejercicios. Max 2 por tipo. Al menos 1 easy, 1 medium, 1 hard
@@ -555,14 +575,16 @@ REGLAS:
 - caption: maximo 6 palabras descriptivas.`
       : null;
 
-    const LESSON_TIMEOUT_MS = 300_000;
-    const DIAGRAM_TIMEOUT_MS = 120_000;
     let lessonResult: z.infer<typeof practiceResponseSchema> | null = null;
     let diagram: z.infer<typeof diagramSchema> | null = null;
     let usedModel = resolved;
     let lastError: unknown;
 
     for (const candidate of candidates) {
+      const isTinyGroq = candidate.modelId === "groq:llama-3.1-8b-instant";
+      const LESSON_TIMEOUT_MS = isTinyGroq ? 70_000 : 300_000;
+      const DIAGRAM_TIMEOUT_MS = isTinyGroq ? 60_000 : 300_000;
+
       const lessonAbort = new AbortController();
       const diagramAbort = new AbortController();
       const lessonTimeoutId = setTimeout(() => lessonAbort.abort(), LESSON_TIMEOUT_MS);
@@ -582,11 +604,12 @@ REGLAS:
 
         const lessonPromise = (async () => {
           if (isTextOnlyProvider) {
+            const maxOut = isTinyGroq ? 4096 : 14336;
             const makeTextCall = () => generateText({
               model: aiModel,
               prompt: lessonPrompt + "\n\nResponde UNICAMENTE con un objeto JSON valido estructurado de acuerdo al esquema esperado, sin usar bloques de markdown ni texto adicional.",
               ...(isReasoning ? {} : { temperature: 0.6 }),
-              maxOutputTokens: 14336,
+              maxOutputTokens: maxOut,
               abortSignal: lessonAbort.signal,
             });
 
@@ -618,7 +641,7 @@ REGLAS:
                 schema: practiceResponseSchema,
                 prompt: lessonPrompt,
                 ...(isReasoning ? {} : { temperature: 0.6 }),
-                maxOutputTokens: 14336,
+                maxOutputTokens: isTinyGroq ? 4096 : 14336,
                 abortSignal: lessonAbort.signal,
               });
               return { object: r.object, usage: r.usage };
@@ -628,13 +651,22 @@ REGLAS:
               const fallbackAbort = new AbortController();
               const fallbackTimeout = setTimeout(() => fallbackAbort.abort(), 30_000);
               try {
-                const r = await generateText({
+                const fallbackMaxOut = isTinyGroq ? 4096 : 14336;
+                const makeFallbackCall = () => generateText({
                   model: aiModel,
                   prompt: lessonPrompt + "\n\nResponde UNICAMENTE con un objeto JSON valido estructurado de acuerdo al esquema esperado, sin usar bloques de markdown ni texto adicional.",
                   ...(isReasoning ? {} : { temperature: 0.6 }),
-                  maxOutputTokens: 14336,
+                  maxOutputTokens: fallbackMaxOut,
                   abortSignal: fallbackAbort.signal,
                 });
+
+                let r = await makeFallbackCall();
+
+                if (!r.text || r.text.trim() === "") {
+                  console.warn(`[practice-generate] respuesta vacia en fallback de ${candidate.modelId}, reintentando...`);
+                  r = await makeFallbackCall();
+                }
+
                 let parsedJson: any;
                 try {
                   parsedJson = tryParseJson(r.text);
@@ -666,7 +698,7 @@ REGLAS:
                   model: aiModel,
                   prompt: diagramPrompt + "\n\nResponde SOLO con un JSON valido con dos campos: \"mermaid\" (string con el diagrama) y \"caption\" (string corta).",
                   ...(isReasoning ? {} : { temperature: 0.3 }),
-                  maxOutputTokens: 14336,
+                  maxOutputTokens: isTinyGroq ? 1500 : 14336,
                   abortSignal: diagramAbort.signal,
                 });
                 logAiCall({
@@ -704,7 +736,7 @@ REGLAS:
                   schema: diagramSchema,
                   prompt: diagramPrompt,
                   ...(isReasoning ? {} : { temperature: 0.3 }),
-                  maxOutputTokens: 14336,
+                  maxOutputTokens: isTinyGroq ? 1500 : 14336,
                   abortSignal: diagramAbort.signal,
                 });
                 logAiCall({
@@ -728,7 +760,7 @@ REGLAS:
                     model: aiModel,
                     prompt: diagramPrompt + "\n\nResponde SOLO con un JSON valido con dos campos: \"mermaid\" (string con el diagrama) y \"caption\" (string corta).",
                     ...(isReasoning ? {} : { temperature: 0.3 }),
-                    maxOutputTokens: 14336,
+                    maxOutputTokens: isTinyGroq ? 1500 : 14336,
                     abortSignal: diagramAbort.signal,
                   });
                   logAiCall({

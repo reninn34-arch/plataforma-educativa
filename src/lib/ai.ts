@@ -329,6 +329,7 @@ export function getEmbeddingModelCandidates(requestedModel: unknown): ResolvedMo
 }
 
 export function isRetryableModelError(error: unknown): boolean {
+  if ((error as any)?.name === "ZodError") return true;
   const message = String((error as any)?.message ?? error ?? "").toLowerCase();
   return (
     message.includes("not found")
@@ -347,6 +348,7 @@ export function isRetryableModelError(error: unknown): boolean {
 
 export function repairJson(text: string): string {
   text = text.trim();
+  text = text.replace(/: *'([^']*)'/g, ': "$1"');
   const firstBrace = text.indexOf("{");
   const lastBrace = text.lastIndexOf("}");
   if (firstBrace >= 0 && lastBrace > firstBrace) {
@@ -410,9 +412,7 @@ export function repairJson(text: string): string {
 }
 
 export function tryParseJson(text: string): any {
-  try { return JSON.parse(text); } catch (e1) {
-    console.error("[tryParseJson] JSON.parse error:", (e1 as Error)?.message);
-  }
+  try { return JSON.parse(text); } catch { /* primer intento falló, se prueba repairJson */ }
   try { return JSON.parse(repairJson(text)); } catch { /* fallback */ }
   const firstBrace = text.indexOf("{");
   const lastBrace = text.lastIndexOf("}");
