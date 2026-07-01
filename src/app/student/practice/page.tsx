@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { BookOpen, Brain, Target, Play } from "lucide-react";
-import { SUBJECTS } from "@/lib/utils";
 import { apiFetch } from "@/lib/fetch-utils";
 import { subjectTheme } from "@/lib/subject-theme";
 
@@ -20,7 +19,15 @@ function ProgressBar({ percentage, color = "bg-primary" }: { percentage: number;
   );
 }
 
+interface SubjectMeta {
+  slug: string;
+  name: string;
+  emoji: string;
+  color: string;
+}
+
 interface DashboardData {
+  subjectsMeta: SubjectMeta[];
   progress: Record<string, { percentage: number; completedNodes: number; totalNodes: number; totalStars: number }>;
 }
 
@@ -45,6 +52,11 @@ export default function PracticePage() {
   );
 
   const progress = data?.progress || {};
+  const subjectsMeta = data?.subjectsMeta || [];
+
+  function subjectMeta(slug: string): SubjectMeta | undefined {
+    return subjectsMeta.find(s => s.slug === slug);
+  }
 
   return (
     <div className="flex-1 w-full animate-fade-in-up">
@@ -88,9 +100,9 @@ export default function PracticePage() {
             </div>
           ) : (
             Object.entries(progress).map(([slug, p]) => {
-              const subjDef = SUBJECTS.find(s => s.id === slug);
-              const name = subjDef?.name || slug;
-              const emoji = subjDef?.emoji || "📚";
+              const meta = subjectMeta(slug);
+              const name = meta?.name || slug;
+              const emoji = meta?.emoji || "📚";
               const theme = subjectTheme(slug);
               const pct = Number(p.percentage) || 0;
               const completed = Number(p.completedNodes) || 0;

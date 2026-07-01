@@ -45,9 +45,3 @@ export function formatNotation(text: string): string {
   return result;
 }
 
-export const SUBJECTS = [
-  { id: "matematicas", name: "Matemáticas", emoji: "🔢", color: "#2563EB" },
-  { id: "fisica", name: "Física", emoji: "⚡", color: "#16A34A" },
-  { id: "ingles", name: "Inglés", emoji: "🗣", color: "#8B5CF6" },
-  { id: "quimica", name: "Química", emoji: "🧪", color: "#D97706" },
-] as const;

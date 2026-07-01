@@ -1,13 +1,14 @@
 "use client";
 
 import { AppLayout } from "@/components/layout/AppLayout";
-import { LayoutDashboard, Users, BookOpen, Calendar, Settings, FileText } from "lucide-react";
+import { LayoutDashboard, Users, BookOpen, BookText, Calendar, Settings, FileText } from "lucide-react";
 import { type ReactNode } from "react";
 
 const adminLinks = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/usuarios", label: "Usuarios", icon: Users },
   { href: "/admin/cursos", label: "Cursos", icon: BookOpen },
+  { href: "/admin/materias", label: "Materias", icon: BookText },
   { href: "/admin/periodos", label: "Períodos", icon: Calendar },
   { href: "/admin/reportes", label: "Reportes", icon: FileText },
   { href: "/admin/configuracion", label: "Configuración", icon: Settings },

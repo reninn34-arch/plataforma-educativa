@@ -99,6 +99,11 @@ export async function GET(request: NextRequest) {
       .where(eq(studentModules.studentId, user.id));
     const smIdList = studentModuleIds.map(r => r.id);
 
+    const allSubjects = await db
+      .select({ slug: subjects.slug, name: subjects.name, emoji: subjects.emoji, color: subjects.color })
+      .from(subjects)
+      .orderBy(subjects.name);
+
     const progressRows = await db
       .select({
         id: subjects.id,
@@ -190,6 +195,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       profile: profileRow,
+      subjectsMeta: allSubjects,
       progress: progressData,
       metrics: {
         totalSessions,

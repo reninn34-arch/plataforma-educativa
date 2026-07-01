@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, tryParseJson } from "@/lib/ai";
 import { isValidMermaid, sanitizeMermaid } from "@/lib/mermaid-validate";
 import { db } from "@/lib/db";
-import { studentExercises, nodeVideos, modules, nodes } from "@/lib/db/schema";
+import { studentExercises, nodeVideos, modules, nodes, subjects } from "@/lib/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { generateObject, generateText } from "ai";
 import { z } from "zod/v4";
@@ -404,7 +404,7 @@ const cachedExercisesSchema = z.object({
   data: cachedPracticeResponseSchema,
 });
 
-const SUBJECT_CONTEXTS: Record<string, { area: string; topics: string[]; canHaveDiagram: boolean }> = {
+const STATIC_SUBJECT_CONTEXTS: Record<string, { area: string; topics: string[]; canHaveDiagram: boolean }> = {
   matematicas: {
     area: "Matematicas - Bachillerato Acelerado para Adultos",
     topics: ["Ecuaciones lineales", "Porcentajes", "Geometria basica", "Fracciones", "Regla de tres", "Algebra elemental", "Area y perimetro", "Operaciones basicas"],
@@ -426,6 +426,31 @@ const SUBJECT_CONTEXTS: Record<string, { area: string; topics: string[]; canHave
     canHaveDiagram: true,
   },
 };
+
+async function getSubjectContext(subjectSlug: string): Promise<{ area: string; topics: string[]; canHaveDiagram: boolean }> {
+  const cached = STATIC_SUBJECT_CONTEXTS[subjectSlug];
+  if (cached) return cached;
+
+  try {
+    const [row] = await db
+      .select({ name: subjects.name })
+      .from(subjects)
+      .where(eq(subjects.slug, subjectSlug))
+      .limit(1);
+
+    if (row) {
+      return {
+        area: `${row.name} - Bachillerato Acelerado para Adultos`,
+        topics: [`Conceptos fundamentales de ${row.name}`, `Ejercicios practicos de ${row.name}`, `Aplicaciones de ${row.name}`, `Problemas de ${row.name}`],
+        canHaveDiagram: false,
+      };
+    }
+  } catch (err) {
+    console.warn("[practice] error fetching subject context:", err);
+  }
+
+  return STATIC_SUBJECT_CONTEXTS.matematicas;
+}
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
@@ -465,7 +490,7 @@ export async function POST(request: NextRequest) {
     const rl = rateLimit({ key: `practice-gen:${user.id}`, maxRequests: 10, windowMs: 60_000 });
     if (rl) return rl;
 
-    const ctx = SUBJECT_CONTEXTS[subject] || SUBJECT_CONTEXTS.matematicas;
+    const ctx = await getSubjectContext(subject);
     const isEnglish = subject === "ingles";
     const topicContext = aiPromptContext
       ? `${aiPromptContext}`
@@ -474,13 +499,7 @@ export async function POST(request: NextRequest) {
     const cleanContext = aiPromptContext
       ? aiPromptContext.replace(/^(En este (módulo|tema|nodo|apartado) (aprenderás|veremos|estudiaremos|conocerás|abordaremos) (sobre|acerca de)?\s*)/i, "").slice(0, 100).replace(/\n/g, " ")
       : "";
-    const subjectDisplayName: Record<string, string> = {
-      matematicas: "matemáticas",
-      fisica: "física",
-      quimica: "química",
-      ingles: "inglés",
-    };
-    const subjectName = subjectDisplayName[subject] || subject;
+    const subjectName = ctx.area.split(" - ")[0].toLowerCase();
 
     let moduleTopic: string | undefined;
     if (nodeId) {

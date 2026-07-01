@@ -28,16 +28,18 @@ export async function PUT(
     }
 
     if (teacherSubjectsData !== undefined && Array.isArray(teacherSubjectsData)) {
-      await db.delete(cursoProfesores).where(eq(cursoProfesores.cursoId, cursoId));
-      if (teacherSubjectsData.length > 0) {
-        await db.insert(cursoProfesores).values(
-          teacherSubjectsData.map((ts: { teacherId: number; subjectId: number }) => ({
-            cursoId,
-            teacherId: ts.teacherId,
-            subjectId: ts.subjectId,
-          }))
-        );
-      }
+      await db.transaction(async (tx) => {
+        await tx.delete(cursoProfesores).where(eq(cursoProfesores.cursoId, cursoId));
+        if (teacherSubjectsData.length > 0) {
+          await tx.insert(cursoProfesores).values(
+            teacherSubjectsData.map((ts: { teacherId: number; subjectId: number }) => ({
+              cursoId,
+              teacherId: ts.teacherId,
+              subjectId: ts.subjectId,
+            }))
+          );
+        }
+      });
     }
 
     return NextResponse.json({ success: true });

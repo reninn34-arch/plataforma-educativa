@@ -37,7 +37,7 @@ export default function AdminCursosPage() {
   const { data: subjectsData, isLoading: subjectsLoading } = useQuery<SubjectsData, Error>({
     queryKey: ["subjects"],
     queryFn: async () => { const res = await apiFetch("/api/subjects"); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
-    staleTime: 10 * 60 * 1000,
+    staleTime: 60 * 1000,
   });
 
   const isLoading = coursesLoading || teachersLoading || subjectsLoading;
@@ -64,6 +64,8 @@ export default function AdminCursosPage() {
 
   const invalidateCourses = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
+    queryClient.invalidateQueries({ queryKey: ["subjects"] });
+    queryClient.invalidateQueries({ queryKey: ["teacher-courses"] });
   }, [queryClient]);
 
   const addCreateRow = () => { setCreateRows([...createRows, { teacherId: null, subjectId: null }]); };
