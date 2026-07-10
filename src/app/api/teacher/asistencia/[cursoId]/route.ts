@@ -3,6 +3,7 @@ import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { asistencia, users, cursoEstudiantes } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+import { teacherHasCourseAccess } from "@/lib/course-helpers";
 
 export async function GET(
   request: NextRequest,
@@ -16,6 +17,13 @@ export async function GET(
 
   try {
     const { cursoId } = await params;
+    const cid = parseInt(cursoId);
+
+    const hasAccess = await teacherHasCourseAccess(user.id, cid);
+    if (!hasAccess) {
+      return NextResponse.json({ error: "No tienes acceso a este curso" }, { status: 403 });
+    }
+
     const fecha = request.nextUrl.searchParams.get("fecha") || new Date().toISOString().slice(0, 10);
 
     const data = await db
@@ -30,7 +38,7 @@ export async function GET(
       .innerJoin(users, eq(users.id, asistencia.studentId))
       .where(
         and(
-          eq(asistencia.cursoId, parseInt(cursoId)),
+          eq(asistencia.cursoId, cid),
           eq(asistencia.fecha, new Date(fecha))
         )
       )
@@ -46,7 +54,7 @@ export async function GET(
       .innerJoin(cursoEstudiantes, eq(cursoEstudiantes.estudianteId, users.id))
       .where(
         and(
-          eq(cursoEstudiantes.cursoId, parseInt(cursoId)),
+          eq(cursoEstudiantes.cursoId, cid),
           eq(users.activo, true)
         )
       )

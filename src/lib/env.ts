@@ -34,7 +34,7 @@ const envSchema = z.object({
   AI_ALLOWED_MODELS: z.string().default("opencode:deepseek-v4-flash"),
   AI_ENFORCE_ALLOWLIST: booleanFromEnv.default(false),
   AI_FALLBACK_MODELS: z.string().default(""),
-  AI_DEFAULT_EMBEDDING_PROVIDER: z.enum(["opencode", "openai", "anthropic", "google"]).default("opencode"),
+  AI_DEFAULT_EMBEDDING_PROVIDER: z.enum(["opencode", "openai", "anthropic", "google", "deepseek"]).default("opencode"),
   AI_DEFAULT_EMBEDDING_MODEL: z.string().min(1).default("text-embedding-3-small"),
   AI_ALLOWED_EMBEDDING_MODELS: z.string().default("opencode:text-embedding-3-small"),
   AI_ENFORCE_EMBEDDING_ALLOWLIST: booleanFromEnv.default(false),

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { horarios, subjects, cursoEstudiantes } from "@/lib/db/schema";
-import { eq, asc, inArray, sql } from "drizzle-orm";
+import { eq, asc, inArray, sql, and, or, isNotNull } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
@@ -42,7 +42,13 @@ export async function GET(request: NextRequest) {
       })
       .from(horarios)
       .leftJoin(subjects, eq(horarios.subjectId, subjects.id))
-      .where(inArray(horarios.cursoId, cursoIds))
+      .where(and(
+        inArray(horarios.cursoId, cursoIds),
+        or(
+          isNotNull(horarios.subjectId),
+          eq(horarios.tipo, "receso"),
+        ),
+      ))
       .orderBy(
         sql`CASE ${horarios.dia}
           WHEN 'lunes' THEN 1

@@ -6,6 +6,7 @@ import {
 import { eq, desc, sql } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { notifyStudentsInCourse } from "@/lib/notifications";
+import { teacherHasCourseAccess } from "@/lib/course-helpers";
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
@@ -24,6 +25,13 @@ export async function POST(request: NextRequest) {
 
     if (!questions || !Array.isArray(questions) || questions.length === 0) {
       return NextResponse.json({ error: "Debe incluir al menos una pregunta" }, { status: 400 });
+    }
+
+    if (cursoId) {
+      const hasAccess = await teacherHasCourseAccess(user.id, cursoId);
+      if (!hasAccess) {
+        return NextResponse.json({ error: "No tienes acceso a este curso" }, { status: 403 });
+      }
     }
 
     const [cuestionario] = await db.insert(cuestionarios).values({

@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { studyMaterials } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { extractPdfText } from "@/lib/study-material";
+import { teacherHasCourseAccess, getTeacherCourseIds } from "@/lib/course-helpers";
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
@@ -23,6 +24,11 @@ export async function POST(request: NextRequest) {
 
       if (!cursoId || !subjectId || !file) {
         return NextResponse.json({ error: "cursoId, subjectId y file son requeridos" }, { status: 400 });
+      }
+
+      const hasAccess = await teacherHasCourseAccess(user.id, cursoId);
+      if (!hasAccess) {
+        return NextResponse.json({ error: "No tienes acceso a este curso" }, { status: 403 });
       }
 
       const buffer = Buffer.from(await file.arrayBuffer());
@@ -49,6 +55,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "cursoId, subjectId, title y content son requeridos" }, { status: 400 });
     }
 
+    const hasAccess = await teacherHasCourseAccess(user.id, cursoId);
+    if (!hasAccess) {
+      return NextResponse.json({ error: "No tienes acceso a este curso" }, { status: 403 });
+    }
+
     await db
       .insert(studyMaterials)
       .values({ cursoId, subjectId, title, content, fileType: "pasted", teacherId: user.id })
@@ -72,15 +83,27 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const courseIds = await getTeacherCourseIds(user.id);
+    if (courseIds.length === 0) {
+      return NextResponse.json({ materials: [] });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const cursoId = searchParams.get("cursoId");
     const subjectId = searchParams.get("subjectId");
 
-    const conditions = [];
-    if (cursoId) conditions.push(eq(studyMaterials.cursoId, Number(cursoId)));
+    const conditions = [inArray(studyMaterials.cursoId, courseIds)];
+    if (cursoId) {
+      const cid = Number(cursoId);
+      const hasAccess = await teacherHasCourseAccess(user.id, cid);
+      if (!hasAccess) {
+        return NextResponse.json({ error: "No tienes acceso a este curso" }, { status: 403 });
+      }
+      conditions.push(eq(studyMaterials.cursoId, cid));
+    }
     if (subjectId) conditions.push(eq(studyMaterials.subjectId, Number(subjectId)));
 
-    const query = db
+    const materials = await db
       .select({
         id: studyMaterials.id,
         cursoId: studyMaterials.cursoId,
@@ -91,11 +114,8 @@ export async function GET(request: NextRequest) {
         createdAt: studyMaterials.createdAt,
       })
       .from(studyMaterials)
+      .where(and(...conditions))
       .orderBy(studyMaterials.createdAt);
-
-    const materials = conditions.length
-      ? await query.where(and(...conditions))
-      : await query;
 
     return NextResponse.json({ materials });
   } catch (error) {

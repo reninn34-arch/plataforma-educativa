@@ -93,6 +93,7 @@ export async function GET(
     const [cuestionario] = await db
       .select({
         id: cuestionarios.id,
+        teacherId: cuestionarios.teacherId,
         title: cuestionarios.title,
         description: cuestionarios.description,
         subjectName: subjects.name,
@@ -112,6 +113,10 @@ export async function GET(
 
     if (!cuestionario) {
       return NextResponse.json({ error: "Cuestionario no encontrado" }, { status: 404 });
+    }
+
+    if (user.role !== "admin" && cuestionario.teacherId !== user.id) {
+      return NextResponse.json({ error: "No tienes permiso para ver este cuestionario" }, { status: 403 });
     }
 
     const preguntas = await db

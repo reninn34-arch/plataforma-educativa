@@ -38,6 +38,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { asistencia } from "@/lib/db/schema";
+import { teacherHasCourseAccess } from "@/lib/course-helpers";
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
@@ -50,6 +51,11 @@ export async function POST(request: NextRequest) {
     const { cursoId, fecha, registros } = await request.json();
     if (!cursoId || !fecha || !registros || !Array.isArray(registros)) {
       return NextResponse.json({ error: "Datos requeridos: cursoId, fecha, registros" }, { status: 400 });
+    }
+
+    const hasAccess = await teacherHasCourseAccess(user.id, cursoId);
+    if (!hasAccess) {
+      return NextResponse.json({ error: "No tienes acceso a este curso" }, { status: 403 });
     }
 
     const date = new Date(fecha);

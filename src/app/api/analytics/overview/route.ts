@@ -46,7 +46,7 @@ import { NextRequest, NextResponse } from "next/server";
  *                   type: array
  */
 import { db } from "@/lib/db";
-import { practiceSessions, practiceAnswers, users, subjects, cursoEstudiantes } from "@/lib/db/schema";
+import { practiceSessions, practiceAnswers, users, subjects, cursoEstudiantes, cursoProfesores, cursos } from "@/lib/db/schema";
 import { eq, sql, desc, inArray, and } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getTeacherCourseIds } from "@/lib/course-helpers";
@@ -83,6 +83,35 @@ export async function GET(request: NextRequest) {
       studentIds = [...new Set(enrolled.map(r => r.estudianteId))];
     }
 
+    // Si el docente NO es tutor de ninguno de estos cursos, filtrar solo su materia asignada
+    let subjectFilter: number[] | null = null;
+    if (targetCursoIds.length > 0) {
+      const tutorCourses = await db
+        .select({ id: cursos.id })
+        .from(cursos)
+        .where(and(eq(cursos.profesorId, user.id), inArray(cursos.id, targetCursoIds)));
+
+      const isTutorOfAnySelected = tutorCourses.length > 0;
+
+      if (!isTutorOfAnySelected) {
+        const teacherSubjects = await db
+          .select({ subjectId: cursoProfesores.subjectId })
+          .from(cursoProfesores)
+          .where(and(
+            eq(cursoProfesores.teacherId, user.id),
+            inArray(cursoProfesores.cursoId, targetCursoIds)
+          ));
+        subjectFilter = [...new Set(teacherSubjects.map(r => r.subjectId))];
+      }
+    }
+
+    const buildWhere = (baseConditions: any[]) => {
+      if (subjectFilter && subjectFilter.length > 0) {
+        baseConditions.push(inArray(practiceAnswers.subjectId, subjectFilter));
+      }
+      return and(...baseConditions);
+    };
+
     const [overall] = studentIds.length > 0
       ? await db
         .select({
@@ -93,7 +122,12 @@ export async function GET(request: NextRequest) {
         })
         .from(practiceSessions)
         .leftJoin(practiceAnswers, eq(practiceAnswers.sessionId, practiceSessions.id))
-        .where(inArray(practiceSessions.userId, studentIds))
+        .where(and(...[
+          inArray(practiceSessions.userId, studentIds),
+          ...(subjectFilter && subjectFilter.length > 0
+            ? [inArray(practiceSessions.subjectId, subjectFilter)]
+            : []),
+        ]))
       : [null];
 
     const bySubject = studentIds.length > 0
@@ -107,7 +141,7 @@ export async function GET(request: NextRequest) {
         })
         .from(practiceAnswers)
         .leftJoin(subjects, eq(practiceAnswers.subjectId, subjects.id))
-        .where(inArray(practiceAnswers.userId, studentIds))
+        .where(buildWhere([inArray(practiceAnswers.userId, studentIds)]))
         .groupBy(subjects.id, subjects.name, subjects.emoji)
         .orderBy(subjects.name)
       : [];
@@ -126,7 +160,7 @@ export async function GET(request: NextRequest) {
         .from(practiceSessions)
         .leftJoin(users, eq(practiceSessions.userId, users.id))
         .leftJoin(practiceAnswers, eq(practiceAnswers.sessionId, practiceSessions.id))
-        .where(inArray(practiceSessions.userId, studentIds))
+        .where(buildWhere([inArray(practiceSessions.userId, studentIds)]))
         .groupBy(users.id, users.fullName, users.cedula)
         .orderBy(desc(sql`avg(${practiceSessions.score})`))
       : [];
@@ -141,7 +175,7 @@ export async function GET(request: NextRequest) {
         })
         .from(practiceAnswers)
         .leftJoin(subjects, eq(practiceAnswers.subjectId, subjects.id))
-        .where(and(eq(practiceAnswers.isCorrect, false), inArray(practiceAnswers.userId, studentIds)))
+        .where(buildWhere([eq(practiceAnswers.isCorrect, false), inArray(practiceAnswers.userId, studentIds)]))
         .groupBy(practiceAnswers.topic, subjects.name, subjects.emoji)
         .orderBy(desc(sql`count(*)`))
         .limit(10)

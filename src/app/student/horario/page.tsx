@@ -12,6 +12,7 @@ interface Bloque {
   dia: string;
   horaInicio: string;
   horaFin: string;
+  subjectId: number | null;
   subjectName: string | null;
   subjectEmoji: string | null;
   tipo: string;
@@ -34,7 +35,7 @@ export default function StudentHorarioPage() {
   });
 
   const horarios = data?.horarios || [];
-  const bloquesPorDia = (dia: string) => horarios.filter(h => h.dia === dia);
+  const bloquesPorDia = (dia: string) => horarios.filter(h => h.dia === dia && (h.subjectId || h.tipo === "receso"));
 
   if (isLoading) return (
     <div className="flex-1 flex items-center justify-center">

@@ -16,6 +16,21 @@ export async function DELETE(
 
   try {
     const { id } = await params;
+
+    const [material] = await db
+      .select({ id: studyMaterials.id, teacherId: studyMaterials.teacherId })
+      .from(studyMaterials)
+      .where(eq(studyMaterials.id, Number(id)))
+      .limit(1);
+
+    if (!material) {
+      return NextResponse.json({ error: "Material no encontrado" }, { status: 404 });
+    }
+
+    if (material.teacherId !== user.id) {
+      return NextResponse.json({ error: "Solo el autor puede eliminar este material" }, { status: 403 });
+    }
+
     await db.delete(studyMaterials).where(eq(studyMaterials.id, Number(id)));
     return NextResponse.json({ success: true });
   } catch (error) {
