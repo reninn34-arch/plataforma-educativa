@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { assignments, assignmentSubmissions, cursoProfesores, cursoEstudiantes } from "@/lib/db/schema";
 import { eq, and, like } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
-import { getFileBuffer } from "@/lib/storage";
+import { getFileBuffer, getBlobSignedUrl } from "@/lib/storage";
 
 const MIME_MAP: Record<string, string> = {
   pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg",
@@ -24,6 +24,15 @@ function fileResponse(buffer: Buffer, filename: string) {
       "Cache-Control": "private, no-cache",
     },
   });
+}
+
+async function serveOrRedirect(safeName: string, displayName: string) {
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const signedUrl = await getBlobSignedUrl(safeName);
+    return NextResponse.redirect(signedUrl);
+  }
+  const fileBuffer = await getFileBuffer(safeName);
+  return fileResponse(fileBuffer, displayName);
 }
 
 export async function GET(
@@ -68,10 +77,8 @@ export async function GET(
         return NextResponse.json({ error: "Archivo no encontrado" }, { status: 404 });
       }
 
-      // Teachers can access their own uploads
       if (user.role === "teacher" && user.id === teacherId) {
-        const fileBuffer = await getFileBuffer(safeName);
-        return fileResponse(fileBuffer, safeName);
+        return serveOrRedirect(safeName, safeName);
       }
 
       // Students can access if enrolled in the course
@@ -86,8 +93,7 @@ export async function GET(
           .limit(1);
 
         if (enrolled) {
-          const fileBuffer = await getFileBuffer(safeName);
-          return fileResponse(fileBuffer, safeName);
+          return serveOrRedirect(safeName, safeName);
         }
       }
 
@@ -149,8 +155,7 @@ export async function GET(
       }
     }
 
-    const fileBuffer = await getFileBuffer(safeName);
-    return fileResponse(fileBuffer, safeName);
+    return serveOrRedirect(safeName, safeName);
   } catch (error) {
     console.error("File serve error:", error);
     return NextResponse.json({ error: "Error al servir archivo" }, { status: 500 });

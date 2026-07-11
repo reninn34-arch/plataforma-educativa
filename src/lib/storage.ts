@@ -36,11 +36,11 @@ export async function deleteFile(urlOrFilename: string): Promise<void> {
 }
 
 export async function getFileBuffer(filename: string): Promise<Buffer> {
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    const { head } = await import("@vercel/blob");
-    const blob = await head(`assignments/${filename}`);
-    const response = await fetch(blob.url);
-    return Buffer.from(await response.arrayBuffer());
-  }
   return readFile(join(UPLOADS_DIR, filename));
+}
+
+export async function getBlobSignedUrl(filename: string): Promise<string> {
+  const { head } = await import("@vercel/blob");
+  const blob = await head(`assignments/${filename}`);
+  return blob.url;
 }
