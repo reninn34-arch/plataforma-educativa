@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
+import { uploadFile } from "@/lib/storage";
 
 /**
  * @swagger
@@ -188,7 +187,7 @@ export async function POST(request: NextRequest) {
       body = JSON.parse(dataStr);
 
       if (file && file.size > 0) {
-        const MAX_FILE_SIZE = 10 * 1024 * 1024;
+        const MAX_FILE_SIZE = 1024 * 1024 * 1024;
         const ALLOWED_TYPES = [
           "application/pdf", "image/jpeg", "image/png", "image/webp",
           "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -196,23 +195,18 @@ export async function POST(request: NextRequest) {
         ];
 
         if (file.size > MAX_FILE_SIZE) {
-          return NextResponse.json({ error: "Archivo excede 10 MB" }, { status: 400 });
+          return NextResponse.json({ error: "Archivo excede 1 GB" }, { status: 400 });
         }
         if (!ALLOWED_TYPES.includes(file.type)) {
           return NextResponse.json({ error: "Formato no permitido" }, { status: 400 });
         }
-
-        const uploadsDir = join(process.cwd(), "uploads", "assignments");
-        await mkdir(uploadsDir, { recursive: true });
 
         const timestamp = Date.now();
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
         const fileName = `teacher_${user.id}_${timestamp}_${safeName}`;
 
         const bytes = await file.arrayBuffer();
-        await writeFile(join(uploadsDir, fileName), Buffer.from(bytes));
-
-        fileUrl = `/api/uploads/assignments/${fileName}`;
+        fileUrl = await uploadFile(Buffer.from(bytes), fileName, file.type);
       }
     } else {
       body = await request.json();

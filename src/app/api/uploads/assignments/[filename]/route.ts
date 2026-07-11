@@ -1,12 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFile } from "fs/promises";
-import { join } from "path";
-import { existsSync } from "fs";
 import { db } from "@/lib/db";
-import { assignments, cursoProfesores, cursoEstudiantes } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { assignments, assignmentSubmissions, cursoProfesores, cursoEstudiantes } from "@/lib/db/schema";
+import { eq, and, like } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
-const UPLOADS_DIR = join(process.cwd(), "uploads", "assignments");
+import { getFileBuffer } from "@/lib/storage";
+
+const MIME_MAP: Record<string, string> = {
+  pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg",
+  png: "image/png", webp: "image/webp", doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  txt: "text/plain", zip: "application/zip",
+};
+const INLINE_TYPES = ["pdf", "txt", "jpg", "jpeg", "png", "webp"];
+
+function fileResponse(buffer: Buffer, filename: string) {
+  const ext = filename.split(".").pop()?.toLowerCase() || "";
+  const contentType = MIME_MAP[ext] || "application/octet-stream";
+  const disposition = INLINE_TYPES.includes(ext) ? "inline" : "attachment";
+  return new NextResponse(new Uint8Array(buffer), {
+    headers: {
+      "Content-Type": contentType,
+      "Content-Disposition": `${disposition}; filename="${filename}"`,
+      "Cache-Control": "private, no-cache",
+    },
+  });
+}
 
 export async function GET(
   request: NextRequest,
@@ -31,77 +49,45 @@ export async function GET(
 
     // Teacher attachment: teacher_{teacherId}_{timestamp}_{name}
     if (parts[0] === "teacher" && parts.length >= 4) {
-      const filePath = join(UPLOADS_DIR, safeName);
-      if (!existsSync(filePath)) {
-        return NextResponse.json({ error: "Archivo no encontrado" }, { status: 404 });
-      }
-
       const teacherId = parseInt(parts[1]);
       if (isNaN(teacherId)) {
         return NextResponse.json({ error: "Archivo no encontrado" }, { status: 404 });
       }
 
-      // Teachers can access their own uploads
-      if (user.role === "teacher" && user.id === teacherId) {
-        const fileBuffer = await readFile(filePath);
-        const ext = safeName.split(".").pop()?.toLowerCase() || "";
-        const mimeMap: Record<string, string> = {
-          pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg",
-          png: "image/png", webp: "image/webp", doc: "application/msword",
-          docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          txt: "text/plain", zip: "application/zip",
-        };
-        const contentType = mimeMap[ext] || "application/octet-stream";
-        const inlineTypes = ["pdf", "txt", "jpg", "jpeg", "png", "webp"];
-        const disposition = inlineTypes.includes(ext) ? "inline" : "attachment";
-        return new NextResponse(fileBuffer, {
-          headers: {
-            "Content-Type": contentType,
-            "Content-Disposition": `${disposition}; filename="${safeName}"`,
-            "Cache-Control": "private, no-cache",
-          },
-        });
+      // Find the assignment with this file (the blob URL contains the filename)
+      const [assgn] = await db
+        .select({ id: assignments.id, fileUrl: assignments.fileUrl, cursoId: assignments.cursoId })
+        .from(assignments)
+        .where(and(
+          eq(assignments.teacherId, teacherId),
+          like(assignments.fileUrl, `%${safeName}%`),
+        ))
+        .limit(1);
+
+      if (!assgn?.fileUrl) {
+        return NextResponse.json({ error: "Archivo no encontrado" }, { status: 404 });
       }
 
-      // Students can access teacher attachments if enrolled in a course that has this assignment
-      if (user.role === "student") {
-        // Find assignment by fileUrl in the DB
-        const [assgn] = await db
-          .select({ id: assignments.id, cursoId: assignments.cursoId })
-          .from(assignments)
-          .where(eq(assignments.fileUrl, `/api/uploads/assignments/${safeName}`))
+      // Teachers can access their own uploads
+      if (user.role === "teacher" && user.id === teacherId) {
+        const fileBuffer = await getFileBuffer(assgn.fileUrl);
+        return fileResponse(fileBuffer, safeName);
+      }
+
+      // Students can access if enrolled in the course
+      if (user.role === "student" && assgn.cursoId) {
+        const [enrolled] = await db
+          .select({ id: cursoEstudiantes.id })
+          .from(cursoEstudiantes)
+          .where(and(
+            eq(cursoEstudiantes.estudianteId, user.id),
+            eq(cursoEstudiantes.cursoId, assgn.cursoId)
+          ))
           .limit(1);
 
-        if (assgn?.cursoId) {
-          const [enrolled] = await db
-            .select({ id: cursoEstudiantes.id })
-            .from(cursoEstudiantes)
-            .where(and(
-              eq(cursoEstudiantes.estudianteId, user.id),
-              eq(cursoEstudiantes.cursoId, assgn.cursoId)
-            ))
-            .limit(1);
-
-          if (enrolled) {
-            const fileBuffer = await readFile(filePath);
-            const ext = safeName.split(".").pop()?.toLowerCase() || "";
-            const mimeMap: Record<string, string> = {
-              pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg",
-              png: "image/png", webp: "image/webp", doc: "application/msword",
-              docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-              txt: "text/plain", zip: "application/zip",
-            };
-            const contentType = mimeMap[ext] || "application/octet-stream";
-            const inlineTypes = ["pdf", "txt", "jpg", "jpeg", "png", "webp"];
-            const disposition = inlineTypes.includes(ext) ? "inline" : "attachment";
-            return new NextResponse(fileBuffer, {
-              headers: {
-                "Content-Type": contentType,
-                "Content-Disposition": `${disposition}; filename="${safeName}"`,
-                "Cache-Control": "private, no-cache",
-              },
-            });
-          }
+        if (enrolled) {
+          const fileBuffer = await getFileBuffer(assgn.fileUrl);
+          return fileResponse(fileBuffer, safeName);
         }
       }
 
@@ -120,9 +106,17 @@ export async function GET(
       return NextResponse.json({ error: "Archivo no encontrado" }, { status: 404 });
     }
 
-    const filePath = join(UPLOADS_DIR, safeName);
+    const [sub] = await db
+      .select({ fileUrl: assignmentSubmissions.fileUrl })
+      .from(assignmentSubmissions)
+      .where(and(
+        eq(assignmentSubmissions.assignmentId, assignmentId),
+        eq(assignmentSubmissions.studentId, studentId),
+        like(assignmentSubmissions.fileUrl, `%${safeName}%`),
+      ))
+      .limit(1);
 
-    if (!existsSync(filePath)) {
+    if (!sub?.fileUrl) {
       return NextResponse.json({ error: "Archivo no encontrado" }, { status: 404 });
     }
 
@@ -155,31 +149,8 @@ export async function GET(
       }
     }
 
-    const fileBuffer = await readFile(filePath);
-    const ext = safeName.split(".").pop()?.toLowerCase() || "";
-    const mimeMap: Record<string, string> = {
-      pdf: "application/pdf",
-      jpg: "image/jpeg",
-      jpeg: "image/jpeg",
-      png: "image/png",
-      webp: "image/webp",
-      doc: "application/msword",
-      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      txt: "text/plain",
-      zip: "application/zip",
-    };
-
-    const contentType = mimeMap[ext] || "application/octet-stream";
-    const inlineTypes = ["pdf", "txt", "jpg", "jpeg", "png", "webp"];
-    const disposition = inlineTypes.includes(ext) ? "inline" : "attachment";
-
-    return new NextResponse(fileBuffer, {
-      headers: {
-        "Content-Type": contentType,
-        "Content-Disposition": `${disposition}; filename="${safeName}"`,
-        "Cache-Control": "private, no-cache",
-      },
-    });
+    const fileBuffer = await getFileBuffer(sub.fileUrl);
+    return fileResponse(fileBuffer, safeName);
   } catch (error) {
     console.error("File serve error:", error);
     return NextResponse.json({ error: "Error al servir archivo" }, { status: 500 });

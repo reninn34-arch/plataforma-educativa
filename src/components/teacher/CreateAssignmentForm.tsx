@@ -394,6 +394,12 @@ export function CreateAssignmentForm() {
 
       let res: Response;
       if (attachmentFile) {
+        const MAX_SIZE = 1024 * 1024 * 1024;
+        if (attachmentFile.size > MAX_SIZE) {
+          setErrorMsg("El archivo excede el límite de 1 GB");
+          setSaving(false);
+          return;
+        }
         const formData = new FormData();
         formData.append("file", attachmentFile);
         formData.append("data", JSON.stringify({ ...body, subjectId, puntos, cursoId: cursoId || undefined }));
@@ -777,9 +783,20 @@ export function CreateAssignmentForm() {
                       ) : (
                         <label className="flex items-center gap-2 rounded-xl border-2 border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-indigo-200 cursor-pointer w-full">
                           <Upload className="h-4 w-4" />
-                          Subir archivo (PDF, Word, imagen, TXT, ZIP - max 10 MB)
+                          Subir archivo (PDF, Word, imagen, TXT, ZIP - max 1 GB)
                           <input type="file" className="hidden" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.txt,.zip"
-                            onChange={(e) => { const f = e.target.files?.[0]; if (f) setAttachmentFile(f); }} />
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) {
+                                const MAX_SIZE = 1024 * 1024 * 1024;
+                                if (f.size > MAX_SIZE) {
+                                  setErrorMsg("El archivo excede el límite de 1 GB");
+                                  return;
+                                }
+                                setAttachmentFile(f);
+                                setErrorMsg("");
+                              }
+                            }} />
                         </label>
                       )}
                     </div>

@@ -4,9 +4,7 @@ import { assignments, assignmentQuestions, assignmentSubmissions, submissionAnsw
 import { eq, and, asc, inArray } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getTeacherCourseIds } from "@/lib/course-helpers";
-import { writeFile, mkdir, unlink } from "fs/promises";
-import { join } from "path";
-import { existsSync } from "fs";
+import { uploadFile, deleteFile } from "@/lib/storage";
 
 export async function GET(
   request: NextRequest,
@@ -234,7 +232,7 @@ export async function PUT(
       }
 
       if (file && file.size > 0) {
-        const MAX_FILE_SIZE = 10 * 1024 * 1024;
+        const MAX_FILE_SIZE = 1024 * 1024 * 1024;
         const ALLOWED_TYPES = [
           "application/pdf", "image/jpeg", "image/png", "image/webp",
           "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -242,23 +240,18 @@ export async function PUT(
         ];
 
         if (file.size > MAX_FILE_SIZE) {
-          return NextResponse.json({ error: "Archivo excede 10 MB" }, { status: 400 });
+          return NextResponse.json({ error: "Archivo excede 1 GB" }, { status: 400 });
         }
         if (!ALLOWED_TYPES.includes(file.type)) {
           return NextResponse.json({ error: "Formato no permitido" }, { status: 400 });
         }
-
-        const uploadsDir = join(process.cwd(), "uploads", "assignments");
-        await mkdir(uploadsDir, { recursive: true });
 
         const timestamp = Date.now();
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
         const fileName = `teacher_${user.id}_${timestamp}_${safeName}`;
 
         const bytes = await file.arrayBuffer();
-        await writeFile(join(uploadsDir, fileName), Buffer.from(bytes));
-
-        newFileUrl = `/api/uploads/assignments/${fileName}`;
+        newFileUrl = await uploadFile(Buffer.from(bytes), fileName, file.type);
       }
     } else {
       body = await request.json();
@@ -296,10 +289,7 @@ export async function PUT(
 
     // Delete old file if replaced or removed
     if (newFileUrl !== undefined && existing.fileUrl) {
-      const oldFullPath = join(process.cwd(), "uploads", "assignments", existing.fileUrl.split("/").pop() || "");
-      if (existsSync(oldFullPath)) {
-        try { await unlink(oldFullPath); } catch {}
-      }
+      try { await deleteFile(existing.fileUrl); } catch {}
     }
 
     await db
