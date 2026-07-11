@@ -70,7 +70,7 @@ export async function GET(
 
       // Teachers can access their own uploads
       if (user.role === "teacher" && user.id === teacherId) {
-        const fileBuffer = await getFileBuffer(assgn.fileUrl);
+        const fileBuffer = await getFileBuffer(safeName);
         return fileResponse(fileBuffer, safeName);
       }
 
@@ -86,7 +86,7 @@ export async function GET(
           .limit(1);
 
         if (enrolled) {
-          const fileBuffer = await getFileBuffer(assgn.fileUrl);
+          const fileBuffer = await getFileBuffer(safeName);
           return fileResponse(fileBuffer, safeName);
         }
       }
@@ -149,7 +149,7 @@ export async function GET(
       }
     }
 
-    const fileBuffer = await getFileBuffer(sub.fileUrl);
+    const fileBuffer = await getFileBuffer(safeName);
     return fileResponse(fileBuffer, safeName);
   } catch (error) {
     console.error("File serve error:", error);

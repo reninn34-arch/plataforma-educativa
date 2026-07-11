@@ -11,43 +11,36 @@ export async function uploadFile(
 ): Promise<string> {
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     const { put } = await import("@vercel/blob");
-    const blob = await put(`assignments/${filename}`, buffer, {
+    await put(`assignments/${filename}`, buffer, {
       contentType,
       access: "private",
       addRandomSuffix: false,
     });
-    return blob.url;
+  } else {
+    const dir = UPLOADS_DIR;
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, filename), buffer);
   }
-  await mkdir(UPLOADS_DIR, { recursive: true });
-  await writeFile(join(UPLOADS_DIR, filename), buffer);
   return `/api/uploads/assignments/${filename}`;
 }
 
 export async function deleteFile(urlOrFilename: string): Promise<void> {
   if (process.env.BLOB_READ_WRITE_TOKEN) {
-    if (urlOrFilename.startsWith("http")) {
-      const { del } = await import("@vercel/blob");
-      await del(urlOrFilename);
-    }
+    const { del } = await import("@vercel/blob");
+    await del(`assignments/${urlOrFilename.split("/").pop()}`);
     return;
   }
-  const name = urlOrFilename.startsWith("http")
-    ? urlOrFilename.split("/").pop() || ""
-    : urlOrFilename.startsWith("/api/")
-      ? urlOrFilename.split("/").pop() || ""
-      : urlOrFilename;
+  const name = urlOrFilename.split("/").pop() || urlOrFilename;
   const filePath = join(UPLOADS_DIR, name);
   if (existsSync(filePath)) await unlink(filePath);
 }
 
-export async function getFileBuffer(url: string): Promise<Buffer> {
-  if (process.env.BLOB_READ_WRITE_TOKEN && url.startsWith("http")) {
-    const response = await fetch(url);
+export async function getFileBuffer(filename: string): Promise<Buffer> {
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const { head } = await import("@vercel/blob");
+    const blob = await head(`assignments/${filename}`);
+    const response = await fetch(blob.url);
     return Buffer.from(await response.arrayBuffer());
   }
-  // Extract filename from /api/uploads/assignments/{filename} or use as-is
-  const filename = url.startsWith("/api/uploads/assignments/")
-    ? url.split("/").pop() || ""
-    : url.split("/").pop() || url;
   return readFile(join(UPLOADS_DIR, filename));
 }
