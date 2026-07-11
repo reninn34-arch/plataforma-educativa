@@ -40,7 +40,16 @@ export async function getFileBuffer(filename: string): Promise<Buffer> {
 }
 
 export async function getBlobSignedUrl(filename: string): Promise<string> {
-  const { head } = await import("@vercel/blob");
-  const blob = await head(`assignments/${filename}`);
-  return blob.url;
+  const { issueSignedToken, presignUrl } = await import("@vercel/blob");
+  const token = await issueSignedToken({
+    pathname: `assignments/${filename}`,
+    operations: ["get"],
+    validUntil: Date.now() + 5 * 60 * 1000,
+  });
+  const { presignedUrl } = await presignUrl(token, {
+    operation: "get",
+    pathname: `assignments/${filename}`,
+    access: "private",
+  });
+  return presignedUrl;
 }
