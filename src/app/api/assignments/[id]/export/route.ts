@@ -1,3 +1,35 @@
+/**
+ * @swagger
+ * /api/assignments/{id}/export:
+ *   get:
+ *     summary: Exportar tarea a Word
+ *     description: Genera un documento .doc compatible con Microsoft Word con la tarea, sus preguntas y formato para impresión. Solo profesores (dueños) y administradores.
+ *     tags: [Tareas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *         description: ID de la tarea
+ *     responses:
+ *       200:
+ *         description: Documento Word generado
+ *         content:
+ *           application/msword:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: No tienes permiso para exportar esta tarea
+ *       404:
+ *         description: Tarea no encontrada
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentQuestions, subjects, users, cursos } from "@/lib/db/schema";

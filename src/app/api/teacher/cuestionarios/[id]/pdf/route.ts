@@ -1,3 +1,34 @@
+/**
+ * @swagger
+ * /api/teacher/cuestionarios/{id}/pdf:
+ *   get:
+ *     summary: Exportar cuestionario a PDF
+ *     description: Genera y descarga un archivo PDF con el contenido del cuestionario, incluyendo preguntas, opciones y respuestas correctas.
+ *     tags: [Docentes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del cuestionario
+ *     responses:
+ *       200:
+ *         description: Archivo PDF del cuestionario
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: No autorizado
+ *       404:
+ *         description: Cuestionario no encontrado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import {

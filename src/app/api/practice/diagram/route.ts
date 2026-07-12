@@ -1,3 +1,52 @@
+/**
+ * @swagger
+ * /api/practice/diagram:
+ *   post:
+ *     summary: Generar diagrama educativo
+ *     description: Genera un diagrama en sintaxis Mermaid.js para una materia y tema. Actualiza la práctica en caché si se proporciona nodeId.
+ *     tags: [Práctica e IA]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [subject, topicContext]
+ *             properties:
+ *               subject:
+ *                 type: string
+ *                 description: Slug de la materia
+ *               topicContext:
+ *                 type: string
+ *                 description: Contexto del tema
+ *               nodeId:
+ *                 type: integer
+ *                 description: ID del nodo para actualizar en caché
+ *     responses:
+ *       200:
+ *         description: Diagrama generado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 mermaid:
+ *                   type: string
+ *                   description: Código Mermaid.js del diagrama
+ *                 caption:
+ *                   type: string
+ *                   description: Título descriptivo del diagrama
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo estudiantes
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, tryParseJson } from "@/lib/ai";
 import { isValidMermaid, sanitizeMermaid } from "@/lib/mermaid-validate";

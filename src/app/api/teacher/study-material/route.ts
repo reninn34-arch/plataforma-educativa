@@ -1,3 +1,108 @@
+/**
+ * @swagger
+ * /api/teacher/study-material:
+ *   get:
+ *     summary: Listar materiales de estudio
+ *     description: Obtiene los materiales de estudio del profesor, filtrados opcionalmente por curso y materia.
+ *     tags: [Material de Estudio]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: cursoId
+ *         schema:
+ *           type: integer
+ *         description: Filtrar por ID de curso
+ *       - in: query
+ *         name: subjectId
+ *         schema:
+ *           type: integer
+ *         description: Filtrar por ID de materia
+ *     responses:
+ *       200:
+ *         description: Lista de materiales
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 materials:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       cursoId:
+ *                         type: integer
+ *                       subjectId:
+ *                         type: integer
+ *                       title:
+ *                         type: string
+ *                       content:
+ *                         type: string
+ *                       fileType:
+ *                         type: string
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo docentes
+ *       500:
+ *         description: Error interno
+ *   post:
+ *     summary: Crear o actualizar material de estudio
+ *     description: Guarda material de estudio (texto pegado o archivo PDF). Solo docentes.
+ *     tags: [Material de Estudio]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               cursoId:
+ *                 type: integer
+ *               subjectId:
+ *                 type: integer
+ *               title:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               cursoId:
+ *                 type: integer
+ *               subjectId:
+ *                 type: integer
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Material guardado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo docentes
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { db } from "@/lib/db";

@@ -1,3 +1,46 @@
+/**
+ * @swagger
+ * /api/study-material:
+ *   post:
+ *     summary: Generar material de estudio
+ *     description: Genera contenido educativo con IA para una materia específica. Solo estudiantes.
+ *     tags: [Material de Estudio]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [subject]
+ *             properties:
+ *               subject:
+ *                 type: string
+ *                 description: Slug de la materia
+ *               topic:
+ *                 type: string
+ *                 description: Tema específico
+ *               model:
+ *                 type: string
+ *                 description: Identificador del modelo de IA
+ *     responses:
+ *       200:
+ *         description: Material de estudio generado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 content:
+ *                   type: string
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autorizado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest } from "next/server";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel } from "@/lib/ai";

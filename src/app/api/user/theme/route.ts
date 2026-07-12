@@ -1,3 +1,62 @@
+/**
+ * @swagger
+ * /api/user/theme:
+ *   get:
+ *     summary: Obtener preferencia de tema
+ *     description: Devuelve la preferencia de tema (light, dark, system) del usuario autenticado.
+ *     tags: [Usuario]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Preferencia de tema
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 theme:
+ *                   type: string
+ *                   enum: [light, dark, system]
+ *       401:
+ *         description: No autenticado
+ *       500:
+ *         description: Error interno
+ *   put:
+ *     summary: Actualizar preferencia de tema
+ *     description: Actualiza la preferencia de tema del usuario autenticado.
+ *     tags: [Usuario]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [theme]
+ *             properties:
+ *               theme:
+ *                 type: string
+ *                 enum: [light, dark, system]
+ *                 description: "Tema seleccionado"
+ *     responses:
+ *       200:
+ *         description: Tema actualizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 theme: { type: string, enum: [light, dark, system] }
+ *       400:
+ *         description: Tema inválido
+ *       401:
+ *         description: No autenticado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { db } from "@/lib/db";

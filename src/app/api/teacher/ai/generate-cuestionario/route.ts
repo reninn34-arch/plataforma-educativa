@@ -1,3 +1,78 @@
+/**
+ * @swagger
+ * /api/teacher/ai/generate-cuestionario:
+ *   post:
+ *     summary: Generar cuestionario con IA
+ *     description: Utiliza inteligencia artificial para generar un cuestionario de estudio con preguntas de tipo MCQ y completar basado en un tema y materia.
+ *     tags: [Docentes]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [subjectId, topic]
+ *             properties:
+ *               cursoId:
+ *                 type: integer
+ *                 description: ID del curso (opcional, para contextualizar con material de estudio)
+ *               subjectId:
+ *                 type: integer
+ *                 description: ID de la materia
+ *               topic:
+ *                 type: string
+ *                 description: Tema del cuestionario
+ *               questionCount:
+ *                 type: integer
+ *                 description: Número de preguntas (3-20, por defecto 5)
+ *               questionTypes:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   enum: [mcq, completar]
+ *                 description: Tipos de pregunta permitidos
+ *               model:
+ *                 type: string
+ *                 description: Modelo de IA a utilizar (opcional)
+ *     responses:
+ *       200:
+ *         description: Cuestionario generado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 title: { type: string }
+ *                 description: { type: string }
+ *                 questions:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       virtualType: { type: string, enum: [mcq, completar] }
+ *                       question: { type: string }
+ *                       options: { type: array, items: { type: string } }
+ *                       correctIndex: { type: integer }
+ *                       explanation: { type: string }
+ *                       points: { type: integer }
+ *                       orderIndex: { type: integer }
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo docentes
+ *       422:
+ *         description: No se pudieron generar datos válidos
+ *       500:
+ *         description: Error interno
+ *       502:
+ *         description: Error del modelo de IA
+ *       504:
+ *         description: Tiempo de espera agotado
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { subjects, studyMaterials } from "@/lib/db/schema";

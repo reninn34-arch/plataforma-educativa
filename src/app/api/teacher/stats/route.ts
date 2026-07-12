@@ -1,3 +1,38 @@
+/**
+ * @swagger
+ * /api/teacher/stats:
+ *   get:
+ *     summary: Estadísticas del dashboard docente
+ *     description: Devuelve estadísticas generales de los cursos del docente (total estudiantes, en riesgo, inactivos, promedio, total cursos).
+ *     tags: [Docentes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: cursoId
+ *         schema:
+ *           type: integer
+ *         description: ID del curso para filtrar (opcional)
+ *     responses:
+ *       200:
+ *         description: Estadísticas del docente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalEstudiantes: { type: integer }
+ *                 enRiesgo: { type: integer }
+ *                 inactivos: { type: integer }
+ *                 promedio: { type: integer }
+ *                 totalCursos: { type: integer }
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo profesores
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users, cursoEstudiantes, cursoProfesores, progress } from "@/lib/db/schema";

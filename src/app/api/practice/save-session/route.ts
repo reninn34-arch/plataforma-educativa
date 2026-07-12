@@ -1,3 +1,70 @@
+/**
+ * @swagger
+ * /api/practice/save-session:
+ *   post:
+ *     summary: Guardar sesión de práctica
+ *     description: Guarda los resultados de una sesión de práctica, incluyendo respuestas individuales. Actualiza el progreso del estudiante y desbloquea el siguiente nodo.
+ *     tags: [Práctica e IA]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [subjectId]
+ *             properties:
+ *               subjectId:
+ *                 type: integer
+ *                 description: ID de la materia
+ *               correctCount:
+ *                 type: integer
+ *               totalCount:
+ *                 type: integer
+ *               score:
+ *                 type: number
+ *               maxCombo:
+ *                 type: integer
+ *               nodeId:
+ *                 type: integer
+ *                 description: ID del nodo para actualizar progreso
+ *               answers:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     question:
+ *                       type: string
+ *                     type:
+ *                       type: string
+ *                     topic:
+ *                       type: string
+ *                     studentAnswer:
+ *                       type: string
+ *                     isCorrect:
+ *                       type: boolean
+ *     responses:
+ *       200:
+ *         description: Sesión guardada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 saved:
+ *                   type: boolean
+ *                 sessionId:
+ *                   type: integer
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo estudiantes
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import {

@@ -1,3 +1,55 @@
+/**
+ * @swagger
+ * /api/path/generate:
+ *   post:
+ *     summary: Generar camino de aprendizaje
+ *     description: Genera un Learning Path personalizado con IA (módulo + nodos) para una materia y tema. Detecta duplicados semánticos y reutiliza módulos existentes.
+ *     tags: [Práctica e IA]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [subject, topic]
+ *             properties:
+ *               subject:
+ *                 type: string
+ *                 description: Slug de la materia
+ *               topic:
+ *                 type: string
+ *                 minLength: 3
+ *                 description: Tema del camino de aprendizaje
+ *               model:
+ *                 type: string
+ *                 description: Identificador del modelo de IA
+ *     responses:
+ *       200:
+ *         description: Camino de aprendizaje generado o recuperado de caché
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 module:
+ *                   type: object
+ *                 nodes:
+ *                   type: array
+ *                 cached:
+ *                   type: boolean
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo estudiantes
+ *       404:
+ *         description: Materia no encontrada
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest } from "next/server";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { db } from "@/lib/db";

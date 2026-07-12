@@ -1,3 +1,52 @@
+/**
+ * @swagger
+ * /api/student/metrics:
+ *   get:
+ *     summary: Métricas del estudiante
+ *     description: Devuelve métricas de práctica, racha de días, promedio de calificaciones y estadísticas por materia del estudiante autenticado.
+ *     tags: [Estudiantes]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Métricas del estudiante
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalSessions: { type: integer }
+ *                 totalQuestions: { type: integer }
+ *                 totalCorrect: { type: integer }
+ *                 totalScore: { type: integer }
+ *                 bestScore: { type: integer }
+ *                 avgScore: { type: integer }
+ *                 accuracy: { type: integer }
+ *                 streakDays: { type: integer }
+ *                 gradeAverage: { type: number, nullable: true }
+ *                 gradedCount: { type: integer }
+ *                 bySubject:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       subjectName: { type: string }
+ *                       subjectEmoji: { type: string }
+ *                       percentage: { type: integer }
+ *                       correct: { type: integer }
+ *                       total: { type: integer }
+ *                       topMistakes:
+ *                         type: array
+ *                         items: { type: string }
+ *                 recentSessions:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       401:
+ *         description: No autorizado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import {

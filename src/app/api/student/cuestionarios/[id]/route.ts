@@ -1,3 +1,59 @@
+/**
+ * @swagger
+ * /api/student/cuestionarios/{id}:
+ *   get:
+ *     summary: Detalle de un cuestionario
+ *     description: Devuelve la información de un cuestionario específico junto con todas sus preguntas.
+ *     tags: [Estudiantes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del cuestionario
+ *     responses:
+ *       200:
+ *         description: Detalle del cuestionario con preguntas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 cuestionario:
+ *                   type: object
+ *                   properties:
+ *                     id: { type: integer }
+ *                     title: { type: string }
+ *                     description: { type: string, nullable: true }
+ *                     subjectName: { type: string }
+ *                     subjectEmoji: { type: string }
+ *                     subjectSlug: { type: string }
+ *                     cursoNombre: { type: string, nullable: true }
+ *                     cursoNivel: { type: string, nullable: true }
+ *                     teacherName: { type: string }
+ *                     createdAt: { type: string }
+ *                 preguntas:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id: { type: integer }
+ *                       type: { type: string }
+ *                       question: { type: string }
+ *                       options: { type: array, items: { type: string } }
+ *                       correctIndex: { type: integer }
+ *                       explanation: { type: string, nullable: true }
+ *                       orderIndex: { type: integer }
+ *       401:
+ *         description: No autorizado
+ *       404:
+ *         description: Cuestionario no encontrado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import {

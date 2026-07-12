@@ -1,3 +1,60 @@
+/**
+ * @swagger
+ * /api/assignments/{id}/grade:
+ *   put:
+ *     summary: Calificar entrega
+ *     description: Permite a un docente calificar una entrega existente o registrar una nota manual para un estudiante sin entrega previa.
+ *     tags: [Tareas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *         description: ID de la tarea
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               submissionId:
+ *                 type: integer
+ *                 description: "ID de la entrega (opcional si se provee studentId)"
+ *               studentId:
+ *                 type: integer
+ *                 description: "ID del estudiante (opcional si se provee submissionId)"
+ *               grade:
+ *                 type: integer
+ *                 description: "Nota entre 0 y 10, o null para desmarcar"
+ *                 nullable: true
+ *               feedback:
+ *                 type: string
+ *                 description: "Comentario del docente"
+ *                 nullable: true
+ *     responses:
+ *       200:
+ *         description: Calificación registrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 graded: { type: boolean }
+ *       400:
+ *         description: Datos inválidos (nota fuera de rango, falta submissionId/studentId)
+ *       403:
+ *         description: Solo docentes pueden calificar o no autorizado
+ *       404:
+ *         description: Entrega no encontrada
+ *       401:
+ *         description: No autorizado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentSubmissions, cursoEstudiantes } from "@/lib/db/schema";

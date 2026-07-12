@@ -1,3 +1,68 @@
+/**
+ * @swagger
+ * /api/admin/users/{id}:
+ *   put:
+ *     summary: Actualizar usuario
+ *     description: Actualiza los datos de un usuario (nombre, email, whatsapp, cédula, activo) o reinicia su PIN.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del usuario
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               activo: { type: boolean }
+ *               fullName: { type: string }
+ *               email: { type: string, nullable: true }
+ *               whatsapp: { type: string, nullable: true }
+ *               cedula: { type: string, description: "10 dígitos" }
+ *               resetPin: { type: boolean, description: "Si es true, genera un nuevo PIN" }
+ *     responses:
+ *       200:
+ *         description: Usuario actualizado
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       500:
+ *         description: Error interno
+ *   delete:
+ *     summary: Desactivar usuario
+ *     description: Desactiva (soft delete) un usuario sin eliminarlo permanentemente.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del usuario
+ *     responses:
+ *       200:
+ *         description: Usuario desactivado
+ *       400:
+ *         description: No puedes eliminar tu propia cuenta
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";

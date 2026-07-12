@@ -1,3 +1,34 @@
+/**
+ * @swagger
+ * /api/teacher/cuestionarios/{id}/word:
+ *   get:
+ *     summary: Exportar cuestionario a Word
+ *     description: Genera y descarga un archivo .doc (Word) con el contenido del cuestionario, incluyendo preguntas, opciones y respuestas correctas.
+ *     tags: [Docentes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del cuestionario
+ *     responses:
+ *       200:
+ *         description: Archivo Word del cuestionario
+ *         content:
+ *           application/msword:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: No autorizado
+ *       404:
+ *         description: Cuestionario no encontrado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import {

@@ -1,3 +1,33 @@
+/**
+ * @swagger
+ * /api/analytics/export:
+ *   get:
+ *     summary: Exportar calificaciones a CSV
+ *     description: Exporta las calificaciones de los cursos del docente en formato CSV. Solo docentes.
+ *     tags: [Analíticas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: cursoId
+ *         schema:
+ *           type: integer
+ *         description: Filtrar por ID de curso
+ *     responses:
+ *       200:
+ *         description: Archivo CSV con calificaciones
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo docentes
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentSubmissions, subjects, users, cursos } from "@/lib/db/schema";

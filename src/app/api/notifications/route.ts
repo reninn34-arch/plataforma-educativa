@@ -1,3 +1,27 @@
+/**
+ * @swagger
+ * /api/notifications:
+ *   get:
+ *     summary: Obtener conteo de notificaciones
+ *     description: Devuelve el número de notificaciones no leídas según el rol (entregas sin calificar para docentes, tareas nuevas y calificaciones para estudiantes).
+ *     tags: [Notificaciones]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Conteo de notificaciones no leídas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 unreadCount:
+ *                   type: integer
+ *       401:
+ *         description: No autorizado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentSubmissions } from "@/lib/db/schema";

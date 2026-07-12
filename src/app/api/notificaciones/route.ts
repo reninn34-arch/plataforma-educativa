@@ -1,3 +1,99 @@
+/**
+ * @swagger
+ * /api/notificaciones:
+ *   get:
+ *     summary: Listar notificaciones
+ *     description: Obtiene las últimas 50 notificaciones del usuario autenticado y el conteo de no leídas.
+ *     tags: [Notificaciones]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de notificaciones
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 notificaciones:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       type:
+ *                         type: string
+ *                       title:
+ *                         type: string
+ *                       message:
+ *                         type: string
+ *                       link:
+ *                         type: string
+ *                       read:
+ *                         type: boolean
+ *                       relatedId:
+ *                         type: integer
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                 unreadCount:
+ *                   type: integer
+ *       401:
+ *         description: No autorizado
+ *       500:
+ *         description: Error interno
+ *   post:
+ *     summary: Crear notificación
+ *     description: Crea una nueva notificación para un usuario. Solo docentes y administradores.
+ *     tags: [Notificaciones]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, title]
+ *             properties:
+ *               userId:
+ *                 type: integer
+ *                 description: ID del usuario destinatario
+ *               type:
+ *                 type: string
+ *                 description: Tipo de notificación
+ *               title:
+ *                 type: string
+ *                 description: Título de la notificación
+ *               message:
+ *                 type: string
+ *                 description: Cuerpo del mensaje
+ *               link:
+ *                 type: string
+ *                 description: Enlace opcional
+ *               relatedId:
+ *                 type: integer
+ *                 description: ID del recurso relacionado
+ *     responses:
+ *       201:
+ *         description: Notificación creada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 notificacion:
+ *                   type: object
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Acción no permitida
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";

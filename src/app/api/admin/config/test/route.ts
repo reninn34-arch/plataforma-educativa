@@ -1,3 +1,37 @@
+/**
+ * @swagger
+ * /api/admin/config/test:
+ *   post:
+ *     summary: Probar configuración SMTP
+ *     description: Envía un correo de prueba utilizando la configuración SMTP proporcionada para verificar que funciona.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [smtp_host, smtp_user]
+ *             properties:
+ *               smtp_host: { type: string }
+ *               smtp_port: { type: string }
+ *               smtp_user: { type: string }
+ *               smtp_pass: { type: string }
+ *               smtp_from_name: { type: string }
+ *     responses:
+ *       200:
+ *         description: Correo de prueba enviado exitosamente
+ *       400:
+ *         description: Error al enviar el correo
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getSmtpConfig } from "@/lib/smtp-config";

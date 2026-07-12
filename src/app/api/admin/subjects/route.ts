@@ -1,3 +1,53 @@
+/**
+ * @swagger
+ * /api/admin/subjects:
+ *   get:
+ *     summary: Listar materias
+ *     description: Devuelve la lista completa de materias ordenadas por nombre.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de materias
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       500:
+ *         description: Error interno
+ *   post:
+ *     summary: Crear materia
+ *     description: Crea una nueva materia con nombre, emoji, color y slug opcional.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, emoji, color]
+ *             properties:
+ *               name: { type: string }
+ *               emoji: { type: string }
+ *               color: { type: string }
+ *               slug: { type: string, description: "Slug personalizado (opcional)" }
+ *     responses:
+ *       201:
+ *         description: Materia creada
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       409:
+ *         description: Ya existe una materia con ese nombre o slug
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { subjects } from "@/lib/db/schema";

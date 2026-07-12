@@ -1,3 +1,36 @@
+/**
+ * @swagger
+ * /api/admin/credentials/email:
+ *   post:
+ *     summary: Enviar credenciales por correo a un curso
+ *     description: Envía las credenciales de acceso por correo electrónico a todos los estudiantes de un curso. Opcionalmente reinicia los PINs.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [cursoId]
+ *             properties:
+ *               cursoId: { type: integer }
+ *               resetPins: { type: boolean, description: "Si es true, genera nuevos PINs antes de enviar" }
+ *     responses:
+ *       200:
+ *         description: Correos enviados
+ *       400:
+ *         description: cursoId requerido, SMTP no configurado o sin estudiantes con correo
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       404:
+ *         description: Curso no encontrado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { cursoEstudiantes, users, cursos } from "@/lib/db/schema";

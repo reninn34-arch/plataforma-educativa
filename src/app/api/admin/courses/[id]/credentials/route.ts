@@ -1,3 +1,55 @@
+/**
+ * @swagger
+ * /api/admin/courses/{id}/credentials:
+ *   get:
+ *     summary: Exportar credenciales de un curso
+ *     description: Devuelve la lista de estudiantes del curso con sus datos (sin PIN por seguridad).
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del curso
+ *     responses:
+ *       200:
+ *         description: Datos del curso y estudiantes
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       404:
+ *         description: Curso no encontrado
+ *       500:
+ *         description: Error interno
+ *   post:
+ *     summary: Regenerar credenciales de un curso
+ *     description: Genera nuevos PINs para todos los estudiantes del curso y los devuelve.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del curso
+ *     responses:
+ *       200:
+ *         description: Credenciales regeneradas con nuevos PINs
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       404:
+ *         description: Curso no encontrado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { cursoEstudiantes, users, cursos } from "@/lib/db/schema";

@@ -1,3 +1,93 @@
+/**
+ * @swagger
+ * /api/admin/courses/{id}/students:
+ *   get:
+ *     summary: Listar estudiantes de un curso
+ *     description: Devuelve la lista de estudiantes inscritos en un curso.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del curso
+ *     responses:
+ *       200:
+ *         description: Lista de estudiantes
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       500:
+ *         description: Error interno
+ *   post:
+ *     summary: Agregar estudiante al curso
+ *     description: Inscribe un estudiante en el curso especificado.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del curso
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [estudianteId]
+ *             properties:
+ *               estudianteId: { type: integer }
+ *     responses:
+ *       201:
+ *         description: Estudiante agregado
+ *       400:
+ *         description: El estudiante ya está en el curso
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       500:
+ *         description: Error interno
+ *   delete:
+ *     summary: Remover estudiante del curso
+ *     description: Elimina la inscripción de un estudiante del curso.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del curso
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [estudianteId]
+ *             properties:
+ *               estudianteId: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Estudiante removido
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { cursoEstudiantes, users } from "@/lib/db/schema";

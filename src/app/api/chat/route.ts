@@ -1,3 +1,54 @@
+/**
+ * @swagger
+ * /api/chat:
+ *   post:
+ *     summary: Enviar mensaje al chat con IA
+ *     description: Envía un mensaje al tutor IA y recibe una respuesta en streaming. Crea o reutiliza una sesión de chat para la materia.
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [messages, subject]
+ *             properties:
+ *               messages:
+ *                 type: array
+ *                 description: Historial de mensajes de la conversación
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     role:
+ *                       type: string
+ *                       enum: [user, assistant]
+ *                     parts:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           text:
+ *                             type: string
+ *               subject:
+ *                 type: string
+ *                 description: Slug de la materia
+ *               model:
+ *                 type: string
+ *                 description: Identificador del modelo de IA
+ *     responses:
+ *       200:
+ *         description: Stream de respuesta del chat (UIMessageStreamResponse)
+ *       400:
+ *         description: messages y subject son requeridos
+ *       401:
+ *         description: No autorizado
+ *       502:
+ *         description: Error al inicializar el modelo IA
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { chatSessions, chatMessages, subjects } from "@/lib/db/schema";

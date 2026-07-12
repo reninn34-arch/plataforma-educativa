@@ -1,3 +1,51 @@
+/**
+ * @swagger
+ * /api/teacher/courses/{id}:
+ *   get:
+ *     summary: Obtener detalle de un curso
+ *     description: Devuelve la información detallada de un curso y las materias que imparte el docente en él.
+ *     tags: [Docentes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del curso
+ *     responses:
+ *       200:
+ *         description: Detalle del curso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id: { type: integer }
+ *                 nombre: { type: string }
+ *                 nivel: { type: string }
+ *                 profesorId: { type: integer }
+ *                 profesorNombre: { type: string }
+ *                 activo: { type: boolean }
+ *                 isTutor: { type: boolean }
+ *                 mySubjects:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       subjectId: { type: integer }
+ *                       subjectName: { type: string }
+ *                       subjectEmoji: { type: string }
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo profesores
+ *       404:
+ *         description: Curso no encontrado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { cursos, cursoEstudiantes, cursoProfesores, users, subjects } from "@/lib/db/schema";

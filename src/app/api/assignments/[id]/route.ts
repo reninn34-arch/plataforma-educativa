@@ -1,3 +1,162 @@
+/**
+ * @swagger
+ * /api/assignments/{id}:
+ *   get:
+ *     summary: Obtener tarea por ID
+ *     description: Devuelve una tarea con sus preguntas y entregas. Los profesores ven todas las entregas; los estudiantes ven solo la suya.
+ *     tags: [Tareas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *         description: ID de la tarea
+ *     responses:
+ *       200:
+ *         description: Detalle de la tarea
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 assignment:
+ *                   type: object
+ *                   properties:
+ *                     id: { type: integer }
+ *                     title: { type: string }
+ *                     description: { type: string, nullable: true }
+ *                     dueDate: { type: string, format: date-time, nullable: true }
+ *                     createdAt: { type: string, format: date-time }
+ *                     subjectName: { type: string }
+ *                     subjectEmoji: { type: string }
+ *                     subjectSlug: { type: string }
+ *                     subjectId: { type: integer }
+ *                     fileUrl: { type: string, nullable: true }
+ *                     cursoId: { type: integer, nullable: true }
+ *                     cursoNombre: { type: string, nullable: true }
+ *                     puntos: { type: integer }
+ *                     trimester: { type: integer }
+ *                     teacherName: { type: string }
+ *                 questions:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id: { type: integer }
+ *                       type: { type: string, enum: [mcq, file_upload] }
+ *                       question: { type: string }
+ *                       options: { type: array, items: { type: string }, nullable: true }
+ *                       points: { type: integer }
+ *                       orderIndex: { type: integer }
+ *                       correctIndex: { type: integer, description: "Solo visible para profesores" }
+ *                 submissions:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 role: { type: string }
+ *                 notSubmitted:
+ *                   type: array
+ *                   description: "Solo para profesores - estudiantes que no entregaron"
+ *       401:
+ *         description: No autorizado
+ *       404:
+ *         description: Tarea no encontrada
+ *       500:
+ *         description: Error interno
+ *   put:
+ *     summary: Editar tarea
+ *     description: Actualiza una tarea existente. Solo el profesor que la creó puede editarla. Acepta JSON o multipart/form-data.
+ *     tags: [Tareas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *         description: ID de la tarea
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, description]
+ *             properties:
+ *               title: { type: string }
+ *               description: { type: string }
+ *               dueDate: { type: string, format: date-time, nullable: true }
+ *               trimester: { type: integer }
+ *               subjectId: { type: integer, nullable: true }
+ *               cursoId: { type: integer, nullable: true }
+ *               puntos: { type: integer }
+ *               fileUrl: { type: string, nullable: true }
+ *               questions:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     type: { type: string, enum: [mcq, file_upload] }
+ *                     question: { type: string }
+ *                     options: { type: array, items: { type: string } }
+ *                     correctIndex: { type: integer }
+ *                     points: { type: integer }
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               data: { type: string, description: "JSON string con los campos" }
+ *               file: { type: string, format: binary, description: "Nuevo archivo adjunto" }
+ *               _removeFile: { type: string, description: "Enviar 'true' para eliminar el archivo actual" }
+ *     responses:
+ *       200:
+ *         description: Tarea actualizada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 updated: { type: boolean }
+ *       400:
+ *         description: Datos inválidos
+ *       403:
+ *         description: No autorizado o no eres el propietario
+ *       401:
+ *         description: No autorizado
+ *       500:
+ *         description: Error interno
+ *   delete:
+ *     summary: Eliminar tarea
+ *     description: Elimina una tarea y todos sus datos asociados (preguntas, entregas, respuestas). Solo el profesor que la creó puede eliminarla.
+ *     tags: [Tareas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *         description: ID de la tarea
+ *     responses:
+ *       200:
+ *         description: Tarea eliminada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 deleted: { type: boolean }
+ *       403:
+ *         description: No autorizado o no eres el propietario
+ *       401:
+ *         description: No autorizado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentQuestions, assignmentSubmissions, submissionAnswers, subjects, users, cursoEstudiantes, cursos } from "@/lib/db/schema";

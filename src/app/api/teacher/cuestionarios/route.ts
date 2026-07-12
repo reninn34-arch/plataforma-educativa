@@ -1,3 +1,112 @@
+/**
+ * @swagger
+ * /api/teacher/cuestionarios:
+ *   get:
+ *     summary: Listar cuestionarios del docente
+ *     description: Devuelve todos los cuestionarios creados por el docente, con conteo de preguntas.
+ *     tags: [Docentes]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de cuestionarios
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 cuestionarios:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id: { type: integer }
+ *                       title: { type: string }
+ *                       description: { type: string, nullable: true }
+ *                       subjectName: { type: string }
+ *                       subjectEmoji: { type: string }
+ *                       subjectSlug: { type: string }
+ *                       cursoNombre: { type: string, nullable: true }
+ *                       cursoNivel: { type: string, nullable: true }
+ *                       createdAt: { type: string }
+ *                       preguntaCount: { type: integer }
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo docentes
+ *       500:
+ *         description: Error interno
+ *   post:
+ *     summary: Crear un cuestionario
+ *     description: Crea un nuevo cuestionario con preguntas de tipo MCQ o completar.
+ *     tags: [Docentes]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [subjectId, title, questions]
+ *             properties:
+ *               cursoId:
+ *                 type: integer
+ *                 description: ID del curso (opcional)
+ *               subjectId:
+ *                 type: integer
+ *                 description: ID de la materia
+ *               title:
+ *                 type: string
+ *                 description: Título del cuestionario
+ *               description:
+ *                 type: string
+ *                 description: Descripción opcional
+ *               questions:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     virtualType:
+ *                       type: string
+ *                       enum: [mcq, completar]
+ *                       description: Tipo de pregunta
+ *                     question:
+ *                       type: string
+ *                       description: Enunciado de la pregunta
+ *                     options:
+ *                       type: array
+ *                       items: { type: string }
+ *                       description: Opciones de respuesta
+ *                     correctIndex:
+ *                       type: integer
+ *                       description: Índice de la respuesta correcta
+ *                     explanation:
+ *                       type: string
+ *                       description: Explicación de la respuesta
+ *                     points:
+ *                       type: integer
+ *                       description: Puntos de la pregunta
+ *     responses:
+ *       201:
+ *         description: Cuestionario creado exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 cuestionarioId: { type: integer }
+ *                 mensaje: { type: string }
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo docentes
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import {

@@ -1,3 +1,70 @@
+/**
+ * @swagger
+ * /api/admin/subjects/{id}:
+ *   put:
+ *     summary: Actualizar materia
+ *     description: Actualiza el nombre, emoji, color o slug de una materia existente.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la materia
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name: { type: string }
+ *               emoji: { type: string }
+ *               color: { type: string }
+ *               slug: { type: string }
+ *     responses:
+ *       200:
+ *         description: Materia actualizada
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       404:
+ *         description: Materia no encontrada
+ *       409:
+ *         description: Conflicto con otra materia
+ *       500:
+ *         description: Error interno
+ *   delete:
+ *     summary: Eliminar materia
+ *     description: Elimina una materia si no está siendo usada en otros registros.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la materia
+ *     responses:
+ *       200:
+ *         description: Materia eliminada
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       404:
+ *         description: Materia no encontrada
+ *       409:
+ *         description: Materia en uso
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { subjects, progress, modules, chatSessions, assignments, practiceSessions, practiceAnswers, cursoProfesores, studyMaterials, cuestionarios, horarios } from "@/lib/db/schema";

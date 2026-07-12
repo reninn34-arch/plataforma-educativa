@@ -1,3 +1,82 @@
+/**
+ * @swagger
+ * /api/messages:
+ *   get:
+ *     summary: Listar mensajes y contactos
+ *     description: Obtiene la lista de contactos con los que el usuario ha intercambiado mensajes, o los mensajes de una conversación específica.
+ *     tags: [Mensajería]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: contactId
+ *         schema:
+ *           type: integer
+ *         description: ID del contacto para obtener la conversación
+ *     responses:
+ *       200:
+ *         description: Lista de contactos o mensajes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 contacts:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       contactId:
+ *                         type: integer
+ *                       contactName:
+ *                         type: string
+ *                       contactRole:
+ *                         type: string
+ *                 messages:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       401:
+ *         description: No autorizado
+ *       500:
+ *         description: Error interno
+ *   post:
+ *     summary: Enviar un mensaje
+ *     description: Envía un mensaje directo a otro usuario y genera una notificación.
+ *     tags: [Mensajería]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [receiverId, content]
+ *             properties:
+ *               receiverId:
+ *                 type: integer
+ *                 description: ID del destinatario
+ *               content:
+ *                 type: string
+ *                 description: Contenido del mensaje
+ *     responses:
+ *       200:
+ *         description: Mensaje enviado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: object
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autorizado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { directMessages, users } from "@/lib/db/schema";

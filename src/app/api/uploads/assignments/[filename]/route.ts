@@ -1,3 +1,37 @@
+/**
+ * @swagger
+ * /api/uploads/assignments/{filename}:
+ *   get:
+ *     summary: Servir archivo de tarea
+ *     description: Sirve un archivo adjunto a una tarea (subido por el profesor) o a una entrega (subido por un estudiante). Verifica permisos según el rol del usuario.
+ *     tags: [Archivos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: filename
+ *         required: true
+ *         schema: { type: string }
+ *         description: "Nombre del archivo (formato: teacher_{id}_{timestamp}_{name} o {assignmentId}_{studentId}_{timestamp}_{name})"
+ *     responses:
+ *       200:
+ *         description: Archivo solicitado
+ *         content:
+ *           application/octet-stream:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Nombre de archivo no válido
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: No tienes permiso para acceder a este archivo
+ *       404:
+ *         description: Archivo no encontrado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentSubmissions, cursoProfesores, cursoEstudiantes } from "@/lib/db/schema";

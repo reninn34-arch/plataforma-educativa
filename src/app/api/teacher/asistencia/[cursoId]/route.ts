@@ -1,3 +1,50 @@
+/**
+ * @swagger
+ * /api/teacher/asistencia/{cursoId}:
+ *   get:
+ *     summary: Obtener asistencia de un curso
+ *     description: Devuelve el registro de asistencia de los estudiantes de un curso para una fecha específica.
+ *     tags: [Docentes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: cursoId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del curso
+ *       - in: query
+ *         name: fecha
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Fecha en formato YYYY-MM-DD (por defecto hoy)
+ *     responses:
+ *       200:
+ *         description: Registro de asistencia
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 fecha: { type: string }
+ *                 asistencia:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       studentId: { type: integer }
+ *                       studentName: { type: string }
+ *                       cedula: { type: string }
+ *                       estado: { type: string, enum: [presente, ausente, justificado, pendiente] }
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo docentes
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { db } from "@/lib/db";

@@ -1,3 +1,77 @@
+/**
+ * @swagger
+ * /api/teacher/ai/generate-assignment:
+ *   post:
+ *     summary: Generar tarea con IA
+ *     description: Utiliza inteligencia artificial para generar una tarea con preguntas de tipo MCQ y file_upload basada en un tema y materia.
+ *     tags: [Docentes]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [subject, topic]
+ *             properties:
+ *               subject:
+ *                 type: string
+ *                 description: Nombre de la materia
+ *               topic:
+ *                 type: string
+ *                 description: Tema de la tarea
+ *               questionCount:
+ *                 type: integer
+ *                 description: Número de preguntas (1-15, por defecto 5)
+ *               trimester:
+ *                 type: integer
+ *                 description: Trimestre (por defecto 1)
+ *               model:
+ *                 type: string
+ *                 description: Modelo de IA a utilizar (opcional)
+ *     responses:
+ *       200:
+ *         description: Tarea generada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     title: { type: string }
+ *                     description: { type: string }
+ *                     questions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           type: { type: string, enum: [mcq, file_upload] }
+ *                           question: { type: string }
+ *                           options: { type: array, items: { type: string } }
+ *                           correctIndex: { type: integer }
+ *                           points: { type: integer }
+ *                 modelUsed: { type: string }
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo docentes
+ *       422:
+ *         description: No se pudieron generar datos válidos
+ *       429:
+ *         description: Demasiadas solicitudes
+ *       500:
+ *         description: Error interno
+ *       502:
+ *         description: Error del modelo de IA
+ *       504:
+ *         description: Tiempo de espera agotado
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, tryParseJson } from "@/lib/ai";
 import { generateObject, generateText } from "ai";

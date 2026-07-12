@@ -1,3 +1,64 @@
+/**
+ * @swagger
+ * /api/admin/periodos/{id}:
+ *   put:
+ *     summary: Actualizar período lectivo
+ *     description: Actualiza el nombre, fechas o estado activo de un período lectivo. Si se activa, desactiva los demás.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del período lectivo
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nombre: { type: string }
+ *               fechaInicio: { type: string, format: date }
+ *               fechaFin: { type: string, format: date }
+ *               activo: { type: boolean }
+ *     responses:
+ *       200:
+ *         description: Período actualizado
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       500:
+ *         description: Error interno
+ *   delete:
+ *     summary: Eliminar período lectivo
+ *     description: Elimina un período lectivo si no tiene tareas asociadas.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del período lectivo
+ *     responses:
+ *       200:
+ *         description: Período eliminado
+ *       400:
+ *         description: No se puede eliminar porque tiene tareas asignadas
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { periodosLectivos, assignments } from "@/lib/db/schema";

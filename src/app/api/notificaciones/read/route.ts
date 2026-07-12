@@ -1,3 +1,44 @@
+/**
+ * @swagger
+ * /api/notificaciones/read:
+ *   post:
+ *     summary: Marcar notificaciones como leídas
+ *     description: Marca una o todas las notificaciones del usuario como leídas.
+ *     tags: [Notificaciones]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               ids:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: Lista de IDs de notificaciones a marcar
+ *               all:
+ *                 type: boolean
+ *                 description: Marcar todas como leídas
+ *     responses:
+ *       200:
+ *         description: Notificaciones marcadas como leídas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *       400:
+ *         description: ids o all requerido
+ *       401:
+ *         description: No autorizado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";

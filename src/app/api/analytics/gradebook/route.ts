@@ -1,3 +1,58 @@
+/**
+ * @swagger
+ * /api/analytics/gradebook:
+ *   get:
+ *     summary: Obtener libro de calificaciones
+ *     description: Devuelve las calificaciones de los estudiantes agrupadas por materia y trimestre, con promedios ponderados. Solo docentes.
+ *     tags: [Analíticas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: trimester
+ *         schema:
+ *           type: integer
+ *         description: Filtrar por trimestre (1, 2, 3)
+ *       - in: query
+ *         name: cursoId
+ *         schema:
+ *           type: integer
+ *         description: Filtrar por ID de curso
+ *       - in: query
+ *         name: periodoId
+ *         schema:
+ *           type: integer
+ *         description: Filtrar por ID de período lectivo
+ *     responses:
+ *       200:
+ *         description: Libro de calificaciones
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 gradebook:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       studentId:
+ *                         type: integer
+ *                       studentName:
+ *                         type: string
+ *                       studentCedula:
+ *                         type: string
+ *                       subjects:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo docentes
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentSubmissions, subjects, users, cursos, periodosLectivos } from "@/lib/db/schema";

@@ -1,6 +1,3 @@
-import { NextRequest, NextResponse } from "next/server";
-import { uploadFile } from "@/lib/storage";
-
 /**
  * @swagger
  * /api/assignments:
@@ -18,9 +15,41 @@ import { uploadFile } from "@/lib/storage";
  *     responses:
  *       200:
  *         description: Lista de tareas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 assignments:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id: { type: integer }
+ *                       title: { type: string }
+ *                       description: { type: string, nullable: true }
+ *                       dueDate: { type: string, format: date-time, nullable: true }
+ *                       createdAt: { type: string, format: date-time }
+ *                       subjectName: { type: string }
+ *                       subjectEmoji: { type: string }
+ *                       subjectSlug: { type: string }
+ *                       cursoId: { type: integer, nullable: true }
+ *                       cursoNombre: { type: string, nullable: true }
+ *                       puntos: { type: integer }
+ *                       fileUrl: { type: string, nullable: true }
+ *                       trimester: { type: integer }
+ *                       submissionCount: { type: integer }
+ *                       status: { type: string, nullable: true }
+ *                       grade: { type: integer, nullable: true }
+ *                       teacherName: { type: string, nullable: true }
+ *                       periodoNombre: { type: string, nullable: true }
+ *       401:
+ *         description: No autorizado
+ *       500:
+ *         description: Error interno
  *   post:
  *     summary: Crear tarea
- *     description: Crea una nueva tarea con preguntas de opción múltiple o archivo.
+ *     description: Crea una nueva tarea con preguntas de opción múltiple o archivo. Acepta JSON o multipart/form-data.
  *     tags: [Tareas]
  *     security:
  *       - bearerAuth: []
@@ -39,6 +68,7 @@ import { uploadFile } from "@/lib/storage";
  *               puntos: { type: integer, default: 10 }
  *               dueDate: { type: string, format: date-time }
  *               trimester: { type: integer }
+ *               fileUrl: { type: string, nullable: true }
  *               questions:
  *                 type: array
  *                 items:
@@ -49,14 +79,33 @@ import { uploadFile } from "@/lib/storage";
  *                     options: { type: array, items: { type: string } }
  *                     correctIndex: { type: integer }
  *                     points: { type: integer }
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               data: { type: string, description: "JSON string con los campos" }
+ *               file: { type: string, format: binary, description: "Archivo adjunto" }
  *     responses:
  *       201:
  *         description: Tarea creada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 assignment: { type: object }
+ *                 questionsCount: { type: integer }
  *       400:
  *         description: Datos inválidos
  *       403:
+ *         description: Solo docentes pueden crear tareas
+ *       401:
  *         description: No autorizado
+ *       500:
+ *         description: Error interno
  */
+import { NextRequest, NextResponse } from "next/server";
+import { uploadFile } from "@/lib/storage";
 import { db } from "@/lib/db";
 import { assignments, assignmentQuestions, assignmentSubmissions, subjects, users, cursos, periodosLectivos, cursoEstudiantes } from "@/lib/db/schema";
 import { eq, and, desc, inArray, sql } from "drizzle-orm";

@@ -1,3 +1,35 @@
+/**
+ * @swagger
+ * /api/admin/users/bulk:
+ *   post:
+ *     summary: Importar usuarios masivamente
+ *     description: Carga un archivo CSV con estudiantes y los crea en lote. Reactiva usuarios inactivos existentes y omite duplicados activos.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: Archivo CSV con columnas Cédula, Nombre Completo y opcional Correo
+ *     responses:
+ *       200:
+ *         description: Resultado de la importación con detalle por fila
+ *       400:
+ *         description: Archivo inválido o formato incorrecto
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";

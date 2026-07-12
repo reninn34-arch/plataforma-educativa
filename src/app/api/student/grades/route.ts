@@ -1,3 +1,58 @@
+/**
+ * @swagger
+ * /api/student/grades:
+ *   get:
+ *     summary: Calificaciones del estudiante
+ *     description: Devuelve las calificaciones de tareas, trabajos pendientes, resumen por materia y promedio general del estudiante autenticado.
+ *     tags: [Estudiantes]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Calificaciones del estudiante
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 graded:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id: { type: integer }
+ *                       assignmentId: { type: integer }
+ *                       assignmentTitle: { type: string }
+ *                       subjectName: { type: string }
+ *                       subjectEmoji: { type: string }
+ *                       trimester: { type: integer }
+ *                       grade: { type: number, nullable: true }
+ *                       feedback: { type: string, nullable: true }
+ *                       status: { type: string }
+ *                       submittedAt: { type: string, nullable: true }
+ *                       puntos: { type: integer }
+ *                 pending:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 notSubmittedCount: { type: integer }
+ *                 summary:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       subjectName: { type: string }
+ *                       subjectEmoji: { type: string }
+ *                       t1Avg: { type: number, nullable: true }
+ *                       t2Avg: { type: number, nullable: true }
+ *                       t3Avg: { type: number, nullable: true }
+ *                       yearlyAvg: { type: number, nullable: true }
+ *                 generalAvg: { type: number, nullable: true }
+ *       401:
+ *         description: No autorizado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentSubmissions, subjects } from "@/lib/db/schema";

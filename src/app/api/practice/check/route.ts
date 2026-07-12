@@ -1,3 +1,65 @@
+/**
+ * @swagger
+ * /api/practice/check:
+ *   post:
+ *     summary: Verificar respuesta de ejercicio
+ *     description: Evalúa si la respuesta del estudiante es correcta. Usa coincidencia exacta para MCQ/true-false y verificación semántica con IA para fill_blank.
+ *     tags: [Práctica e IA]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [question, type, studentAnswer, correctAnswer]
+ *             properties:
+ *               question:
+ *                 type: string
+ *                 description: Enunciado de la pregunta
+ *               type:
+ *                 type: string
+ *                 enum: [mcq, fill_blank, true_false]
+ *                 description: Tipo de ejercicio
+ *               studentAnswer:
+ *                 oneOf:
+ *                   - type: string
+ *                   - type: integer
+ *                   - type: boolean
+ *                 description: Respuesta del estudiante
+ *               correctAnswer:
+ *                 oneOf:
+ *                   - type: integer
+ *                   - type: boolean
+ *                   - type: array
+ *                     items:
+ *                       type: string
+ *                 description: Respuesta correcta
+ *               model:
+ *                 type: string
+ *                 description: Modelo de IA para verificación semántica
+ *     responses:
+ *       200:
+ *         description: Resultado de la verificación
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 isCorrect:
+ *                   type: boolean
+ *                 feedback:
+ *                   type: string
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo estudiantes
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getChatModel, getChatModelCandidates, isRetryableModelError, resolveModel, tryParseJson } from "@/lib/ai";

@@ -1,3 +1,69 @@
+/**
+ * @swagger
+ * /api/admin/courses/{id}:
+ *   put:
+ *     summary: Actualizar curso
+ *     description: Actualiza los datos del curso (nombre, nivel, profesor, activo) y las materias asociadas a cada profesor.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del curso
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nombre: { type: string }
+ *               nivel: { type: string }
+ *               profesorId: { type: integer, nullable: true }
+ *               activo: { type: boolean }
+ *               teacherSubjects:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     teacherId: { type: integer }
+ *                     subjectId: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Curso actualizado
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       500:
+ *         description: Error interno
+ *   delete:
+ *     summary: Eliminar curso
+ *     description: Elimina permanentemente el curso, sus relaciones con profesores y estudiantes.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del curso
+ *     responses:
+ *       200:
+ *         description: Curso eliminado
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { cursos, cursoEstudiantes, users, subjects, cursoProfesores } from "@/lib/db/schema";

@@ -1,3 +1,37 @@
+/**
+ * @swagger
+ * /api/student/calendar:
+ *   get:
+ *     summary: Calendario del estudiante
+ *     description: Devuelve los eventos del calendario (tareas con fecha de entrega) para el estudiante o profesor autenticado.
+ *     tags: [Estudiantes]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Eventos del calendario
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 events:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id: { type: integer }
+ *                       title: { type: string }
+ *                       subjectName: { type: string }
+ *                       subjectEmoji: { type: string }
+ *                       subjectSlug: { type: string }
+ *                       dueDate: { type: string, nullable: true }
+ *                       status: { type: string, nullable: true }
+ *       401:
+ *         description: No autorizado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentSubmissions, subjects } from "@/lib/db/schema";

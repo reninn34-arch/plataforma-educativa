@@ -1,3 +1,89 @@
+/**
+ * @swagger
+ * /api/teacher/students:
+ *   get:
+ *     summary: Listar estudiantes del docente
+ *     description: Devuelve los estudiantes de los cursos del docente, con progreso, calificaciones y filtro de riesgo. Opcionalmente filtrados por cursoId.
+ *     tags: [Docentes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: cursoId
+ *         schema:
+ *           type: integer
+ *         description: ID del curso para filtrar
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Búsqueda por nombre o cédula
+ *       - in: query
+ *         name: riesgo
+ *         schema:
+ *           type: string
+ *           enum: [true]
+ *         description: Si es "true", devuelve solo estudiantes en riesgo
+ *     responses:
+ *       200:
+ *         description: Lista de estudiantes (o estudiantes en riesgo si riesgo=true)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               oneOf:
+ *                 - type: object
+ *                   properties:
+ *                     students:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id: { type: integer }
+ *                           fullName: { type: string }
+ *                           cedula: { type: string }
+ *                           email: { type: string }
+ *                           whatsapp: { type: string }
+ *                           cursoId: { type: integer }
+ *                           cursoNombre: { type: string }
+ *                           progress:
+ *                             type: array
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 subjectId: { type: integer }
+ *                                 subjectName: { type: string }
+ *                                 subjectEmoji: { type: string }
+ *                                 percentage: { type: number }
+ *                                 daysInactive: { type: integer }
+ *                                 consecutiveFailures: { type: integer }
+ *                                 lastActivity: { type: string, nullable: true }
+ *                           grades:
+ *                             type: object
+ *                             properties:
+ *                               average: { type: number, nullable: true }
+ *                               pending: { type: integer }
+ *                               lastSubmission: { type: string, nullable: true }
+ *                 - type: object
+ *                   properties:
+ *                     estudiantes:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id: { type: integer }
+ *                           fullName: { type: string }
+ *                           cedula: { type: string }
+ *                           whatsapp: { type: string }
+ *                           consecutiveFailures: { type: integer }
+ *                           daysInactive: { type: integer }
+ *                           subjectName: { type: string }
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo profesores
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users, cursoEstudiantes, cursoProfesores, cursos, progress, subjects, assignments, assignmentSubmissions, periodosLectivos } from "@/lib/db/schema";

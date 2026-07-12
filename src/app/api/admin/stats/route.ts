@@ -1,3 +1,30 @@
+/**
+ * @swagger
+ * /api/admin/stats:
+ *   get:
+ *     summary: Estadísticas del dashboard
+ *     description: Devuelve el conteo total de estudiantes, profesores y cursos activos.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Estadísticas del sistema
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalEstudiantes: { type: integer }
+ *                 totalProfesores: { type: integer }
+ *                 totalCursos: { type: integer }
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users, cursos } from "@/lib/db/schema";

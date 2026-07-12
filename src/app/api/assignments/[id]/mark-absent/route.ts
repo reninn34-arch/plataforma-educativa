@@ -1,3 +1,47 @@
+/**
+ * @swagger
+ * /api/assignments/{id}/mark-absent:
+ *   post:
+ *     summary: Marcar estudiante como ausente
+ *     description: Registra una entrega con nota 0 y feedback "No entrego" para un estudiante que no presentó la tarea. Solo el profesor dueño de la tarea.
+ *     tags: [Tareas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *         description: ID de la tarea
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [studentId]
+ *             properties:
+ *               studentId:
+ *                 type: integer
+ *                 description: "ID del estudiante a marcar como ausente"
+ *     responses:
+ *       200:
+ *         description: Estudiante marcado como ausente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *       400:
+ *         description: Datos inválidos (falta studentId, estudiante ya tiene entrega, o no pertenece al curso)
+ *       403:
+ *         description: Solo docentes o no autorizado
+ *       401:
+ *         description: No autorizado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentSubmissions, cursoEstudiantes } from "@/lib/db/schema";

@@ -1,3 +1,44 @@
+/**
+ * @swagger
+ * /api/teacher/periodos:
+ *   get:
+ *     summary: Listar periodos lectivos
+ *     description: Devuelve todos los periodos lectivos y el periodo activo actual.
+ *     tags: [Docentes]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Periodos lectivos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 periodos:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id: { type: integer }
+ *                       nombre: { type: string }
+ *                       activo: { type: boolean }
+ *                       createdAt: { type: string }
+ *                 active:
+ *                   type: object
+ *                   nullable: true
+ *                   properties:
+ *                     id: { type: integer }
+ *                     nombre: { type: string }
+ *                     activo: { type: boolean }
+ *                     createdAt: { type: string }
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo docentes
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { periodosLectivos } from "@/lib/db/schema";

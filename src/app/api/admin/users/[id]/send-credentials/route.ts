@@ -1,3 +1,33 @@
+/**
+ * @swagger
+ * /api/admin/users/{id}/send-credentials:
+ *   post:
+ *     summary: Enviar credenciales por correo
+ *     description: Genera un nuevo PIN y envía las credenciales de acceso al correo electrónico del usuario.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del usuario
+ *     responses:
+ *       200:
+ *         description: Credenciales enviadas exitosamente
+ *       400:
+ *         description: El usuario no tiene correo o SMTP no configurado
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       404:
+ *         description: Usuario no encontrado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";

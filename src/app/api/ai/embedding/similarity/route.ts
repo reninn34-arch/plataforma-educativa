@@ -1,3 +1,68 @@
+/**
+ * @swagger
+ * /api/ai/embedding/similarity:
+ *   post:
+ *     summary: Calcular similitud semántica
+ *     description: Calcula la similitud coseno entre el embedding de una consulta y los embeddings de múltiples candidatos, devolviendo los más similares.
+ *     tags: [Práctica e IA]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [query, candidates]
+ *             properties:
+ *               query:
+ *                 type: string
+ *                 description: Texto de consulta
+ *               candidates:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Textos candidatos a comparar
+ *               topK:
+ *                 type: integer
+ *                 description: Número de resultados principales
+ *               model:
+ *                 type: string
+ *                 description: Modelo de embedding
+ *     responses:
+ *       200:
+ *         description: Resultados de similitud
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 model:
+ *                   type: string
+ *                 totalCandidates:
+ *                   type: integer
+ *                 topK:
+ *                   type: integer
+ *                 matches:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       index:
+ *                         type: integer
+ *                       text:
+ *                         type: string
+ *                       score:
+ *                         type: number
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autorizado
+ *       422:
+ *         description: Modelo no configurado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest } from "next/server";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { embeddingSimilaritySchema } from "@/lib/api-helpers";

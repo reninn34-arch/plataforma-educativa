@@ -1,3 +1,31 @@
+/**
+ * @swagger
+ * /api/student/progress:
+ *   get:
+ *     summary: Progreso del estudiante por materia
+ *     description: Devuelve el porcentaje de avance, nodos completados y estrellas obtenidas por cada materia del estudiante autenticado.
+ *     tags: [Estudiantes]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Progreso por materia
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               additionalProperties:
+ *                 type: object
+ *                 properties:
+ *                   percentage: { type: integer }
+ *                   completedNodes: { type: integer }
+ *                   totalNodes: { type: integer }
+ *                   totalStars: { type: integer }
+ *       401:
+ *         description: No autorizado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { progress, subjects, nodes, userProgress, modules, studentModules } from "@/lib/db/schema";

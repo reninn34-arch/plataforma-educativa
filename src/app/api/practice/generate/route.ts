@@ -1,3 +1,63 @@
+/**
+ * @swagger
+ * /api/practice/generate:
+ *   post:
+ *     summary: Generar práctica con IA
+ *     description: Genera una lección con ejercicios, diagramas y videos para que el estudiante practique una materia. Solo estudiantes. Utiliza caché si ya existe.
+ *     tags: [Práctica e IA]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [subject]
+ *             properties:
+ *               subject:
+ *                 type: string
+ *                 description: Slug de la materia
+ *               topic:
+ *                 type: string
+ *                 description: Tema específico
+ *               aiPromptContext:
+ *                 type: string
+ *                 description: Contexto adicional para la IA
+ *               nodeId:
+ *                 type: integer
+ *                 description: ID del nodo de aprendizaje
+ *               retry:
+ *                 type: boolean
+ *                 description: Forzar regeneración
+ *               model:
+ *                 type: string
+ *                 description: Identificador del modelo de IA
+ *     responses:
+ *       200:
+ *         description: Práctica generada (lección + ejercicios + videos)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 lesson:
+ *                   type: object
+ *                 exercises:
+ *                   type: array
+ *                 videos:
+ *                   type: array
+ *                 cached:
+ *                   type: boolean
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo estudiantes
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, tryParseJson } from "@/lib/ai";
 import { isValidMermaid, sanitizeMermaid } from "@/lib/mermaid-validate";

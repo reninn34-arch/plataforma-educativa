@@ -1,3 +1,51 @@
+/**
+ * @swagger
+ * /api/ai/embedding:
+ *   post:
+ *     summary: Generar embedding de texto
+ *     description: Genera un vector de embedding para un texto utilizando el modelo de IA configurado.
+ *     tags: [Práctica e IA]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [text]
+ *             properties:
+ *               text:
+ *                 type: string
+ *                 description: Texto a convertir en embedding
+ *               model:
+ *                 type: string
+ *                 description: Modelo de embedding
+ *     responses:
+ *       200:
+ *         description: Embedding generado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 model:
+ *                   type: string
+ *                 dimensions:
+ *                   type: integer
+ *                 embedding:
+ *                   type: array
+ *                   items:
+ *                     type: number
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autorizado
+ *       422:
+ *         description: Modelo no configurado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest } from "next/server";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { embeddingSchema } from "@/lib/api-helpers";

@@ -1,3 +1,70 @@
+/**
+ * @swagger
+ * /api/reports/data:
+ *   get:
+ *     summary: Obtener datos de reporte de curso
+ *     description: Genera un reporte detallado de un curso con estudiantes, promedios por materia, tareas entregadas y pendientes. Solo docentes y administradores.
+ *     tags: [Analíticas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: cursoId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del curso
+ *     responses:
+ *       200:
+ *         description: Datos del reporte
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 curso:
+ *                   type: object
+ *                 subjects:
+ *                   type: array
+ *                 students:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       nombre:
+ *                         type: string
+ *                       promedioGeneral:
+ *                         type: number
+ *                       totalTareas:
+ *                         type: integer
+ *                       entregadas:
+ *                         type: integer
+ *                       pendientes:
+ *                         type: integer
+ *                 stats:
+ *                   type: object
+ *                   properties:
+ *                     totalEstudiantes:
+ *                       type: integer
+ *                     promedioCurso:
+ *                       type: number
+ *                     totalTareas:
+ *                       type: integer
+ *                     totalMaterias:
+ *                       type: integer
+ *       400:
+ *         description: cursoId es requerido
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Acción no permitida
+ *       404:
+ *         description: Curso no encontrado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";

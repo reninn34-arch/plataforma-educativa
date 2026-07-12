@@ -1,3 +1,51 @@
+/**
+ * @swagger
+ * /api/messages/course:
+ *   post:
+ *     summary: Enviar mensaje a un curso
+ *     description: Envía un mensaje a todos los estudiantes activos de un curso. Solo docentes y administradores.
+ *     tags: [Mensajería]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [cursoId, message]
+ *             properties:
+ *               cursoId:
+ *                 type: integer
+ *                 description: ID del curso
+ *               message:
+ *                 type: string
+ *                 description: Contenido del mensaje
+ *     responses:
+ *       200:
+ *         description: Mensaje enviado a los estudiantes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 enviados:
+ *                   type: integer
+ *                 curso:
+ *                   type: string
+ *                 mensaje:
+ *                   type: string
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Acción no permitida para este rol
+ *       404:
+ *         description: Curso no encontrado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { directMessages, users, cursos, cursoEstudiantes, cursoProfesores } from "@/lib/db/schema";

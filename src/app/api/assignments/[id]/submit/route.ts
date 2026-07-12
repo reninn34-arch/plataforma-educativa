@@ -1,3 +1,55 @@
+/**
+ * @swagger
+ * /api/assignments/{id}/submit:
+ *   post:
+ *     summary: Entregar tarea
+ *     description: Permite a un estudiante entregar una tarea. Puede incluir respuestas a preguntas de opción múltiple y/o un archivo. Si la tarea solo tiene preguntas MCQ, se calcula una nota automática.
+ *     tags: [Tareas]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *         description: ID de la tarea
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: "Archivo de la entrega (PDF, imagen, Word, ZIP, etc.)"
+ *               answers:
+ *                 type: string
+ *                 description: "JSON string con array de respuestas: [{ questionId, selectedIndex }]"
+ *     responses:
+ *       200:
+ *         description: Entrega registrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 submissionId: { type: integer }
+ *                 fileUrl: { type: string, nullable: true }
+ *                 autoGraded: { type: boolean, description: "Indica si se calculó nota automática" }
+ *       400:
+ *         description: Plazo vencido, archivo inválido o datos incorrectos
+ *       403:
+ *         description: Solo estudiantes pueden entregar o no estás inscrito
+ *       404:
+ *         description: Tarea no encontrada
+ *       401:
+ *         description: No autorizado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assignmentSubmissions, submissionAnswers, assignmentQuestions, assignments, cursoEstudiantes } from "@/lib/db/schema";

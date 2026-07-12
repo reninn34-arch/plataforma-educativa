@@ -1,3 +1,71 @@
+/**
+ * @swagger
+ * /api/admin/courses/{id}/horarios:
+ *   get:
+ *     summary: Obtener horario del curso
+ *     description: Devuelve los bloques horarios del curso ordenados por día y hora.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del curso
+ *     responses:
+ *       200:
+ *         description: Horario del curso
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       500:
+ *         description: Error interno
+ *   put:
+ *     summary: Guardar horario del curso
+ *     description: Reemplaza completamente el horario del curso con los bloques enviados.
+ *     tags: [Administración]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del curso
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [bloques]
+ *             properties:
+ *               bloques:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     dia: { type: string, enum: [lunes, martes, miercoles, jueves, viernes] }
+ *                     horaInicio: { type: string }
+ *                     horaFin: { type: string }
+ *                     subjectId: { type: integer, nullable: true }
+ *                     tipo: { type: string, default: "clase" }
+ *     responses:
+ *       200:
+ *         description: Horario guardado
+ *       400:
+ *         description: bloques debe ser un array
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo administradores
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { horarios, subjects } from "@/lib/db/schema";

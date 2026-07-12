@@ -1,3 +1,38 @@
+/**
+ * @swagger
+ * /api/teacher/study-material/{id}:
+ *   delete:
+ *     summary: Eliminar material de estudio
+ *     description: Elimina un material de estudio. Solo el autor (docente) puede eliminarlo.
+ *     tags: [Material de Estudio]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del material
+ *     responses:
+ *       200:
+ *         description: Material eliminado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo docentes o no es el autor
+ *       404:
+ *         description: Material no encontrado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { db } from "@/lib/db";

@@ -1,3 +1,47 @@
+/**
+ * @swagger
+ * /api/teacher/horario:
+ *   get:
+ *     summary: Obtener horario del docente
+ *     description: Devuelve el horario de clases del docente, opcionalmente filtrado por curso.
+ *     tags: [Docentes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: cursoId
+ *         schema:
+ *           type: integer
+ *         description: ID del curso para filtrar (opcional)
+ *     responses:
+ *       200:
+ *         description: Horario del docente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 horarios:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id: { type: integer }
+ *                       dia: { type: string }
+ *                       horaInicio: { type: string }
+ *                       horaFin: { type: string }
+ *                       subjectId: { type: integer }
+ *                       subjectName: { type: string }
+ *                       subjectEmoji: { type: string }
+ *                       tipo: { type: string }
+ *                       cursoId: { type: integer }
+ *       401:
+ *         description: No autorizado
+ *       403:
+ *         description: Solo docentes
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { horarios, subjects, cursoProfesores } from "@/lib/db/schema";

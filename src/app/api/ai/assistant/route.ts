@@ -1,3 +1,44 @@
+/**
+ * @swagger
+ * /api/ai/assistant:
+ *   post:
+ *     summary: Asistente IA conversacional
+ *     description: Asistente conversacional que responde preguntas, realiza acciones (crear tareas, calificar, etc.) y puede actuar como tutor de aprendizaje según el rol del usuario y el flujo seleccionado.
+ *     tags: [Práctica e IA]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [messages]
+ *             properties:
+ *               messages:
+ *                 type: array
+ *                 description: Historial de mensajes
+ *                 items:
+ *                   type: object
+ *               model:
+ *                 type: string
+ *                 description: Identificador del modelo de IA
+ *               flow:
+ *                 type: string
+ *                 enum: [tutor]
+ *                 description: Modo de flujo (tutor activa modo tutor socrático)
+ *     responses:
+ *       200:
+ *         description: Stream de respuesta del asistente
+ *       400:
+ *         description: messages es requerido
+ *       401:
+ *         description: No autorizado
+ *       502:
+ *         description: Error al inicializar el modelo IA
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest } from "next/server";
 import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, type ResolvedModel } from "@/lib/ai";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";

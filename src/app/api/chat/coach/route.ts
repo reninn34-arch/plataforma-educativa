@@ -1,3 +1,52 @@
+/**
+ * @swagger
+ * /api/chat/coach:
+ *   post:
+ *     summary: Obtener ayuda motivacional del Coach IA
+ *     description: Cuando el estudiante se equivoca, el Coach IA genera una mini-ayuda motivadora con una pista lógica sin dar la respuesta directa.
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [question]
+ *             properties:
+ *               question:
+ *                 type: string
+ *                 description: Pregunta del ejercicio
+ *               studentAnswer:
+ *                 type: string
+ *                 description: Respuesta del estudiante
+ *               topic:
+ *                 type: string
+ *                 description: Tema actual
+ *               wasTimeout:
+ *                 type: boolean
+ *                 description: Si el estudiante no respondió a tiempo
+ *               model:
+ *                 type: string
+ *                 description: Identificador del modelo de IA
+ *     responses:
+ *       200:
+ *         description: Mensaje de ayuda motivacional
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 coachMessage:
+ *                   type: string
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autorizado
+ *       500:
+ *         description: Error interno
+ */
 import { NextRequest } from "next/server";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel } from "@/lib/ai";
