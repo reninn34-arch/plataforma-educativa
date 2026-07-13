@@ -231,6 +231,33 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     }
   }, [gameState, subjectId, nodeId, correctCount, exercises.length, xpEarned, maxCombo]);
 
+  // Timer interval
+  useEffect(() => {
+    if (!currentExercise || gameState !== "playing" || feedback) return;
+    const timeLimit = currentExercise.timeLimit;
+    if (!timeLimit) return;
+
+    setElapsedSeconds(0);
+
+    timerIntervalRef.current = setInterval(() => {
+      setElapsedSeconds((prev) => {
+        const next = prev + 1;
+        if (next >= timeLimit) {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          timeoutRef.current();
+          return timeLimit;
+        }
+        return next;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [currentIndex, gameState, feedback, currentExercise]);
+
+  const timeoutRef = useRef<() => void>(() => {});
+
   const triggerCoach = useCallback(async (question: string, studentAnswer: string, wasTimeout: boolean) => {
     setShowCoach(true);
     setCoachLoading(true);
@@ -272,30 +299,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     triggerCoach(currentExercise.question, "", true);
   }, [currentIndex, timerSeconds, currentExercise, triggerCoach]);
 
-  // Timer interval
-  useEffect(() => {
-    if (!currentExercise || gameState !== "playing" || feedback) return;
-    const timeLimit = currentExercise.timeLimit;
-    if (!timeLimit) return;
-
-    setElapsedSeconds(0);
-
-    timerIntervalRef.current = setInterval(() => {
-      setElapsedSeconds((prev) => {
-        const next = prev + 1;
-        if (next >= timeLimit) {
-          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-          handleTimeout();
-          return timeLimit;
-        }
-        return next;
-      });
-    }, 1000);
-
-    return () => {
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-    };
-  }, [currentIndex, gameState, feedback, currentExercise, handleTimeout]);
+  timeoutRef.current = handleTimeout;
 
   const handleAnswer = async (answer: string | number | boolean) => {
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
