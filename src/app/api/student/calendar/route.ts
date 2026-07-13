@@ -34,7 +34,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { assignments, assignmentSubmissions, subjects } from "@/lib/db/schema";
+import { assignments, assignmentSubmissions, subjects, cursoEstudiantes } from "@/lib/db/schema";
 import { eq, and, inArray, isNotNull, sql } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 
@@ -48,23 +48,38 @@ export async function GET(request: NextRequest) {
   let data: any[] = [];
 
   if (user.role === "student") {
-    data = await db
-      .select({
-        id: assignments.id,
-        title: assignments.title,
-        subjectName: subjects.name,
-        subjectEmoji: subjects.emoji,
-        subjectSlug: subjects.slug,
-        dueDate: assignments.dueDate,
-        status: assignmentSubmissions.status,
-      })
-      .from(assignments)
-      .leftJoin(subjects, eq(assignments.subjectId, subjects.id))
-      .leftJoin(assignmentSubmissions, and(
-        eq(assignmentSubmissions.assignmentId, assignments.id),
-        eq(assignmentSubmissions.studentId, user.id)
-      ))
-      .where(isNotNull(assignments.dueDate));
+    const enrolledCourses = await db
+      .select({ cursoId: cursoEstudiantes.cursoId })
+      .from(cursoEstudiantes)
+      .where(eq(cursoEstudiantes.estudianteId, user.id));
+
+    const enrolledIds = new Set(enrolledCourses.map(c => c.cursoId));
+
+    if (enrolledIds.size === 0) {
+      data = [];
+    } else {
+      data = await db
+        .select({
+          id: assignments.id,
+          title: assignments.title,
+          subjectName: subjects.name,
+          subjectEmoji: subjects.emoji,
+          subjectSlug: subjects.slug,
+          dueDate: assignments.dueDate,
+          status: assignmentSubmissions.status,
+        })
+        .from(assignments)
+        .leftJoin(subjects, eq(assignments.subjectId, subjects.id))
+        .leftJoin(assignmentSubmissions, and(
+          eq(assignmentSubmissions.assignmentId, assignments.id),
+          eq(assignmentSubmissions.studentId, user.id)
+        ))
+        .where(and(
+          isNotNull(assignments.dueDate),
+          isNotNull(assignments.cursoId),
+          inArray(assignments.cursoId, Array.from(enrolledIds))
+        ));
+    }
   } else {
     // Teacher sees all assignments
     const raw = await db
