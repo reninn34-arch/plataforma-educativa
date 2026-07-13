@@ -1,7 +1,7 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { embed, embedMany } from "ai";
+import { embed, embedMany, type LanguageModel, type EmbeddingModel } from "ai";
 import { getEnv } from "@/lib/env";
 
 export function cosineSimilarity(a: number[], b: number[]): number {
@@ -194,11 +194,11 @@ function getProviderClient(provider: AiProvider) {
 }
 
 interface ProviderClient {
-  chat?: (model: string) => unknown;
-  textEmbeddingModel?: (model: string) => unknown;
-  embeddingModel?: (model: string) => unknown;
-  embedding?: (model: string) => unknown;
-  (model: string): unknown;
+  chat?: (model: string) => LanguageModel;
+  textEmbeddingModel?: (model: string) => EmbeddingModel;
+  embeddingModel?: (model: string) => EmbeddingModel;
+  embedding?: (model: string) => EmbeddingModel;
+  (model: string): LanguageModel;
 }
 
 export function getChatModel(target: ResolvedModel | string) {

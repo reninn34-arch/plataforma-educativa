@@ -355,10 +355,11 @@ Debes responder UNICAMENTE con un objeto JSON valido que coincida exactamente co
             modelUsed: candidate.modelId,
           });
         }
-      } catch (aiError: unknown) {
+      } catch (error: unknown) {
         clearTimeout(timeoutId);
-        const msg = String(aiError?.message || aiError || "");
-        const wasAborted = aiError?.name === "AbortError" || msg.includes("abort");
+        const err = error instanceof Error ? error : new Error(String(error));
+        const msg = err.message;
+        const wasAborted = err.name === "AbortError" || msg.includes("abort");
 
         if (msg.includes("response_format") || msg.includes("unavailable")) {
           const start = Date.now();
@@ -417,11 +418,12 @@ Debes responder UNICAMENTE con un objeto JSON valido que coincida exactamente co
             }
           } catch (textModelError: unknown) {
             lastError = textModelError;
+            const errMsg = textModelError instanceof Error ? textModelError.message : "unknown";
             logAiCall({
               route: "teacher/ai/generate-assignment",
               model: candidate.modelId,
               durationMs: Date.now() - start,
-              error: `generateText fallback model error: ${textModelError.message || "unknown"}`,
+              error: `generateText fallback model error: ${errMsg}`,
             });
             if (!isRetryableModelError(textModelError)) {
               return NextResponse.json(
@@ -433,16 +435,17 @@ Debes responder UNICAMENTE con un objeto JSON valido que coincida exactamente co
           }
         }
 
-        lastError = aiError;
+        lastError = error;
+        const errMsg = error instanceof Error ? error.message : "AI error";
 
         logAiCall({
           route: "teacher/ai/generate-assignment",
           model: candidate.modelId,
           durationMs: 0,
-          error: wasAborted ? `Timeout (${REQUEST_TIMEOUT_MS / 1000}s)` : (aiError.message || "AI error"),
+          error: wasAborted ? `Timeout (${REQUEST_TIMEOUT_MS / 1000}s)` : errMsg,
         });
 
-        if (!isRetryableModelError(aiError) && !wasAborted) {
+        if (!isRetryableModelError(error) && !wasAborted) {
           return NextResponse.json(
             { error: "Error al generar con IA. Intenta de nuevo." },
             { status: 502 }

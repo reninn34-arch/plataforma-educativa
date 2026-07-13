@@ -99,6 +99,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
   const [feedback, setFeedback] = useState<{ isCorrect: boolean; feedback: string } | null>(null);
   const [xpEarned, setXpEarned] = useState(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const currentExercise = exercises[currentIndex];
   const timerSeconds = currentExercise?.timeLimit ? currentExercise.timeLimit - elapsedSeconds : 0;
 
   // Coach state
@@ -151,8 +152,6 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
       document.exitFullscreen?.().catch(() => {});
     };
   }, [gameState]);
-
-  const currentExercise = exercises[currentIndex];
 
   const fetchExercises = useCallback(async (isRetry = false) => {
     setGameState("loading");
@@ -230,32 +229,6 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     }
   }, [gameState, subjectId, nodeId, correctCount, exercises.length, xpEarned, maxCombo]);
 
-  // Timer interval
-  useEffect(() => {
-    if (!currentExercise || gameState !== "playing" || feedback) return;
-    const timeLimit = currentExercise.timeLimit;
-    if (!timeLimit) return;
-
-    setElapsedSeconds(0);
-
-    timerIntervalRef.current = setInterval(() => {
-      setElapsedSeconds((prev) => {
-        const next = prev + 1;
-        if (next >= timeLimit) {
-          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-          handleTimeout();
-          return timeLimit;
-        }
-        return next;
-      });
-    }, 1000);
-
-    return () => {
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-    };
-  }, [currentIndex, gameState, feedback, currentExercise, handleTimeout]);
-
-
   const triggerCoach = useCallback(async (question: string, studentAnswer: string, wasTimeout: boolean) => {
     setShowCoach(true);
     setCoachLoading(true);
@@ -296,6 +269,31 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     });
     triggerCoach(currentExercise.question, "", true);
   }, [currentIndex, timerSeconds, currentExercise, triggerCoach]);
+
+  // Timer interval
+  useEffect(() => {
+    if (!currentExercise || gameState !== "playing" || feedback) return;
+    const timeLimit = currentExercise.timeLimit;
+    if (!timeLimit) return;
+
+    setElapsedSeconds(0);
+
+    timerIntervalRef.current = setInterval(() => {
+      setElapsedSeconds((prev) => {
+        const next = prev + 1;
+        if (next >= timeLimit) {
+          if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+          handleTimeout();
+          return timeLimit;
+        }
+        return next;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [currentIndex, gameState, feedback, currentExercise, handleTimeout]);
 
   const handleAnswer = async (answer: string | number | boolean) => {
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
@@ -387,7 +385,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     setMaxCombo(0);
     setFeedback(null);
     setXpEarned(0);
-    setTimerSeconds(0);
+    setElapsedSeconds(0);
     gameOverRef.current = false;
     sessionSavedRef.current = false;
     savePromiseRef.current = null;

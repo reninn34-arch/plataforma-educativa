@@ -270,20 +270,21 @@ FORMATO:
           description: data.description || `Cuestionario de estudio sobre ${topic}`,
           questions,
         });
-      } catch (err: unknown) {
+      } catch (error: unknown) {
         clearTimeout(timeoutId);
-        const msg = String(err?.message || err || "");
-        const wasAborted = err?.name === "AbortError" || msg.includes("abort");
+        const e = error instanceof Error ? error : new Error(String(error));
+        const msg = e.message;
+        const wasAborted = e.name === "AbortError" || msg.includes("abort");
 
         logAiCall({
           route: "teacher/ai/generate-cuestionario",
           model: candidate.modelId,
           durationMs: 0,
-          error: wasAborted ? `Timeout (${REQUEST_TIMEOUT_MS / 1000}s)` : (err?.message || "AI error"),
+          error: wasAborted ? `Timeout (${REQUEST_TIMEOUT_MS / 1000}s)` : msg,
         });
 
-        lastError = err;
-        if (!isRetryableModelError(err) && !wasAborted) {
+        lastError = error;
+        if (!isRetryableModelError(error) && !wasAborted) {
           return NextResponse.json(
             { error: "Error al generar el cuestionario con IA. Intenta de nuevo." },
             { status: 502 }

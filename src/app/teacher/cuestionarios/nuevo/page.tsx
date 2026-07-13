@@ -123,7 +123,7 @@ export default function NuevoCuestionarioPage() {
       if (data.description) setDescription(data.description);
       if (data.questions?.length) {
         setQuestions(data.questions.map((q: PreguntaData) => ({
-          ...newQuestion(q.virtualType || "mcq"),
+          ...newQuestion((q.virtualType as "mcq" | "completar") || "mcq"),
           id: `q_${++qCounter}`,
           question: q.question || "",
           options: (q.options as string[])?.length ? q.options : ["", "", "", ""],

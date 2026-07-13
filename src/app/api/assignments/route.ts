@@ -297,23 +297,25 @@ export async function POST(request: NextRequest) {
       .where(eq(periodosLectivos.activo, true))
       .limit(1);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [assignment] = await db
       .insert(assignments)
       .values({
         teacherId: user.id,
         subjectId,
         cursoId: cursoId || null,
-      title,
-      description,
-      dueDate: dueDate ? new Date(dueDate) : null,
-      trimester: trimester || 1,
-      puntos: parsed.data.puntos ?? 10,
-      fileUrl: fileUrl || parsed.data.fileUrl || null,
-      periodoLectivoId: activePeriod?.id || null,
-    })
-    .returning();
+        title,
+        description,
+        dueDate: dueDate ? new Date(dueDate) : null,
+        trimester: trimester || 1,
+        puntos: parsed.data.puntos ?? 10,
+        fileUrl: fileUrl || parsed.data.fileUrl || null,
+        periodoLectivoId: activePeriod?.id || null,
+      } as any)
+      .returning();
 
     if (questions && questions.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await db.insert(assignmentQuestions).values(
         questions.map((q: { type: string; question: string; options?: string[] | null; correctIndex?: number | null; points?: number }, i: number) => ({
           assignmentId: assignment.id,
@@ -323,7 +325,7 @@ export async function POST(request: NextRequest) {
           correctIndex: q.correctIndex ?? null,
           points: q.points || 1,
           orderIndex: i,
-        }))
+        }) as any)
       );
     }
 

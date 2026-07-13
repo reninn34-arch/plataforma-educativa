@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
             } : undefined,
           });
           try {
-            const parsed = tryParseJson(r.text);
+            const parsed = tryParseJson<Record<string, string>>(r.text);
             let mermaidStr = parsed.mermaid || "";
             mermaidStr = mermaidStr.replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
             diagram = { mermaid: sanitizeMermaid(mermaidStr), caption: parsed.caption || "" };
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
                 } : undefined,
               });
               try {
-                const parsed = tryParseJson(r.text);
+                const parsed = tryParseJson<Record<string, string>>(r.text);
                 let mermaidStr = parsed.mermaid || "";
                 mermaidStr = mermaidStr.replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
                 diagram = { mermaid: sanitizeMermaid(mermaidStr), caption: parsed.caption || "" };

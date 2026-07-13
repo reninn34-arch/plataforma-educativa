@@ -82,6 +82,7 @@ function normalizeQuestionItem(val: unknown): Record<string, unknown> {
   if (obj.correctIndex !== undefined && obj.correctIndex !== null) {
     obj.correctIndex = Number(obj.correctIndex);
   }
+  return obj;
 }
 
 const checkAcademicLoadTool = tool({
@@ -194,7 +195,8 @@ function recordPhysicalGradesTool(executorUserId: number) {
           trimester: trimester || 1,
           puntos,
           periodoLectivoId: activePeriodId,
-        } as Record<string, unknown>).returning();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any).returning();
         assignmentId = created.id;
       }
 
@@ -233,7 +235,8 @@ function recordPhysicalGradesTool(executorUserId: number) {
               grade: Math.round(g.grade),
               feedback: g.feedback || "Nota registrada presencialmente.",
               submittedAt: new Date(),
-            } as Record<string, unknown>)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any)
             .where(eq(assignmentSubmissions.id, existingSub.id));
         } else {
           await db.insert(assignmentSubmissions).values({
@@ -243,7 +246,8 @@ function recordPhysicalGradesTool(executorUserId: number) {
             grade: Math.round(g.grade),
             feedback: g.feedback || "Nota registrada presencialmente.",
             submittedAt: new Date(),
-          } as Record<string, unknown>);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} as any);
         }
         
         successCount++;
@@ -977,18 +981,20 @@ FORMATO:
         data = { title: topic, description: `Tarea sobre ${topic}`, questions: [] };
       }
 
+      const d = data as Record<string, string | undefined>;
       const [assignment] = await db.insert(assignments).values({
         teacherId: userId,
         subjectId,
         cursoId,
-        title: data.title?.slice(0, 200) || topic,
-        description: data.description || `Tarea sobre ${topic}`,
+        title: String(d.title ?? topic).slice(0, 200),
+        description: String(d.description ?? `Tarea sobre ${topic}`),
         trimester: trimester || 1,
         puntos: puntos || 10,
         dueDate: dueDate ? new Date(dueDate) : undefined,
-      } as Record<string, unknown>).returning();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} as any).returning();
 
-      const rawQuestions = (data.questions || []).slice(0, 15);
+      const rawQuestions = ((d.questions || []) as unknown[]).slice(0, 15);
       const questions = [];
       for (let i = 0; i < rawQuestions.length; i++) {
         const q = normalizeQuestionItem(rawQuestions[i]);
@@ -1001,7 +1007,8 @@ FORMATO:
           correctIndex: q.type === "file_upload" ? undefined : (q.correctIndex ?? 0),
           points: q.points || 1,
           orderIndex: i,
-        } as Record<string, unknown>);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} as any);
         questions.push(q);
       }
 
@@ -1110,16 +1117,18 @@ FORMATO JSON:
         };
       }
 
+      const d = data as Record<string, string | undefined>;
       const [cuestionario] = await db.insert(cuestionarios).values({
         teacherId: userId,
         subjectId,
         cursoId,
-        title: data.title?.slice(0, 200) || `Cuestionario: ${topic}`,
-        description: data.description || `Cuestionario de estudio sobre ${topic}`,
+        title: String(d.title ?? `Cuestionario: ${topic}`).slice(0, 200),
+        description: String(d.description ?? `Cuestionario de estudio sobre ${topic}`),
         trimester: 1,
-      } as Record<string, unknown>).returning();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} as any).returning();
 
-      const rawQuestions = (data.questions || []).slice(0, 30);
+      const rawQuestions = ((d.questions || []) as unknown[]).slice(0, 30);
       const questions = [];
       for (let i = 0; i < rawQuestions.length; i++) {
         const q = normalizeQuestionItem(rawQuestions[i]);
@@ -1134,7 +1143,8 @@ FORMATO JSON:
           explanation: q.explanation || "",
           points: q.points || 1,
           orderIndex: i,
-        } as Record<string, unknown>);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} as any);
         questions.push(q);
       }
 
@@ -1182,7 +1192,8 @@ FORMATO JSON:
           senderId: userId,
           receiverId: s.id,
           content: message,
-        } as Record<string, unknown>);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} as any);
         sent++;
       }
 
@@ -1223,7 +1234,8 @@ FORMATO JSON:
         senderId: userId,
         receiverId: student.id,
         content: message,
-      } as Record<string, unknown>);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} as any);
 
       await notifyUser({
         userId: student.id,
@@ -1270,9 +1282,10 @@ FORMATO JSON:
           studentId: s.id,
           fecha: new Date(today),
           estado: "ausente",
-        } as Record<string, unknown>).onConflictDoUpdate({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any).onConflictDoUpdate({
           target: [asistencia.cursoId, asistencia.studentId, asistencia.fecha],
-          set: { estado: "ausente" } as Record<string, unknown>,
+          set: { estado: "ausente" },
         });
       }
 
@@ -1383,7 +1396,8 @@ FORMATO JSON:
               feedback: feedback || null,
               status: "graded",
               submittedAt: new Date(),
-            } as Record<string, unknown>)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any)
             .where(eq(assignmentSubmissions.id, existing.id));
           updatedCount++;
           results.push({ name: student.fullName, action: "actualizado", grade: targetGrade });
@@ -1395,7 +1409,8 @@ FORMATO JSON:
             feedback: feedback || null,
             status: "graded",
             submittedAt: new Date(),
-          } as Record<string, unknown>);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} as any);
           createdCount++;
           results.push({ name: student.fullName, action: "creado", grade: targetGrade });
         }
@@ -1538,7 +1553,8 @@ function createAdminTools(userId: number) {
         }
       }
 
-      if (toInsert.length > 0) await db.insert(users).values(toInsert);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (toInsert.length > 0) await db.insert(users).values(toInsert as any);
       await Promise.all(toReactivate.map(r =>
         db.update(users).set({ activo: true, fullName: r.fullName, email: r.email, pin: r.pin }).where(eq(users.id, r.id))
       ));
@@ -1561,7 +1577,8 @@ function createAdminTools(userId: number) {
         nivel,
         profesorId: profesorId || null,
         activo: true,
-      } as Record<string, unknown>).returning();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} as any).returning();
       return { curso, mensaje: `Curso '${nombre}' (${nivel}) creado exitosamente con ID ${curso.id}.` };
     },
   });
@@ -1582,7 +1599,8 @@ function createAdminTools(userId: number) {
       let enrolled = 0;
       for (const s of students) {
         try {
-          await db.insert(cursoEstudiantes).values({ cursoId: curso.id, estudianteId: s.id } as Record<string, unknown>).onConflictDoNothing();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await db.insert(cursoEstudiantes).values({ cursoId: curso.id, estudianteId: s.id } as any).onConflictDoNothing();
           enrolled++;
         } catch {}
       }
@@ -1727,6 +1745,8 @@ FORMATO JSON:
         return { error: "La IA no pudo generar el examen en formato válido. Intenta nuevamente o ajusta los parámetros." };
       }
 
+      const d = data as Record<string, string | undefined>;
+
       const targetCourses = await db
         .select({ id: cursos.id, profesorId: cursos.profesorId, nombre: cursos.nombre })
         .from(cursos)
@@ -1759,14 +1779,15 @@ FORMATO JSON:
           teacherId,
           subjectId,
           cursoId: course.id,
-          title: `[PLANTILLA] ${data.title || "Examen"}`,
-          description: data.description || "Plantilla de examen generada.",
+          title: `[PLANTILLA] ${d.title || "Examen"}`,
+          description: d.description || "Plantilla de examen generada.",
           trimester,
           puntos,
           periodoLectivoId: activePeriodId,
-        } as Record<string, unknown>).returning();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} as any).returning();
 
-        const rawQuestions = (data.questions || []).slice(0, 20);
+        const rawQuestions = ((d.questions || []) as unknown[]).slice(0, 20);
         const questions = [];
         for (let i = 0; i < rawQuestions.length; i++) {
           const q = normalizeQuestionItem(rawQuestions[i]);
@@ -1779,7 +1800,8 @@ FORMATO JSON:
             correctIndex: q.type === "file_upload" ? undefined : (q.correctIndex ?? 0),
             points: q.points || 1,
             orderIndex: i,
-          } as Record<string, unknown>);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} as any);
           questions.push(q);
         }
 

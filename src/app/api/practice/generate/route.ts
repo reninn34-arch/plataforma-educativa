@@ -1018,7 +1018,7 @@ REGLAS:
 
 function extractDiagramFromText(raw: string): { mermaid: string; caption: string } | null {
   try {
-    const parsed = tryParseJson(raw);
+    const parsed = tryParseJson<Record<string, string>>(raw);
     const mermaidStr = (parsed.mermaid || "").replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
     return { mermaid: mermaidStr, caption: parsed.caption || "" };
   } catch { /* fallback to raw extraction */ }

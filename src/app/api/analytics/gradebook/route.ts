@@ -145,6 +145,9 @@ export async function GET(request: NextRequest) {
         t1Grades: number[];
         t2Grades: number[];
         t3Grades: number[];
+        t1Puntos: number[];
+        t2Puntos: number[];
+        t3Puntos: number[];
       }>;
     }>();
 

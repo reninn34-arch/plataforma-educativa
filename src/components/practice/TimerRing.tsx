@@ -5,10 +5,12 @@ import { cn } from "@/lib/utils";
 export function TimerRing({
   seconds,
   total,
+  paused,
 }: {
   seconds: number;
   total: number;
   onTimeout?: () => void;
+  paused?: boolean;
 }) {
   const progress = Math.max(seconds / total, 0);
   const isCritical = seconds <= 3;
@@ -29,7 +31,7 @@ export function TimerRing({
         "text-center mt-1.5 text-xs font-bold tabular-nums tracking-wide",
         isCritical ? "text-red-400" : isUrgent ? "text-amber-400" : "text-white/50"
       )}>
-        {seconds}s
+        {paused ? "⏸" : `${seconds}s`}
       </div>
     </div>
   );

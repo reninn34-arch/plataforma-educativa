@@ -10,8 +10,8 @@ import { apiFetch } from "@/lib/fetch-utils";
 
 declare global {
   interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
+    SpeechRecognition: new () => unknown;
+    webkitSpeechRecognition: new () => unknown;
   }
 }
 
@@ -48,11 +48,12 @@ interface RiskStudent {
 }
 
 interface GeneratedQuestion {
-  type: "mcq";
+  virtualType: string;
   question: string;
-  options: string[];
-  correctIndex: number;
-  points: number;
+  options?: string[];
+  correctIndex?: number;
+  explanation?: string;
+  points?: number;
 }
 
 interface GeneratedData {
@@ -108,13 +109,23 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
 
   const toggleRecording = useCallback(() => {
     if (isRecording) { setIsRecording(false); return; }
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) { alert("Reconocimiento de voz no soportado."); return; }
-    const recognition = new SpeechRecognition();
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { alert("Reconocimiento de voz no soportado."); return; }
+    const recognition = new SR() as {
+      lang: string;
+      interimResults: boolean;
+      continuous: boolean;
+      onstart: (() => void) | null;
+      onresult: ((event: { results: { [index: number]: { [index: number]: { transcript: string } } } }) => void) | null;
+      onerror: (() => void) | null;
+      onend: (() => void) | null;
+      start(): void;
+      stop(): void;
+    };
     recognition.lang = "es-ES";
     recognition.interimResults = false;
     recognition.onstart = () => setIsRecording(true);
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event) => {
       setInputText((prev) => prev ? `${prev} ${event.results[0][0].transcript}` : event.results[0][0].transcript);
     };
     recognition.onerror = () => setIsRecording(false);
@@ -401,7 +412,7 @@ setFlowError(e instanceof Error ? e.message : "Error al cargar cursos");
                 <div key={i} className="rounded-lg bg-gray-50 p-2 text-xs">
                   <p className="font-medium">{i + 1}. {q.question}</p>
                   <div className="mt-1 flex flex-wrap gap-1">
-                    {q.options.map((opt, j) => (
+                    {(q.options || []).map((opt, j) => (
                       <span key={j} className={cn("rounded px-1.5 py-0.5 text-[10px]", j === q.correctIndex ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-muted-foreground")}>
                         {opt}
                       </span>
@@ -569,12 +580,12 @@ setFlowError(e instanceof Error ? e.message : "Error al cargar cursos");
             <p className="font-semibold text-sm">{cuestionarioData.title}</p>
             <p className="text-xs text-muted-foreground line-clamp-3">{cuestionarioData.description}</p>
             <div className="max-h-48 overflow-y-auto space-y-1.5">
-              {cuestionarioData.questions.map((q: { virtualType: string; question: string; options: string[]; correctIndex: number }, i: number) => (
+              {cuestionarioData.questions.map((q, i: number) => (
                 <div key={i} className="rounded-lg bg-gray-50 p-2 text-xs">
                   <span className="rounded bg-primary/10 text-primary px-1 py-0.5 text-[10px] mr-1">{q.virtualType === "completar" ? "Completar" : "MCQ"}</span>
                   <span className="font-medium">{i + 1}. {q.question}</span>
                   <div className="mt-1 flex flex-wrap gap-1">
-                    {q.options.map((opt: string, j: number) => (
+                    {(q.options || []).map((opt: string, j: number) => (
                       <span key={j} className={cn("rounded px-1.5 py-0.5 text-[10px]", j === q.correctIndex ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-muted-foreground")}>
                         {opt}
                       </span>
