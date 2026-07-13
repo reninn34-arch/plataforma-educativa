@@ -56,6 +56,7 @@ export const practiceGenerateSchema = z.object({
   aiPromptContext: z.string().optional(),
   nodeId: z.number().optional(),
   retry: z.boolean().optional(),
+  retryCount: z.number().optional(),
   model: z.string().min(1).optional(),
 });
 

@@ -71,6 +71,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { practiceGenerateSchema } from "@/lib/api-helpers";
 import { searchYouTubeVideos, buildSearchUrl } from "@/lib/youtube";
 import { getStudyMaterialForStudent } from "@/lib/study-material";
+import { evaluateMath } from "@/lib/math";
 
 export const CACHED_EXERCISES_VERSION = 6;
 
@@ -536,7 +537,7 @@ export async function POST(request: NextRequest) {
     if (!inputParsed.success) {
       return Response.json({ error: "Materia requerida" }, { status: 400 });
     }
-    const { subject, topic, aiPromptContext, nodeId, retry, model } = inputParsed.data;
+    const { subject, topic, aiPromptContext, nodeId, retry, model, retryCount } = inputParsed.data;
     const nodeTitle: string | undefined = rawBody.nodeTitle;
 
     const resolved = resolveModel(model);
@@ -608,6 +609,11 @@ export async function POST(request: NextRequest) {
       ? `\n\nMATERIAL DE ESTUDIO DEL CURSO (basa los ejercicios en este contenido):\n${materialContent}`
       : "";
 
+    const genSeed = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    const retryHint = retryCount != null && retryCount > 0
+      ? `\n- Has generado ejercicios de este tema ${retryCount} veces anteriores. Genera ejercicios SUSTANCIALMENTE DIFERENTES a los anteriores, variando los subtemas y enfoques.`
+      : "";
+
     const lessonPrompt = isEnglish
       ? `You are a friendly tutor for adults in accelerated high school (PCEI). Explain topics clearly and visually.
 
@@ -626,7 +632,7 @@ RULES:
 - MCQ: options[4], correctIndex 0-3. FILL_BLANK: acceptedAnswers[]. TRUE_FALSE: correctAnswer boolean
 - Hard: timeLimit null. Easy/Medium: timeLimit 20-40
 - Vary the subtopic/focus each time
-
+- Generation unique ID: ${genSeed}${retryHint}
 AREA: ${ctx.area}
 Topic: ${topicContext}${materialBlock}
 
@@ -646,7 +652,7 @@ REGLAS:
 - MCQ: options[4], correctIndex 0-3. FILL_BLANK: acceptedAnswers[]. TRUE_FALSE: correctAnswer booleano
 - Hard: timeLimit null. Easy/Medium: timeLimit 20-40
 - Varia el subtema cada vez
-
+- ID unico de generacion: ${genSeed}${retryHint}
 AREA: ${ctx.area}
 Tema: ${topicContext}${materialBlock}
 
@@ -692,6 +698,7 @@ REGLAS:
         const startTime = performance.now();
 
         const isTextOnlyProvider = candidate.provider === "groq" || candidate.provider === "deepseek" || candidate.provider === "opencode";
+        const temperature = retry ? 0.8 : 0.6;
 
         const lessonPromise = (async () => {
           if (isTextOnlyProvider) {
@@ -699,7 +706,7 @@ REGLAS:
             const makeTextCall = () => generateText({
               model: aiModel,
               prompt: lessonPrompt + "\n\nResponde UNICAMENTE con un objeto JSON valido estructurado de acuerdo al esquema esperado, sin usar bloques de markdown ni texto adicional.",
-              ...(isReasoning ? {} : { temperature: 0.6 }),
+              ...(isReasoning ? {} : { temperature }),
               maxOutputTokens: maxOut,
               abortSignal: lessonAbort.signal,
             });
@@ -921,7 +928,29 @@ REGLAS:
 
     if (!lessonResult) throw (lastError ?? new Error("No se pudo generar practica con los modelos configurados"));
 
-    lessonResult.exercises = lessonResult.exercises.map((ex, i) => ({ ...ex, id: i + 1 }));
+    lessonResult.exercises = lessonResult.exercises.map((ex, i) => {
+      if (ex.type === "mcq" && Array.isArray(ex.options) && ex.options.length > 0) {
+        const correctValue = ex.options[ex.correctIndex ?? 0];
+        const shuffled = shuffleArray([...ex.options]);
+        const newIndex = shuffled.indexOf(correctValue);
+        return { ...ex, id: i + 1, options: shuffled, correctIndex: newIndex >= 0 ? newIndex : 0 };
+      }
+      return { ...ex, id: i + 1 };
+    });
+
+    // Fix math answers: extract expression from question text and evaluate deterministically
+    lessonResult.exercises = lessonResult.exercises.map((ex) => {
+      if (ex.type === "fill_blank" && ex.acceptedAnswers && ex.acceptedAnswers.length > 0) {
+        const expr = extractMathExpr(ex.question);
+        if (expr !== null) {
+          const evaluated = evaluateMath(expr);
+          if (evaluated !== null) {
+            ex.acceptedAnswers = [String(evaluated)];
+          }
+        }
+      }
+      return ex;
+    });
 
     const generatedTitle = lessonResult.lesson?.title;
     if (generatedTitle) videoSearchQuery = generatedTitle;
@@ -1039,4 +1068,34 @@ function extractDiagramFromText(raw: string): { mermaid: string; caption: string
 function extractCaptionFromText(text: string): string {
   const m = text.match(/caption[:\s]+(.+)/i);
   return m ? m[1].trim() : "";
+}
+
+function shuffleArray<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function extractMathExpr(question: string): string | null {
+  const patterns = [
+    /resuelve[:\s]+([\d\s+\-*/().]+)/i,
+    /calcula[:\s]+([\d\s+\-*/().]+)/i,
+    /cu[áa]nto es[:\s]+([\d\s+\-*/().]+)/i,
+    /resultado de[:\s]+([\d\s+\-*/().]+)/i,
+    /opera[:\s]+([\d\s+\-*/().]+)/i,
+    /halla[:\s]+([\d\s+\-*/().]+)/i,
+  ];
+
+  for (const p of patterns) {
+    const m = question.match(p);
+    if (m) return m[1].trim();
+  }
+
+  // Fallback: look for a standalone arithmetic expression (digits and operators only)
+  const standalone = question.match(/(\d+\s*[+\-*/]\s*\d+(?:\s*[+\-*/]\s*\d+)*)/);
+  if (standalone) return standalone[1].trim();
+
+  return null;
 }

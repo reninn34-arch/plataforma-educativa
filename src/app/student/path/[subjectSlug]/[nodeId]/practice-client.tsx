@@ -128,6 +128,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
   const sessionSavedRef = useRef(false);
   const savePromiseRef = useRef<Promise<void> | null>(null);
   const prevLivesRef = useRef(lives);
+  const retryCountRef = useRef(0);
 
   useEffect(() => {
     if (lives < prevLivesRef.current) {
@@ -166,6 +167,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
           aiPromptContext: aiPromptContext || nodeTitle,
           nodeId,
           retry: isRetry,
+          retryCount: retryCountRef.current,
         }),
       });
       const data = await res.json();
@@ -390,6 +392,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     sessionSavedRef.current = false;
     savePromiseRef.current = null;
     answersLogRef.current = [];
+    retryCountRef.current += 1;
     setRetryGenerating(true);
     fetchExercises(true);
   };

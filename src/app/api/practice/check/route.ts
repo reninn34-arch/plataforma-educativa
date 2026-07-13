@@ -65,6 +65,7 @@ import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getChatModel, getChatModelCandidates, isRetryableModelError, resolveModel, tryParseJson } from "@/lib/ai";
 import { generateObject, generateText } from "ai";
 import { practiceCheckSchema } from "@/lib/api-helpers";
+
 import { z } from "zod/v4";
 
 const semanticCheckResponseSchema = z.object({
@@ -79,9 +80,19 @@ REGLAS:
 - No seas demasiado laxo. Errores conceptuales = false.`;
 
 function isDeterministicMatch(studentAnswer: string, accepted: string[]): boolean {
-  return accepted.some((a: string) =>
-    String(a).toLowerCase().trim() === String(studentAnswer).toLowerCase().trim()
-  );
+  // Exact string match first
+  if (accepted.some((a: string) => String(a).toLowerCase().trim() === String(studentAnswer).toLowerCase().trim())) {
+    return true;
+  }
+  // Numeric comparison: try to parse both sides as numbers
+  const studentNum = Number(studentAnswer.trim());
+  if (!isNaN(studentNum)) {
+    return accepted.some((a: string) => {
+      const accNum = Number(String(a).trim());
+      return !isNaN(accNum) && Math.abs(studentNum - accNum) < 0.0001;
+    });
+  }
+  return false;
 }
 
 async function aiSemanticCheck(
