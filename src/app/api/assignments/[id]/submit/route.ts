@@ -162,7 +162,7 @@ export async function POST(
         fileUrl,
         content,
         status: "submitted",
-      } as any).returning();
+      }).returning();
       submissionId = sub.id;
     }
 
@@ -188,7 +188,7 @@ export async function POST(
           questionId: ans.questionId,
           selectedIndex: ans.selectedIndex,
           isCorrect: correctIndex !== undefined ? ans.selectedIndex === correctIndex : false,
-        } as any);
+        });
       }
     }
 

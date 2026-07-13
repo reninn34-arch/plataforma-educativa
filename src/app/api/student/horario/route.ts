@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ horarios: [] });
     }
 
-    let query = db
+    const query = db
       .select({
         id: horarios.id,
         dia: horarios.dia,
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ horarios: data });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Error al cargar horario" }, { status: 500 });
   }
 }

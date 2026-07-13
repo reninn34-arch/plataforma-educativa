@@ -56,7 +56,7 @@ import { NextRequest, NextResponse } from "next/server";
  *         description: No autorizado (no es estudiante)
  */
 import { db } from "@/lib/db";
-import { users, subjects, nodes, userProgress, modules, progress, practiceSessions, practiceAnswers, assignmentSubmissions, assignments, cursoEstudiantes, cursos, studentModules } from "@/lib/db/schema";
+import { users, subjects, nodes, userProgress, modules, practiceSessions, practiceAnswers, assignmentSubmissions, assignments, cursoEstudiantes, cursos, studentModules } from "@/lib/db/schema";
 import { eq, and, desc, inArray, isNotNull, sql } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 
@@ -164,6 +164,7 @@ export async function GET(request: NextRequest) {
       .where(eq(cursoEstudiantes.estudianteId, user.id));
     const enrolledIds = new Set(enrolledCourses.map(c => c.cursoId));
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let assignmentsData: any[] = [];
     if (enrolledIds.size > 0) {
       const raw = await db
@@ -190,7 +191,7 @@ export async function GET(request: NextRequest) {
         .orderBy(desc(assignments.createdAt))
         .limit(200);
 
-      assignmentsData = (raw as any[]).filter((a: any) => enrolledIds.has(a.cursoId));
+      assignmentsData = raw.filter((a) => a.cursoId != null && enrolledIds.has(a.cursoId));
     }
 
     return NextResponse.json({

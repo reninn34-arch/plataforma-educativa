@@ -112,7 +112,7 @@ export async function POST(
         status: "graded",
         grade: 0,
         feedback: "No entrego",
-      } as any);
+      });
 
     return NextResponse.json({ success: true });
   } catch (error) {

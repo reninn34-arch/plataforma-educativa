@@ -34,7 +34,6 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
-import { getSmtpConfig } from "@/lib/smtp-config";
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("atlas-edu-token")?.value;
@@ -65,8 +64,9 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("SMTP test error:", error);
-    return NextResponse.json({ error: error.message || "Error al enviar correo de prueba" }, { status: 400 });
+    const message = error instanceof Error ? error.message : "Error al enviar correo de prueba";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }

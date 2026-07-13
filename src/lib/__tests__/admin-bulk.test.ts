@@ -39,7 +39,7 @@ function createMockRequest({
     },
     formData: vi.fn().mockResolvedValue(body || new FormData()),
     nextUrl: new URL("http://localhost:3000/api/admin/users/bulk"),
-  } as any;
+  } as unknown as Request;
 }
 
 function createMockFile(content: string): File {
@@ -47,26 +47,26 @@ function createMockFile(content: string): File {
 }
 
 describe("POST /api/admin/users/bulk", () => {
-  let mockSelect: any;
-  let mockInsert: any;
-  let mockUpdate: any;
+  let mockSelect: ReturnType<typeof vi.fn>;
+  let mockInsert: ReturnType<typeof vi.fn>;
+  let mockUpdate: ReturnType<typeof vi.fn>;
 
   function makeThenable<T>(value: T) {
-    return { then: (resolve: (v: T) => any) => Promise.resolve(resolve(value)) };
+    return { then: (resolve: (v: T) => void) => Promise.resolve(resolve(value)) };
   }
 
-  function makeChain(existingUsers: any[] = []) {
-    const chain: any = {
+  function makeChain(existingUsers: Record<string, unknown>[] = []) {
+    const chain: Record<string, unknown> = {
       from: () => chain,
       where: () => chain,
       orderBy: () => chain,
       limit: () => chain,
-      then: (resolve: any) => Promise.resolve(resolve ? resolve(existingUsers) : existingUsers),
+      then: (resolve: ((v: Record<string, unknown>[]) => Record<string, unknown>[]) | undefined) => Promise.resolve(resolve ? resolve(existingUsers) : existingUsers),
     };
     return chain;
   }
 
-  function setupDbMocks(existingUsers: any[] = []) {
+  function setupDbMocks(existingUsers: Record<string, unknown>[] = []) {
     mockSelect = vi.fn().mockReturnValue(makeChain(existingUsers));
     const insertResult = makeThenable(undefined);
     mockInsert = vi.fn().mockReturnValue({
@@ -78,10 +78,10 @@ describe("POST /api/admin/users/bulk", () => {
       where: vi.fn().mockReturnValue(updateResult),
     });
 
-    (db.select as any).mockImplementation(mockSelect);
-    (db.insert as any).mockImplementation(mockInsert);
-    (db.update as any).mockImplementation(mockUpdate);
-    (db.transaction as any).mockImplementation(async (cb: Function) => {
+    (db.select as unknown as vi.Mock).mockImplementation(mockSelect);
+    (db.insert as unknown as vi.Mock).mockImplementation(mockInsert);
+    (db.update as unknown as vi.Mock).mockImplementation(mockUpdate);
+    (db.transaction as unknown as vi.Mock).mockImplementation(async (cb: () => void) => {
       await cb({
         insert: () => ({
           values: () => makeThenable(undefined),
@@ -98,12 +98,12 @@ describe("POST /api/admin/users/bulk", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setupDbMocks();
-    (getVerifiedUser as any).mockReturnValue({ id: 1, role: "admin" });
+    (getVerifiedUser as unknown as vi.Mock).mockReturnValue({ id: 1, role: "admin" });
   });
 
   it("rejects request without auth", async () => {
-    (getVerifiedUser as any).mockReturnValue(null);
-    (verifyToken as any).mockResolvedValue(null);
+    (getVerifiedUser as unknown as vi.Mock).mockReturnValue(null);
+    (verifyToken as unknown as vi.Mock).mockResolvedValue(null);
 
     const { POST } = await import("@/app/api/admin/users/bulk/route");
     const res = await POST(createMockRequest({}));
@@ -225,7 +225,7 @@ describe("POST /api/admin/users/bulk", () => {
 
   it("uses database transaction", async () => {
     setupDbMocks([]);
-    const transactionSpy = vi.fn(async (cb: Function) => {
+    const transactionSpy = vi.fn(async (cb: () => void) => {
       await cb({
         insert: () => ({
           values: () => makeThenable(undefined),
@@ -237,7 +237,7 @@ describe("POST /api/admin/users/bulk", () => {
         }),
       });
     });
-    (db.transaction as any).mockImplementation(transactionSpy);
+    (db.transaction as unknown as vi.Mock).mockImplementation(transactionSpy);
 
     const { POST } = await import("@/app/api/admin/users/bulk/route");
     const fd = new FormData();

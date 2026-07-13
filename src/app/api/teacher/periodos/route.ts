@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
       periodos: all,
       active: activePeriod || null,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Error al cargar periodos" }, { status: 500 });
   }
 }

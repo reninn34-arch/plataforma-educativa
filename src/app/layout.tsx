@@ -65,9 +65,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="es" suppressHydrationWarning data-scroll-behavior="smooth" className={isDark ? "dark" : ""}>
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
         <style>{vars}</style>
       </head>
       <body className="min-h-screen bg-background text-foreground antialiased" suppressHydrationWarning>

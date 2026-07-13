@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { RefreshCw, Pencil, Search, Loader2, X, Copy, Check, UserPlus, Upload, Download, Power, PowerOff, AlertTriangle, ShieldCheck, GraduationCap, Send, Smartphone } from "lucide-react";
+import { RefreshCw, Pencil, Search, Loader2, X, Copy, Check, UserPlus, Upload, Power, PowerOff, AlertTriangle, ShieldCheck, GraduationCap, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/fetch-utils";
@@ -44,7 +44,6 @@ export default function AdminUsersPage() {
 
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [bulkFile, setBulkFile] = useState<File | null>(null);
-  const [bulkPreview, setBulkPreview] = useState<string[][]>([]);
   const [bulkImporting, setBulkImporting] = useState(false);
   const [bulkResults, setBulkResults] = useState<BulkResultItem[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

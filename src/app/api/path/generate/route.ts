@@ -228,7 +228,7 @@ REGLAS:
       } catch (error) {
         clearTimeout(timeoutId);
 
-        const msg = String((error as any)?.message || error || "");
+        const msg = String(error instanceof Error ? error.message : error || "");
         if (msg.includes("response_format") || msg.includes("unavailable")) {
           try {
             const textResponse = await generateText({

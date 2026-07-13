@@ -107,8 +107,8 @@ export async function GET(
       )
       .orderBy(users.fullName);
 
-    const attendanceMap = new Map(data.map((r: any) => [r.studentId, r.estado]));
-    const allStudents = enrolled.map((s: any) => ({
+    const attendanceMap = new Map(data.map((r) => [r.studentId, r.estado]));
+    const allStudents = enrolled.map((s) => ({
       studentId: s.id,
       studentName: s.fullName,
       cedula: s.cedula,

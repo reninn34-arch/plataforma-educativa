@@ -7,7 +7,7 @@ config({ path: path.join(process.cwd(), '.env.local') });
 const OUT_DIR = path.join(process.cwd(), 'public', 'docs', 'images');
 const BASE_URL = 'http://localhost:3000';
 
-async function login(page: any, cedula: string, pin: string) {
+async function login(page: import("puppeteer").Page, cedula: string, pin: string) {
   await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle0' });
   await page.type('#cedula', cedula);
   await page.type('#pin', pin);
@@ -56,7 +56,7 @@ async function run() {
   // ─── DOCENTE: Asistente IA ────────────────────────────────────────────────
   console.log('\n📸 Capturando asistente IA del docente...');
   // Clear session
-  const client = await (page as any).target().createCDPSession();
+  const client = await page.target().createCDPSession();
   await client.send('Network.clearBrowserCookies');
   await page.evaluate(() => localStorage.clear());
 

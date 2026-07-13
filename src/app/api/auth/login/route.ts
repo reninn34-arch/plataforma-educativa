@@ -54,7 +54,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { createToken, setSessionCookie } from "@/lib/auth";
+import { createToken } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { loginSchema } from "@/lib/api-helpers";
 

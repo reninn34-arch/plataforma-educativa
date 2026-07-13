@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { ArrowLeft, BookOpen, ChevronRight, GraduationCap, Loader2 } from "lucide-react";
+import { ArrowLeft, BookOpen, ChevronRight, GraduationCap } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { apiFetch } from "@/lib/fetch-utils";
 import { subjectTheme } from "@/lib/subject-theme";

@@ -15,7 +15,7 @@ async function ensureDir() {
   }
 }
 
-async function login(page: any, cedula: string, pin: string) {
+async function login(page: import("puppeteer").Page, cedula: string, pin: string) {
   await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle0' });
   await page.type('#cedula', cedula);
   await page.type('#pin', pin);
@@ -23,7 +23,7 @@ async function login(page: any, cedula: string, pin: string) {
   await page.waitForNavigation({ waitUntil: 'networkidle0' });
 }
 
-async function snap(page: any, filename: string, url: string, wait = 1500) {
+async function snap(page: import("puppeteer").Page, filename: string, url: string, wait = 1500) {
   console.log(`📸 ${filename} → ${url}`);
   await page.goto(`${BASE_URL}${url}`, { waitUntil: 'networkidle0' });
   await new Promise(r => setTimeout(r, wait));
@@ -38,7 +38,6 @@ async function run() {
   const sql = postgres(process.env.DATABASE_URL!);
   const cursos = await sql`SELECT id FROM cursos ORDER BY id ASC LIMIT 1`;
   const assignments = await sql`SELECT id FROM assignments ORDER BY id ASC LIMIT 1`;
-  const cuestionarios = await sql`SELECT id FROM assignments WHERE type = 'quiz' ORDER BY id ASC LIMIT 1`.catch(() => []);
   const users = await sql`SELECT id FROM users WHERE role = 'student' ORDER BY id ASC LIMIT 1`;
   await sql.end();
 
@@ -78,7 +77,7 @@ async function run() {
   // ─── TEACHER ─────────────────────────────────────────────────────────────────
   console.log('\n─── TEACHER ───');
   // Clear session
-  const client = await (page as any).target().createCDPSession();
+  const client = await page.target().createCDPSession();
   await client.send('Network.clearBrowserCookies');
   await login(page, '1799999999', '5678');
 

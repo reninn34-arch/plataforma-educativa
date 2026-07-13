@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Plus, Loader2, CheckCircle, Calendar, BookOpen, FileText, Download,
+  Plus, Loader2, CheckCircle, BookOpen, FileText, Download,
   ArrowLeft, Trash2, ListChecks, Upload, FileUp,
   Pencil, X, AlertCircle, Sparkles,
 } from "lucide-react";
@@ -95,8 +95,6 @@ export function CreateAssignmentForm() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [selectedAssignment, setSelectedAssignment] = useState<number | null>(null);
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [notSubmitted, setNotSubmitted] = useState<{ studentId: number; studentName: string; studentCedula: string; expired: boolean }[]>([]);
   const [gradingSub, setGradingSub] = useState<{ id?: number; studentId?: number; grade: number; feedback: string } | null>(null);
   const [absentLoading, setAbsentLoading] = useState<number | null>(null);
 
@@ -136,7 +134,7 @@ export function CreateAssignmentForm() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: submissionsData, isLoading: loadingSubs, refetch: refetchSubmissions } = useQuery<SubmissionData, Error>({
+  const { data: submissionsData, isLoading: loadingSubs } = useQuery<SubmissionData, Error>({
     queryKey: ["assignment-submissions", selectedAssignment],
     queryFn: async () => {
       if (!selectedAssignment) throw new Error("No assignment selected");
@@ -148,34 +146,36 @@ export function CreateAssignmentForm() {
     enabled: !!selectedAssignment,
   });
 
-  const subjectsList = subjectsData?.subjects || [];
-  const cursosList = coursesData?.cursos || [];
+  const subjectsList = useMemo(() => subjectsData?.subjects || [], [subjectsData]);
+  const cursosList = useMemo(() => coursesData?.cursos || [], [coursesData]);
   const activePeriod = periodosData?.active?.nombre || null;
   const assignments = assignmentsData?.assignments || [];
 
-  const filteredSubjects = cursoId
+  const filteredSubjects = useMemo(() => cursoId
     ? subjectsList.filter(s =>
         cursosList.find(c => c.id === cursoId)?.mySubjects?.some(ms => ms.subjectId === s.id)
       )
-    : subjectsList;
+    : subjectsList, [cursoId, subjectsList, cursosList]);
 
   useEffect(() => {
-    if (subjectsList.length > 0 && subjectId === null) setSubjectId(subjectsList[0].id);
-  }, [subjectsList]);
+    if (subjectsList.length > 0 && subjectId === null) {
+      const t = setTimeout(() => setSubjectId(subjectsList[0].id), 0);
+      return () => clearTimeout(t);
+    }
+  }, [subjectsList, subjectId]);
 
   useEffect(() => {
     if (cursoId && filteredSubjects.length > 0) {
       const currentIsValid = filteredSubjects.some(s => s.id === subjectId);
-      if (!currentIsValid) setSubjectId(filteredSubjects[0].id);
+      if (!currentIsValid) {
+        const t = setTimeout(() => setSubjectId(filteredSubjects[0].id), 0);
+        return () => clearTimeout(t);
+      }
     }
   }, [cursoId, filteredSubjects, subjectId]);
 
-  useEffect(() => {
-    if (submissionsData) {
-      setSubmissions(submissionsData.submissions || []);
-      setNotSubmitted(submissionsData.notSubmitted || []);
-    }
-  }, [submissionsData]);
+  const submissions = submissionsData?.submissions || [];
+  const notSubmitted = submissionsData?.notSubmitted || [];
 
   const handleMarkAbsent = async (studentId: number) => {
     setAbsentLoading(studentId);
@@ -230,12 +230,12 @@ export function CreateAssignmentForm() {
       setTitle(data.title || "");
       setDescription(data.description || "");
       const generatedQuestions: Question[] = (data.questions || []).map(
-        (q: any, i: number) => ({
+        (q: { type: string; question: string; options?: string[]; correctIndex?: number; points?: number }) => ({
           id: `q_ai_${++qCounter}`,
           type: q.type,
           question: q.question,
           options: q.type === "mcq" ? q.options : [],
-          correctIndex: q.type === "mcq" ? q.correctIndex : 0,
+          correctIndex: q.type === "mcq" ? q.correctIndex ?? 0 : 0,
           points: q.points || 1,
         })
       );
@@ -253,7 +253,7 @@ export function CreateAssignmentForm() {
   const handleGrade = async (submissionId: number | null, studentId: number | null, grade: number, feedback: string) => {
     try {
       const gradeInt = Math.round(grade);
-      const body: any = { grade: gradeInt, feedback };
+      const body: { grade: number; feedback: string; submissionId?: number; studentId?: number } = { grade: gradeInt, feedback };
       if (submissionId) body.submissionId = submissionId;
       if (studentId) body.studentId = studentId;
 
@@ -305,14 +305,14 @@ export function CreateAssignmentForm() {
     setPuntos(a.puntos || 10);
     setShowForm(true);
     setErrorMsg("");
-    setCurrentFileUrl((a as any).fileUrl || null);
+    setCurrentFileUrl((a as Assignment & { fileUrl?: string }).fileUrl || null);
     setAttachmentFile(null);
 
     try {
       const res = await apiFetch(`/api/assignments/${a.id}`);
       const data = await res.json();
       if (data.questions) {
-        setQuestions(data.questions.map((q: any) => ({
+        setQuestions(data.questions.map((q: { id?: number; type: "mcq" | "file_upload"; question: string; options?: string[]; correctIndex?: number; points?: number }) => ({
           id: `q_${q.id}`,
           type: q.type,
           question: q.question,
@@ -349,7 +349,7 @@ export function CreateAssignmentForm() {
   const removeQuestion = (id: string) => {
     setQuestions(q => q.filter(qq => qq.id !== id));
   };
-  const updateQuestion = (id: string, field: string, value: any) => {
+  const updateQuestion = (id: string, field: string, value: string | number | boolean) => {
     setQuestions(q => q.map(qq => qq.id === id ? { ...qq, [field]: value } : qq));
   };
   const updateOption = (qId: string, idx: number, value: string) => {

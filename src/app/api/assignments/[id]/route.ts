@@ -213,7 +213,9 @@ export async function GET(
       .orderBy(asc(assignmentQuestions.orderIndex));
 
     // Get submissions
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let submissions: any[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let notSubmitted: any[] = [];
     if (user.role === "teacher") {
       submissions = await db
@@ -371,6 +373,7 @@ export async function PUT(
     const assignmentId = parseInt(id);
 
     const contentType = request.headers.get("content-type") || "";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let body: Record<string, any>;
     let newFileUrl: string | null | undefined = undefined;
 
@@ -431,6 +434,7 @@ export async function PUT(
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateValues: Record<string, any> = {
       title,
       description,
@@ -482,7 +486,7 @@ export async function PUT(
             correctIndex: q.correctIndex ?? null,
             points: q.points || 1,
             orderIndex: i,
-          } as any))
+          }))
         );
       }
     }

@@ -93,9 +93,11 @@ const KEY_MAP: Record<string, string> = {
   explicacion: "explanation", explanation: "explanation",
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeKeys(obj: any): any {
   if (!obj || typeof obj !== "object") return obj;
   if (Array.isArray(obj)) return obj.map(normalizeKeys);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result: any = {};
   for (const key of Object.keys(obj)) {
     const clean = key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/_/g, "").replace(/\s+/g, "");
@@ -205,7 +207,6 @@ FORMATO:
     const REQUEST_TIMEOUT_MS = 120_000;
     const MAX_CANDIDATES = 3;
     let lastError: unknown;
-    let usedModel = resolved;
 
     for (const candidate of candidates.slice(0, MAX_CANDIDATES)) {
       const abortController = new AbortController();
@@ -238,7 +239,6 @@ FORMATO:
         }
 
         clearTimeout(timeoutId);
-        usedModel = candidate;
 
         logAiCall({
           route: "teacher/ai/generate-cuestionario",
@@ -254,6 +254,7 @@ FORMATO:
           continue;
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const questions = data.questions.slice(0, 30).map((q: any, i: number) => ({
           virtualType: q.type === "completar" ? "completar" : "mcq",
           question: q.question || "",
@@ -269,7 +270,7 @@ FORMATO:
           description: data.description || `Cuestionario de estudio sobre ${topic}`,
           questions,
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         clearTimeout(timeoutId);
         const msg = String(err?.message || err || "");
         const wasAborted = err?.name === "AbortError" || msg.includes("abort");
@@ -292,7 +293,7 @@ FORMATO:
     }
 
     if (lastError) {
-      const msg = String((lastError as any)?.message || "");
+      const msg = String(lastError instanceof Error ? lastError.message : "");
       if (msg.includes("abort") || msg.includes("Timeout")) {
         return NextResponse.json(
           { error: "La generacion excedio el tiempo limite con todos los modelos. Intenta con menos preguntas." },

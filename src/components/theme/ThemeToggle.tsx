@@ -1,15 +1,18 @@
 "use client";
 
 import { useTheme } from "@/components/theme/ThemeProvider";
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Sun, Moon } from "lucide-react";
 
 export function ThemeToggle() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const lastSavedTheme = useRef<string | null>(null);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(t);
+  }, []);
 
   if (!mounted) {
     return (
@@ -33,7 +36,7 @@ export function ThemeToggle() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ theme: newTheme }),
         });
-      } catch (e) {
+      } catch {
         // Silent fail - localStorage still works
       }
     }

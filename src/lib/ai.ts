@@ -193,10 +193,18 @@ function getProviderClient(provider: AiProvider) {
   }
 }
 
+interface ProviderClient {
+  chat?: (model: string) => unknown;
+  textEmbeddingModel?: (model: string) => unknown;
+  embeddingModel?: (model: string) => unknown;
+  embedding?: (model: string) => unknown;
+  (model: string): unknown;
+}
+
 export function getChatModel(target: ResolvedModel | string) {
   const model = typeof target === "string" ? target : target.model;
   const provider = typeof target === "string" ? DEFAULT_PROVIDER : target.provider;
-  const client = getProviderClient(provider) as any;
+  const client = getProviderClient(provider) as ProviderClient;
 
   // Prefer .chat() method — calling the provider as a function creates a
   // "responses" model (hits /responses) which OpenCode and most gateways
@@ -216,7 +224,7 @@ export function getChatModel(target: ResolvedModel | string) {
 export function getEmbeddingModel(target: ResolvedModel | string) {
   const model = typeof target === "string" ? target : target.model;
   const provider = typeof target === "string" ? DEFAULT_EMBEDDING_PROVIDER : target.provider;
-  const client = getProviderClient(provider) as any;
+  const client = getProviderClient(provider) as ProviderClient;
 
   if (typeof client.textEmbeddingModel === "function") {
     return client.textEmbeddingModel(model);
@@ -329,8 +337,8 @@ export function getEmbeddingModelCandidates(requestedModel: unknown): ResolvedMo
 }
 
 export function isRetryableModelError(error: unknown): boolean {
-  if ((error as any)?.name === "ZodError") return true;
-  const message = String((error as any)?.message ?? error ?? "").toLowerCase();
+  if ((error as { name?: string })?.name === "ZodError") return true;
+  const message = String((error as { message?: string })?.message ?? error ?? "").toLowerCase();
   return (
     message.includes("not found")
     || message.includes("404")
@@ -411,7 +419,7 @@ export function repairJson(text: string): string {
   return repaired;
 }
 
-export function tryParseJson(text: string): any {
+export function tryParseJson<T = Record<string, unknown>>(text: string): T {
   try { return JSON.parse(text); } catch { /* primer intento falló, se prueba repairJson */ }
   try { return JSON.parse(repairJson(text)); } catch { /* fallback */ }
   const firstBrace = text.indexOf("{");

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Loader2, AlertTriangle, Plus, Trash2, Save, Sparkles, CheckCircle, ListChecks, GraduationCap } from "lucide-react";
+import { ArrowLeft, Loader2, AlertTriangle, Plus, Trash2, Save, Sparkles, CheckCircle, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/fetch-utils";
@@ -12,6 +12,16 @@ interface Course {
   nombre: string;
   nivel: string;
   mySubjects: { subjectId: number; subjectName: string; subjectEmoji: string }[];
+}
+
+interface PreguntaData {
+  type: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+  points: number;
+  virtualType?: string;
 }
 
 interface Question {
@@ -75,7 +85,7 @@ export default function NuevoCuestionarioPage() {
     setQuestions(q => q.filter(qq => qq.id !== qId));
   };
 
-  const updateQuestion = (qId: string, field: string, value: any) => {
+  const updateQuestion = (qId: string, field: string, value: string | number | boolean) => {
     setQuestions(q => q.map(qq => (qq.id === qId ? { ...qq, [field]: value } : qq)));
   };
 
@@ -112,7 +122,7 @@ export default function NuevoCuestionarioPage() {
       if (data.title) setTitle(data.title);
       if (data.description) setDescription(data.description);
       if (data.questions?.length) {
-        setQuestions(data.questions.map((q: any) => ({
+        setQuestions(data.questions.map((q: PreguntaData) => ({
           ...newQuestion(q.virtualType || "mcq"),
           id: `q_${++qCounter}`,
           question: q.question || "",

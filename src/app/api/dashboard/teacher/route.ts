@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
       activo: c.activo, createdAt: c.createdAt, studentCount: c.studentCount,
       teacherSubjects: profsByCurso.get(c.id) || [],
       isTutor: c.profesorId === teacher.id,
-      mySubjects: (profsByCurso.get(c.id) || []).filter((ts: any) => ts.teacherId === teacher.id),
+      mySubjects: (profsByCurso.get(c.id) || []).filter((ts) => ts.teacherId === teacher.id),
     }));
 
     const [allPeriods, [activePeriod], teacherSubjects, enrolled] = await Promise.all([
@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
       }
 
       const avgs: number[] = [];
-      for (const [_, sd] of studentData) {
+      for (const [, sd] of studentData) {
         if (sd.grades.length > 0) {
           const totalPts = sd.puntosArr.reduce((a, b) => a + b, 0);
           const avg = sd.grades.reduce((sum, g, i) => sum + g * sd.puntosArr[i], 0) / totalPts;

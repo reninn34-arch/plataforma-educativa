@@ -53,8 +53,6 @@ export default async function NodePracticePage({ params }: { params: Promise<{ s
     }
   }
 
-  const moduleTitle = moduleRecord.length > 0 ? moduleRecord[0].title : "";
-
   // Find next node in same module
   const nextNode = await db
     .select({ id: nodes.id })

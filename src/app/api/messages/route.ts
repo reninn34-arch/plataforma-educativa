@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
     // Mark as read
     await db
       .update(directMessages)
-      .set({ read: true } as any)
+      .set({ read: true })
       .where(and(eq(directMessages.receiverId, user.id), eq(directMessages.senderId, contactId)));
 
     return NextResponse.json({ messages: messages.reverse() });
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
     senderId: user.id,
     receiverId,
     content,
-  } as any).returning();
+  }).returning();
 
   await notifyUser({
     userId: receiverId,

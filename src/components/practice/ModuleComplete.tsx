@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ChevronRight, Home, RefreshCw, Star, Zap, Target, Trophy, Sparkles } from "lucide-react";
+import { ChevronRight, Home, RefreshCw, Star, Zap, Target, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ModuleCompleteProps {

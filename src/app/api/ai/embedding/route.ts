@@ -88,8 +88,8 @@ export async function POST(request: NextRequest) {
       dimensions: result.embedding.length,
       embedding: result.embedding,
     });
-  } catch (error: any) {
-    const message = String(error?.message || "Error al generar embedding");
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Error al generar embedding";
     if (message.includes("no permitido") || message.includes("formato invalido") || message.includes("debe ser")) {
       return Response.json({ error: message }, { status: 400 });
     }

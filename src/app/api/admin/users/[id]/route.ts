@@ -69,7 +69,7 @@ import { users } from "@/lib/db/schema";
 import { eq, sql, type InferInsertModel } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { hashPin } from "@/lib/hash-utils";
-import { isValidPin } from "@/lib/api-helpers";
+
 
 export async function PUT(
   request: NextRequest,
@@ -113,6 +113,7 @@ export async function PUT(
     if (body.resetPin) {
       const pin = String(Math.floor(1000 + Math.random() * 9000));
       updateData.pin = await hashPin(pin);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       updateData.pinUpdatedAt = sql`now()` as any;
       await db.update(users).set(updateData).where(eq(users.id, userId));
       return NextResponse.json({ success: true, updated: true, newPin: pin });

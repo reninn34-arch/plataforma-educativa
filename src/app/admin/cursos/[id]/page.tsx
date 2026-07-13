@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Search, Loader2, X, UserPlus, Trash2, Printer, Mail, Users as UsersIcon, BookOpen } from "lucide-react";
@@ -30,6 +30,14 @@ interface CursoTeacherSubject {
   subjectEmoji: string;
 }
 
+interface HorarioEntry {
+  dia: string;
+  horaInicio: string;
+  horaFin: string;
+  subjectId: number | null;
+  tipo: string;
+}
+
 interface CursoInfo {
   id: number;
   nombre: string;
@@ -52,7 +60,7 @@ export default function CursoDetailPage() {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailFeedback, setEmailFeedback] = useState("");
   const [resetPins, setResetPins] = useState(false);
-  const [schedule, setSchedule] = useState<any[]>([]);
+  const [schedule, setSchedule] = useState<HorarioEntry[]>([]);
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [scheduleFeedback, setScheduleFeedback] = useState("");
   const [timeBlocks, setTimeBlocks] = useState<{ horaInicio: string; horaFin: string }[]>([
@@ -68,7 +76,7 @@ export default function CursoDetailPage() {
 
   interface CoursesResponse { cursos: CursoInfo[]; }
   interface StudentsResponse { students: Student[]; }
-  interface HorariosResponse { horarios: any[]; }
+  interface HorariosResponse { horarios: HorarioEntry[]; }
   interface AllStudentsResponse { users: AvailableStudent[]; }
 
   const { data: coursesData } = useQuery<CoursesResponse, Error>({
@@ -101,19 +109,24 @@ export default function CursoDetailPage() {
 
   const loading = !coursesData && !studentsData;
 
+  const prevHorariosRef = useRef(horariosData);
   useEffect(() => {
-    if (horariosData?.horarios && horariosData.horarios.length > 0 && schedule.length === 0) {
+    if (horariosData?.horarios && horariosData.horarios.length > 0 && horariosData !== prevHorariosRef.current && schedule.length === 0) {
+      prevHorariosRef.current = horariosData;
       const hor = horariosData.horarios;
-      setSchedule(hor);
       const seen = new Set<string>();
       const unique: { horaInicio: string; horaFin: string }[] = [];
       for (const h of hor) {
         const key = `${h.horaInicio}-${h.horaFin}`;
         if (!seen.has(key)) { seen.add(key); unique.push({ horaInicio: h.horaInicio, horaFin: h.horaFin }); }
       }
-      if (unique.length > 0) setTimeBlocks(unique);
+      const id = setTimeout(() => {
+        setSchedule(hor);
+        if (unique.length > 0) setTimeBlocks(unique);
+      }, 0);
+      return () => clearTimeout(id);
     }
-  }, [horariosData]);
+  }, [horariosData, schedule.length]);
 
   const addTimeBlock = () => {
     setTimeBlocks([...timeBlocks, { horaInicio: "00:00", horaFin: "00:45" }]);

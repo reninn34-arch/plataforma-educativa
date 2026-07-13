@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 function HeartIcon({ filled, breaking }: { filled: boolean; breaking: boolean }) {
@@ -27,12 +27,12 @@ function HeartIcon({ filled, breaking }: { filled: boolean; breaking: boolean })
 
 export function Hearts({ lives, maxLives }: { lives: number; maxLives: number }) {
   const prevLives = useRef(lives);
-  const breakingIndexRef = useRef<number | null>(null);
+  const [breakingIndex, setBreakingIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (lives < prevLives.current) {
-      breakingIndexRef.current = lives;
-      const timer = setTimeout(() => { breakingIndexRef.current = null; }, 500);
+      setBreakingIndex(lives);
+      const timer = setTimeout(() => { setBreakingIndex(null); }, 500);
       prevLives.current = lives;
       return () => clearTimeout(timer);
     }
@@ -45,7 +45,7 @@ export function Hearts({ lives, maxLives }: { lives: number; maxLives: number })
     <div className="flex items-center gap-1">
       {Array.from({ length: maxLives }).map((_, i) => {
         const filled = i < lives;
-        const breaking = i === breakingIndexRef.current;
+        const breaking = i === breakingIndex;
         return (
           <span
             key={i}

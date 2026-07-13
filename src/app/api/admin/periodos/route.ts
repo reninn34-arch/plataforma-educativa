@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
   try {
     const data = await db.select().from(periodosLectivos).orderBy(desc(periodosLectivos.createdAt));
     return NextResponse.json({ periodos: data });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Error al cargar periodos" }, { status: 500 });
   }
 }
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     }).returning();
 
     return NextResponse.json({ periodo: created }, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Error al crear periodo" }, { status: 500 });
   }
 }

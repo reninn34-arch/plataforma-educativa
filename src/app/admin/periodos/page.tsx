@@ -26,7 +26,7 @@ export default function AdminPeriodosPage() {
 
   const queryClient = useQueryClient();
 
-  const { data, isLoading, refetch } = useQuery<PeriodosData, Error>({
+  const { data, isLoading } = useQuery<PeriodosData, Error>({
     queryKey: ["admin-periodos"],
     queryFn: async () => { const res = await apiFetch("/api/admin/periodos"); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
     staleTime: 5 * 60 * 1000,

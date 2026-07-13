@@ -154,7 +154,6 @@ function ReportesContent() {
   });
 
   const cursos = coursesData?.cursos || [];
-  const cursoNombre = cursos.find(c => c.id === cursoId)?.nombre || "";
   const canExport = data && data.students.length > 0;
 
   const [exportingPdf, setExportingPdf] = useState(false);

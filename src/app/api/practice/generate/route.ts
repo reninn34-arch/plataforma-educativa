@@ -107,11 +107,13 @@ const SCHEMA_KEY_MAP: Record<string, string> = {
   thumbnailurl: "thumbnailUrl",
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeKeys(obj: any): any {
   if (!obj || typeof obj !== "object") return obj;
   if (Array.isArray(obj)) {
     return obj.map(normalizeKeys);
   }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result: any = {};
   for (const key of Object.keys(obj)) {
     const cleanKey = key
@@ -131,6 +133,7 @@ const diagramSchema = z.object({
   caption: z.string(),
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const exampleStepSchema = z.preprocess((val: any) => {
   if (val && typeof val === "object" && !val.text && val.description) {
     return { ...val, text: val.description };
@@ -144,6 +147,7 @@ const exampleStepSchema = z.preprocess((val: any) => {
 const baseLessonSchema = z.object({
   title: z.string(),
   explanation: z.string(),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   example: z.preprocess((val: any) => {
     if (val && typeof val === "object") {
       const problemText = val.problem ?? val.problema ?? val.text ?? val.pregunta ?? "Ejemplo práctico";
@@ -168,6 +172,7 @@ const baseLessonSchema = z.object({
     steps: z.array(exampleStepSchema),
     answer: z.string(),
   })),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   commonMistake: z.preprocess((val: any) => {
     if (typeof val === "string") {
       const parts = val.split(/(?:la correccion es|la corrección es|correccion:|corrección:)/i);
@@ -202,6 +207,7 @@ const baseLessonSchema = z.object({
     description: z.string(),
     correction: z.string(),
   })),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   quickCheck: z.preprocess((val: any) => {
     if (val && typeof val === "object") {
       if (val.pregunta && !val.question) val.question = val.pregunta;
@@ -227,6 +233,7 @@ const baseLessonSchema = z.object({
   })),
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const lessonSchema = z.preprocess((val: any) => {
   if (val && typeof val === "object") {
     if (val.titulo && !val.title) val.title = val.titulo;
@@ -271,6 +278,7 @@ const exerciseTypeSchema = z.preprocess((val) => {
   return "fill_blank";
 }, z.enum(["mcq", "fill_blank", "true_false"]));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const exerciseItemSchema = z.preprocess((val: any) => {
   if (val && typeof val === "object") {
     if (val.pregunta && !val.question) val.question = val.pregunta;
@@ -314,6 +322,7 @@ const videoSchema = z.object({
   duration: z.string(),
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const practiceResponseSchema = z.preprocess((val: any) => {
   if (val && typeof val === "object") {
     // 1. If it's a flat structure (e.g. title/explanation/ejercicios at root level)
@@ -379,14 +388,17 @@ const practiceResponseSchema = z.preprocess((val: any) => {
     if (normalized.questions && !normalized.exercises) normalized.exercises = normalized.questions;
 
     // Extract exercises nested inside lesson object (model sometimes puts them there)
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     if (!normalized.exercises && normalized.lesson && typeof normalized.lesson === "object" && Array.isArray((normalized.lesson as any).exercises)) {
       normalized.exercises = (normalized.lesson as any).exercises;
       delete (normalized.lesson as any).exercises;
     }
+    /* eslint-enable @typescript-eslint/no-explicit-any */
 
     // Defensively ensure each exercise has a difficulty and MCQ options are array
     if (Array.isArray(normalized.exercises)) {
       const defaultDiffs = ["easy", "medium", "hard", "medium"];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       normalized.exercises = normalized.exercises.map((ex: any, idx: number) => {
         if (ex && typeof ex === "object") {
           // Coerce empty strings or missing difficulty to varied default difficulties
@@ -435,6 +447,7 @@ const practiceResponseSchema = z.preprocess((val: any) => {
   videos: z.array(videoSchema).default([]),
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const cachedLessonSchema = z.preprocess((val: any) => {
   if (val && typeof val === "object") {
     if (val.titulo && !val.title) val.title = val.titulo;
@@ -559,7 +572,6 @@ export async function POST(request: NextRequest) {
     const cleanContext = aiPromptContext
       ? aiPromptContext.replace(/^(En este (módulo|tema|nodo|apartado) (aprenderás|veremos|estudiaremos|conocerás|abordaremos) (sobre|acerca de)?\s*)/i, "").slice(0, 100).replace(/\n/g, " ")
       : "";
-    const subjectName = ctx.area.split(" - ")[0].toLowerCase();
 
     let moduleTopic: string | undefined;
     if (nodeId) {
@@ -699,6 +711,7 @@ REGLAS:
               r = await makeTextCall();
             }
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let parsedJson: any;
             try {
               parsedJson = tryParseJson(r.text);
@@ -746,6 +759,7 @@ REGLAS:
                   r = await makeFallbackCall();
                 }
 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 let parsedJson: any;
                 try {
                   parsedJson = tryParseJson(r.text);
@@ -799,6 +813,7 @@ REGLAS:
                   return null;
                 }
               } catch (err) {
+                /* eslint-disable @typescript-eslint/no-explicit-any */
                 console.warn("[diagram] generateText failed:", (err as any)?.message || err);
                 logAiCall({
                   route: "practice-diagram-text",
@@ -806,6 +821,7 @@ REGLAS:
                   durationMs: Math.round(performance.now() - diagramStart),
                   error: (err as any)?.message || "unknown",
                 });
+                /* eslint-enable @typescript-eslint/no-explicit-any */
                 return null;
               }
             } else {
@@ -833,6 +849,7 @@ REGLAS:
                   caption: r.object.caption,
                 };
               } catch (err) {
+                /* eslint-disable @typescript-eslint/no-explicit-any */
                 console.warn("[diagram] generateObject failed, intentando fallback generateText...", (err as any)?.message || err);
                 try {
                   const r = await generateText({
@@ -866,6 +883,7 @@ REGLAS:
                   return null;
                 }
               }
+              /* eslint-enable @typescript-eslint/no-explicit-any */
             }
           })();
         }
@@ -894,7 +912,9 @@ REGLAS:
         clearTimeout(lessonTimeoutId);
         clearTimeout(diagramTimeoutId);
         lastError = error;
+        /* eslint-disable @typescript-eslint/no-explicit-any */
         const wasAborted = (error as any)?.name === "AbortError" || String((error as any)?.message || "").includes("abort");
+        /* eslint-enable @typescript-eslint/no-explicit-any */
         if (!isRetryableModelError(error) && !wasAborted) throw error;
       }
     }
@@ -961,10 +981,11 @@ REGLAS:
     const videoSearchUrl = buildSearchUrl(videoSearchQuery);
 
     if (nodeId) {
-      const exercisesData = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const exercisesData: any = {
         version: CACHED_EXERCISES_VERSION,
         data: { ...lessonResult, videos },
-      } as any;
+      };
 
       await db
         .insert(studentExercises)
@@ -998,7 +1019,7 @@ REGLAS:
 function extractDiagramFromText(raw: string): { mermaid: string; caption: string } | null {
   try {
     const parsed = tryParseJson(raw);
-    let mermaidStr = (parsed.mermaid || "").replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
+    const mermaidStr = (parsed.mermaid || "").replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
     return { mermaid: mermaidStr, caption: parsed.caption || "" };
   } catch { /* fallback to raw extraction */ }
 

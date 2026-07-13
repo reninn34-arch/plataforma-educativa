@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { Save, Loader2, CheckCircle, AlertCircle, Mail, Server } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/fetch-utils";
@@ -38,43 +37,26 @@ const PROVIDERS: Record<string, { host: string; port: string; label: string; ins
   },
 };
 
-export default function ConfiguracionPage() {
+interface ConfigData { smtp_host: string; smtp_port: string; smtp_user: string; smtp_pass: string; smtp_from_name: string; }
+
+function SMTPFormContent({ configData }: { configData: ConfigData }) {
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState("");
-  const [provider, setProvider] = useState("gmail");
-  const [host, setHost] = useState("");
-  const [port, setPort] = useState("587");
-  const [user, setUser] = useState("");
-  const [pass, setPass] = useState("");
-  const [fromName, setFromName] = useState("Atlas Edu");
+  const [provider, setProvider] = useState(() => {
+    if (!configData.smtp_host) return "gmail";
+    for (const [k, v] of Object.entries(PROVIDERS)) {
+      if (v.host === configData.smtp_host) return k;
+    }
+    return "custom";
+  });
+  const [host, setHost] = useState(configData.smtp_host || "");
+  const [port, setPort] = useState(configData.smtp_port || "587");
+  const [user, setUser] = useState(configData.smtp_user || "");
+  const [pass, setPass] = useState(configData.smtp_pass || "");
+  const [fromName, setFromName] = useState(configData.smtp_from_name || "Atlas Edu");
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState("");
-
-  interface ConfigData { smtp_host: string; smtp_port: string; smtp_user: string; smtp_pass: string; smtp_from_name: string; }
-  const { data: configData, isLoading } = useQuery<ConfigData, Error>({
-    queryKey: ["admin-config"],
-    queryFn: async () => { const res = await apiFetch("/api/admin/config"); if (!res.ok) throw new Error(`API error: ${res.status}`); return res.json(); },
-    staleTime: 5 * 60 * 1000,
-  });
-
-  useEffect(() => {
-    if (!configData) return;
-    setHost(configData.smtp_host || "");
-    setPort(configData.smtp_port || "587");
-    setUser(configData.smtp_user || "");
-    setPass(configData.smtp_pass || "");
-    setFromName(configData.smtp_from_name || "Atlas Edu");
-    if (!configData.smtp_host) {
-      setProvider("gmail");
-      setHost(PROVIDERS.gmail.host);
-      setPort(PROVIDERS.gmail.port);
-    } else {
-      for (const [k, v] of Object.entries(PROVIDERS)) {
-        if (v.host === configData.smtp_host) { setProvider(k); break; }
-      }
-    }
-  }, [configData]);
 
   const onProviderChange = (p: string) => {
     setProvider(p);
@@ -119,8 +101,6 @@ export default function ConfiguracionPage() {
     } catch { setTestResult("Error de conexión"); }
     setTesting(false);
   };
-
-  if (isLoading) return <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-indigo-500" /></div>;
 
   const currentInstructions = PROVIDERS[provider].instructions;
 
@@ -230,5 +210,11 @@ export default function ConfiguracionPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ConfiguracionPage() {
+  return (
+    <SMTPFormContent configData={{ smtp_host: "", smtp_port: "587", smtp_user: "", smtp_pass: "", smtp_from_name: "Atlas Edu" }} />
   );
 }

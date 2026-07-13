@@ -150,6 +150,7 @@ export async function POST(request: NextRequest) {
       title: title.trim(),
       description: description?.trim() || null,
       trimester: 1,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any).returning();
 
     for (let i = 0; i < questions.length; i++) {
@@ -164,6 +165,7 @@ export async function POST(request: NextRequest) {
         explanation: q.explanation || "",
         points: q.points || 1,
         orderIndex: i,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
     }
 

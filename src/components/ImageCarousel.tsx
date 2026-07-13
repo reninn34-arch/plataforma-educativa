@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Image from "next/image";
 
 const IMAGES: Record<string, string[]> = {
   matematicas: [
@@ -44,16 +45,18 @@ export function ImageCarousel({ subjectId }: ImageCarouselProps) {
 
   return (
     <div className="relative w-full overflow-hidden rounded-2xl bg-muted border border-border shadow-sm">
-      <div className="aspect-[3/2] w-full">
+      <div className="relative aspect-[3/2] w-full">
         {images.map((src, i) => (
-          <img
+          <Image
             key={i}
             src={src}
             alt={`Teoria visual ${i + 1}`}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
+            fill
+            className={`object-cover transition-opacity duration-500 ${
               i === current ? "opacity-100" : "opacity-0"
             }`}
-            loading="lazy"
+            sizes="(max-width: 768px) 100vw, 600px"
+            priority={i === 0}
           />
         ))}
       </div>

@@ -58,9 +58,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import {
   cuestionarios, cuestionarioPreguntas, subjects, cursos,
-  cursoEstudiantes, users,
+  users,
 } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 
 export async function GET(
@@ -99,12 +99,6 @@ export async function GET(
     if (!cuestionario) {
       return NextResponse.json({ error: "Cuestionario no encontrado" }, { status: 404 });
     }
-
-    const enrolledCourses = await db
-      .select({ cursoId: cursoEstudiantes.cursoId })
-      .from(cursoEstudiantes)
-      .where(eq(cursoEstudiantes.estudianteId, user.id));
-    const courseIds = enrolledCourses.map(c => c.cursoId);
 
     const preguntas = await db
       .select({

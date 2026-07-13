@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
     }
     const candidates = getChatModelCandidates(model);
     let selectedModel: ResolvedModel = resolved;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let modelInstance: any;
     let initError: unknown;
     for (const candidate of candidates) {
@@ -99,7 +100,7 @@ export async function POST(request: NextRequest) {
       }
     }
     if (!modelInstance) {
-      return new Response(JSON.stringify({ error: String((initError as any)?.message ?? "No hay modelos IA disponibles") }), {
+      return new Response(JSON.stringify({ error: String(initError instanceof Error ? initError.message : "No hay modelos IA disponibles") }), {
         status: 502,
         headers: { "Content-Type": "application/json" },
       });
@@ -249,14 +250,15 @@ MODO TUTOR - REGLAS ESTRICTAS (SOBRESCRIBEN TODO LO ANTERIOR):
           route: "ai/assistant",
           model: selectedModel.modelId,
           durationMs: Date.now() - start,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           error: String((event as any).error ?? "AI error"),
         });
       },
     });
 
     return result.toUIMessageStreamResponse();
-  } catch (error: any) {
-    console.error("AI Assistant error:", error);
+  } catch {
+    console.error("AI Assistant error:");
     return new Response(
       JSON.stringify({ error: "Error interno del asistente" }),
       {

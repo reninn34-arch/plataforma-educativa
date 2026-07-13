@@ -56,7 +56,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentSubmissions, subjects, users, cursos, periodosLectivos } from "@/lib/db/schema";
-import { eq, and, desc, asc, inArray } from "drizzle-orm";
+import { eq, and, desc, asc, inArray, type SQL } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getTeacherCourseIds } from "@/lib/course-helpers";
 
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
       targetCursoIds = allIds;
     }
 
-    const conditions: any[] = [eq(assignments.teacherId, user.id)];
+    const conditions: SQL[] = [eq(assignments.teacherId, user.id)];
     if (trimester > 0) conditions.push(eq(assignments.trimester, trimester));
     if (targetCursoIds.length > 0) {
       conditions.push(inArray(assignments.cursoId, targetCursoIds));
@@ -172,14 +172,14 @@ export async function GET(request: NextRequest) {
           t1Grades: [],
           t2Grades: [],
           t3Grades: [],
-          t1Puntos: [],
-          t2Puntos: [],
-          t3Puntos: [],
-        } as any);
+          t1Puntos: [] as number[],
+          t2Puntos: [] as number[],
+          t3Puntos: [] as number[],
+        });
       }
 
       if (row.grade !== null && row.grade !== undefined && row.subjectId) {
-        const subj = student.subjects.get(row.subjectId)! as any;
+        const subj = student.subjects.get(row.subjectId)!;
         subj.grades.push(row.grade);
         const pt = row.puntos || 10;
         if (row.trimester === 1) { subj.t1Grades.push(row.grade); subj.t1Puntos.push(pt); }
@@ -188,7 +188,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const avg = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
     const weightedAvg = (grades: number[], puntos: number[]) => {
       if (grades.length === 0) return null;
       const totalPts = puntos.reduce((a, b) => a + b, 0);
@@ -202,9 +201,8 @@ export async function GET(request: NextRequest) {
       studentName: s.studentName,
       studentCedula: s.studentCedula,
       studentCursoNombre: s.studentCursoNombre,
-      subjects: Array.from(s.subjects.values()).map((subj: any) => {
+      subjects: Array.from(s.subjects.values()).map((subj) => {
         const allPts = [...(subj.t1Puntos || []), ...(subj.t2Puntos || []), ...(subj.t3Puntos || [])];
-        const allGrades = subj.grades;
         return {
           subjectId: subj.subjectId,
           subjectName: subj.subjectName,

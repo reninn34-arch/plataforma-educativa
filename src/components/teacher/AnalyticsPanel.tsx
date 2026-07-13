@@ -20,7 +20,6 @@ interface AnalyticsData {
 
 interface CursoOption { id: number; nombre: string; nivel: string; }
 interface CoursesData { cursos: CursoOption[]; }
-interface OverviewData extends AnalyticsData {}
 
 /* ─── Stat card ─────────────────────────────────────── */
 function StatCard({
@@ -70,7 +69,7 @@ export function AnalyticsPanel({ cursoId: initialCursoId }: { cursoId?: number |
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data, isLoading, refetch } = useQuery<OverviewData, Error>({
+  const { data, isLoading, refetch } = useQuery<AnalyticsData, Error>({
     queryKey: ["analytics-overview", cursoId],
     queryFn: async () => {
       const url = cursoId

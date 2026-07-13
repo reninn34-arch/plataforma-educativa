@@ -12,7 +12,18 @@ import { subjectTheme } from "@/lib/subject-theme";
 
 type Tab = "pending" | "expired" | "submitted";
 
-interface AssignmentsData { assignments: any[]; }
+interface AssignmentItem {
+  id: number;
+  title: string;
+  status: string;
+  dueDate: string | null;
+  grade: number | null;
+  subjectName: string;
+  subjectEmoji: string;
+  cursoNombre: string;
+}
+
+interface AssignmentsData { assignments: AssignmentItem[]; }
 
 export default function StudentAssignmentsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("pending");
@@ -28,17 +39,17 @@ export default function StudentAssignmentsPage() {
   });
 
   const assignments = data?.assignments || [];
-  const now = Date.now();
+  const [now] = useState(() => Date.now());
 
-  const pending = assignments.filter((a: any) =>
+  const pending = assignments.filter((a: AssignmentItem) =>
     a.status !== "graded" && a.status !== "submitted" &&
     (!a.dueDate || new Date(a.dueDate).getTime() > now)
   );
-  const expired = assignments.filter((a: any) =>
+  const expired = assignments.filter((a: AssignmentItem) =>
     a.status !== "graded" && a.status !== "submitted" &&
     a.dueDate && new Date(a.dueDate).getTime() <= now
   );
-  const submitted = assignments.filter((a: any) =>
+  const submitted = assignments.filter((a: AssignmentItem) =>
     a.status === "submitted" || a.status === "graded"
   );
 
@@ -104,7 +115,7 @@ export default function StudentAssignmentsPage() {
         {/* List */}
         {currentList.length > 0 ? (
           <div className="bg-card rounded-2xl border border-border divide-y divide-slate-100 overflow-hidden shadow-sm">
-            {currentList.map((a: any) => {
+            {currentList.map((a: AssignmentItem) => {
               const subjectSlug = a.subjectName?.toLowerCase() || "";
               const theme = subjectTheme(subjectSlug);
               return (

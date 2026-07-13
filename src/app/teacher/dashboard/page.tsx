@@ -7,11 +7,23 @@ import { StudentsTable } from "@/components/teacher/StudentsTable";
 import { Download, ArrowLeft, Sparkles, BookOpen } from "lucide-react";
 import { apiFetch } from "@/lib/fetch-utils";
 
+interface TeacherCourse {
+  id: number;
+  nombre: string;
+  nivel: string;
+  mySubjects: { subjectId: number; subjectName: string; subjectEmoji: string }[];
+}
+
+interface TeacherPeriod {
+  id: number;
+  nombre: string;
+}
+
 interface TeacherDashboardData {
   profile: { id: number; fullName: string; cedula: string; role: string; email?: string } | null;
-  courses: any[];
-  periods: any[];
-  activePeriod: any | null;
+  courses: TeacherCourse[];
+  periods: TeacherPeriod[];
+  activePeriod: TeacherPeriod | null;
   stats: { totalEstudiantes: number; pendientes: number; bajoRendimiento: number; promedioGeneral: number; totalCursos: number };
 }
 
@@ -32,7 +44,7 @@ function DashboardContent() {
 
   const cursos = data?.courses || [];
   const activePeriod = data?.activePeriod || null;
-  const selectedCurso = cursoId ? cursos.find((c: any) => c.id === cursoId) : null;
+  const selectedCurso = cursoId ? cursos.find((c: TeacherCourse) => c.id === cursoId) : null;
 
   return (
     <div className="flex-1 w-full animate-fade-in-up">
@@ -53,7 +65,7 @@ function DashboardContent() {
                   <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-lg">{selectedCurso.nivel}</span>
                   {selectedCurso.mySubjects?.length > 0 && (
                     <div className="flex flex-wrap gap-1">
-                      {selectedCurso.mySubjects.map((s: any, i: number) => (
+                      {selectedCurso.mySubjects.map((s: { subjectId: number; subjectName: string; subjectEmoji: string }, i: number) => (
                         <span key={i} className="text-[10px] font-medium bg-[var(--active-link-bg)] text-[var(--active-link-text)] px-2 py-0.5 rounded-lg border border-[var(--active-link-border)]">
                           {s.subjectEmoji} {s.subjectName}
                         </span>
@@ -94,7 +106,7 @@ function DashboardContent() {
                 className="h-10 rounded-xl border border-border bg-card px-3 text-sm font-medium text-muted-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/20 focus:outline-none"
               >
                 <option value="">Todos los cursos</option>
-                {cursos.map((c: any) => (
+                {cursos.map((c: TeacherCourse) => (
                   <option key={c.id} value={c.id}>{c.nombre} ({c.nivel})</option>
                 ))}
               </select>
@@ -115,7 +127,7 @@ function DashboardContent() {
           <div className="flex items-center gap-2">
             <BookOpen size={16} className="text-[var(--active-link-icon)] shrink-0" />
             <div className="flex flex-wrap gap-2">
-              {cursos.map((c: any) => (
+              {cursos.map((c: TeacherCourse) => (
                 <button
                   key={c.id}
                   onClick={() => router.push(`/teacher/dashboard?cursoId=${c.id}`)}

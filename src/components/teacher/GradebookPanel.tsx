@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, TrendingUp, Target, Award, BarChart3 } from "lucide-react";
+import { Loader2, Target, Award } from "lucide-react";
 
 
 import { Badge } from "@/components/ui/badge";
@@ -70,7 +70,7 @@ export function GradebookPanel({ cursoId: initialCursoId }: { cursoId?: number |
   });
 
   const cursos = coursesData?.cursos || [];
-  const gradebook = gradebookData?.gradebook || [];
+  const gradebook = useMemo(() => gradebookData?.gradebook || [], [gradebookData]);
 
   const classStats = useMemo(() => {
     const allSubjects = new Map<number, { name: string; emoji: string; yearlyAvgs: number[]; t1Avgs: number[]; t2Avgs: number[]; t3Avgs: number[] }>();

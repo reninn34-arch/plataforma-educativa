@@ -12,11 +12,24 @@ export function AccentColorPicker({ role = "student", userId }: { role?: string;
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setMounted(true);
+    const t = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
     const storageKey = userId ? `accent-color-user-${userId}` : "accent-color-" + role;
     const stored = (localStorage.getItem(storageKey) || localStorage.getItem("accent-color-" + role) || "indigo") as AccentColorKey;
-    setCurrentColor(stored);
+    const t = setTimeout(() => setCurrentColor(stored), 0);
+    return () => clearTimeout(t);
   }, [role, userId]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const storageKey = userId ? `accent-color-user-${userId}` : "accent-color-" + role;
+    localStorage.setItem(storageKey, currentColor);
+    document.cookie = `accent-color=${currentColor}; path=/; max-age=31536000; SameSite=Lax`;
+    window.dispatchEvent(new Event("accent-color-change"));
+  }, [currentColor, role, userId, mounted]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -39,12 +52,6 @@ export function AccentColorPicker({ role = "student", userId }: { role?: string;
 
   const handleSelect = (key: AccentColorKey) => {
     setCurrentColor(key);
-    const storageKey = userId ? `accent-color-user-${userId}` : "accent-color-" + role;
-    localStorage.setItem(storageKey, key);
-    // Write cookie for immediate server/client sync
-    document.cookie = `accent-color=${key}; path=/; max-age=31536000; SameSite=Lax`;
-    window.dispatchEvent(new Event("accent-color-change"));
-    // Close picker on select after a short delay for interactive feel
     setTimeout(() => setIsOpen(false), 150);
   };
 

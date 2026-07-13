@@ -66,7 +66,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { cursos, cursoEstudiantes, users, subjects, cursoProfesores } from "@/lib/db/schema";
+import { cursos, cursoEstudiantes, cursoProfesores } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 
@@ -83,7 +83,7 @@ export async function PUT(
     const cursoId = parseInt(id);
     const { nombre, nivel, profesorId, activo, teacherSubjects: teacherSubjectsData } = await request.json();
 
-    const updateData: Record<string, any> = {};
+    const updateData: Record<string, unknown> = {};
     if (nombre) updateData.nombre = nombre;
     if (nivel) updateData.nivel = nivel;
     if (profesorId !== undefined) updateData.profesorId = profesorId;

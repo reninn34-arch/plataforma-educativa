@@ -110,7 +110,7 @@ export async function GET(
       );
 
     return NextResponse.json({ horarios: data });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Error al cargar horario" }, { status: 500 });
   }
 }
@@ -136,7 +136,7 @@ export async function PUT(
 
     if (bloques.length > 0) {
       await db.insert(horarios).values(
-        bloques.map((b: any) => ({
+        bloques.map((b: { dia: string; horaInicio: string; horaFin: string; subjectId?: number | null; tipo?: string }) => ({
           cursoId,
           dia: b.dia,
           horaInicio: b.horaInicio,
@@ -148,7 +148,7 @@ export async function PUT(
     }
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Error al guardar horario" }, { status: 500 });
   }
 }

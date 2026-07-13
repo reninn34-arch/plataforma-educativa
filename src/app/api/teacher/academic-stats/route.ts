@@ -35,7 +35,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { cursoEstudiantes, cursoProfesores, assignmentSubmissions, assignments, users, periodosLectivos } from "@/lib/db/schema";
+import { cursoEstudiantes, cursoProfesores, assignmentSubmissions, assignments, periodosLectivos } from "@/lib/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getTeacherCourseIds } from "@/lib/course-helpers";
@@ -163,7 +163,7 @@ export async function GET(request: NextRequest) {
     let pendientes = 0;
     let bajoRendimiento = 0;
 
-    for (const [_, sd] of studentData) {
+    for (const [, sd] of studentData) {
       if (sd.grades.length > 0) {
         const totalPts = sd.puntosArr.reduce((a, b) => a + b, 0);
         const avg = sd.grades.reduce((sum, g, i) => sum + g * sd.puntosArr[i], 0) / totalPts;

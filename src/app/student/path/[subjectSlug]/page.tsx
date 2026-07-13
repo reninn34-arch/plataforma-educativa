@@ -177,7 +177,6 @@ export default async function PathPage({ params }: { params: Promise<{ subjectSl
                       const isLocked = status === "locked";
                       const isCompleted = status === "completed" || status === "mastered";
                       const isCurrent = status === "unlocked";
-                      const currentCompleted = isCompleted;
 
                       const offset = i % 2 !== 0 ? "sm:translate-x-12" : "sm:-translate-x-12";
 

@@ -76,7 +76,7 @@ import {
   progress,
   studentModules,
 } from "@/lib/db/schema";
-import { eq, and, inArray, sql } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {

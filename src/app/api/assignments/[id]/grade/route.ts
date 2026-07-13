@@ -117,7 +117,7 @@ export async function PUT(
           grade,
           feedback: feedback || null,
           status: grade != null ? "graded" : "submitted",
-        } as any)
+        })
         .where(eq(assignmentSubmissions.id, submissionId));
     } else if (studentId) {
       // Grade student without prior submission (manual grading)
@@ -151,7 +151,7 @@ export async function PUT(
             grade,
             feedback: feedback || null,
             status: grade != null ? "graded" : "submitted",
-          } as any)
+          })
           .where(eq(assignmentSubmissions.id, existing.id));
       } else {
         await db
@@ -162,7 +162,7 @@ export async function PUT(
             status: grade != null ? "graded" : "submitted",
             grade,
             feedback: feedback || "Nota registrada manualmente.",
-          } as any);
+          });
       }
     }
 

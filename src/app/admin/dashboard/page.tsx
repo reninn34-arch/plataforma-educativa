@@ -6,12 +6,17 @@ import { Users, GraduationCap, BookOpen, ArrowRight, Sparkles, Activity, UserChe
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { apiFetch } from "@/lib/fetch-utils";
 
+interface CourseData {
+  nombre: string;
+  studentCount: number;
+}
+
 interface AdminDashboardData {
   profile: { id: number; fullName: string; cedula: string; role: string; email?: string } | null;
   stats: { totalEstudiantes: number; totalProfesores: number; totalCursos: number };
-  courses: any[];
-  teachers: any[];
-  subjects: any[];
+  courses: CourseData[];
+  teachers: Record<string, unknown>[];
+  subjects: Record<string, unknown>[];
   chartData: {
     roles: { name: string; value: number; color: string }[];
     activos: number;
@@ -52,9 +57,9 @@ export default function AdminDashboard() {
   ];
 
   const studentsPerCourse = courses
-    .filter((c: any) => (c.studentCount || 0) > 0)
+    .filter((c: CourseData) => (c.studentCount || 0) > 0)
     .slice(0, 10)
-    .map((c: any) => ({
+    .map((c: CourseData) => ({
       name: c.nombre.length > 15 ? c.nombre.slice(0, 15) + "..." : c.nombre,
       estudiantes: c.studentCount || 0,
     }));

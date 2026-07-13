@@ -35,8 +35,8 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { users, cursoEstudiantes, cursoProfesores, progress } from "@/lib/db/schema";
-import { eq, and, inArray, sql } from "drizzle-orm";
+import { cursoEstudiantes, cursoProfesores, progress } from "@/lib/db/schema";
+import { eq, and, inArray } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getTeacherCourseIds } from "@/lib/course-helpers";
 

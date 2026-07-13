@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Clock } from "lucide-react";
 
 interface DueTimerProps {
@@ -14,7 +14,6 @@ function formatTimeLeft(ms: number): { label: string; dateTime: string; urgent: 
   const totalMinutes = Math.floor(ms / 60000);
   const totalHours = Math.floor(ms / 3600000);
   const days = Math.floor(ms / 86400000);
-  const hours = totalHours % 24;
   const minutes = totalMinutes % 60;
 
   const deadline = new Date(Date.now() + ms);
@@ -45,17 +44,26 @@ function formatTimeLeft(ms: number): { label: string; dateTime: string; urgent: 
 }
 
 export function DueTimer({ dueDate, compact = false }: DueTimerProps) {
-  const [, setTick] = useState(0);
+  const [msLeft, setMsLeft] = useState<number | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!dueDate) return;
-    const interval = setInterval(() => setTick(t => t + 1), 30000);
-    return () => clearInterval(interval);
+    const update = () => {
+      setMsLeft(new Date(dueDate).getTime() - Date.now());
+    };
+    const initTimer = setTimeout(() => {
+      update();
+      intervalRef.current = setInterval(update, 30000);
+    }, 0);
+    return () => {
+      clearTimeout(initTimer);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [dueDate]);
 
-  if (!dueDate) return null;
+  if (!dueDate || msLeft === null) return null;
 
-  const msLeft = new Date(dueDate).getTime() - Date.now();
   const { label, dateTime, urgent } = formatTimeLeft(msLeft);
 
   const colors: Record<string, string> = {

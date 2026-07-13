@@ -203,7 +203,7 @@ export async function GET(request: NextRequest) {
       )
       .orderBy(desc(assignments.createdAt));
 
-    const data = (raw as any[]).filter((a: any) => enrolledIds.has(a.cursoId));
+    const data = raw.filter((a) => a.cursoId != null && enrolledIds.has(a.cursoId));
 
     return NextResponse.json({ assignments: data });
   } catch (error) {
@@ -221,6 +221,7 @@ export async function POST(request: NextRequest) {
     }
 
     const contentType = request.headers.get("content-type") || "";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let body: Record<string, any>;
     let fileUrl: string | null = null;
 
@@ -309,12 +310,12 @@ export async function POST(request: NextRequest) {
       puntos: parsed.data.puntos ?? 10,
       fileUrl: fileUrl || parsed.data.fileUrl || null,
       periodoLectivoId: activePeriod?.id || null,
-    } as any)
+    })
     .returning();
 
     if (questions && questions.length > 0) {
       await db.insert(assignmentQuestions).values(
-        questions.map((q: any, i: number) => ({
+        questions.map((q: { type: string; question: string; options?: string[] | null; correctIndex?: number | null; points?: number }, i: number) => ({
           assignmentId: assignment.id,
           type: q.type,
           question: q.question,
@@ -322,7 +323,7 @@ export async function POST(request: NextRequest) {
           correctIndex: q.correctIndex ?? null,
           points: q.points || 1,
           orderIndex: i,
-        } as any))
+        }))
       );
     }
 

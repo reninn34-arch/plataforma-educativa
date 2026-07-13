@@ -31,7 +31,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentSubmissions, subjects, users, cursos } from "@/lib/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, type SQL } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getTeacherCourseIds } from "@/lib/course-helpers";
 
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
       targetCursoIds = allIds;
     }
 
-    const conditions: any[] = [eq(assignments.teacherId, user.id)];
+    const conditions: SQL[] = [eq(assignments.teacherId, user.id)];
     if (targetCursoIds) {
       conditions.push(inArray(assignments.cursoId, targetCursoIds));
     }

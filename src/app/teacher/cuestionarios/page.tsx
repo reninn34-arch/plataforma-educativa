@@ -2,9 +2,8 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { BookOpen, ChevronRight, GraduationCap, Loader2, Trash2, Eye, Plus, Sparkles } from "lucide-react";
+import { GraduationCap, Loader2, Trash2, Eye, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/fetch-utils";
 import { subjectTheme } from "@/lib/subject-theme";

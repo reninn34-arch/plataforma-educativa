@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   try {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let data: any[] = [];
 
   if (user.role === "student") {

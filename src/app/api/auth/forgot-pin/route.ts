@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
     }
 
     const resetToken = await createToken(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       { id: user.id, cedula: user.cedula, fullName: user.fullName, role: "" as any },
       "15m"
     );

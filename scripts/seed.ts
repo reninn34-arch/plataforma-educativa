@@ -42,19 +42,19 @@ async function seed() {
   RESTART IDENTITY CASCADE`);
   console.log("🧹 Datos anteriores eliminados");
 
-  const users = await db
+  await db
     .insert(schema.users)
     .values([
-      { cedula: "1723456789", pin: await bcrypt.hash("1234", 10), fullName: "Maria Elena Guaman", role: "student" },
-      { cedula: "1700000001", pin: await bcrypt.hash("1234", 10), fullName: "Jose Luis Quishpe", role: "student" },
-      { cedula: "1700000002", pin: await bcrypt.hash("1234", 10), fullName: "Ana Lucia Paredes", role: "student" },
-      { cedula: "1799999999", pin: await bcrypt.hash("5678", 10), fullName: "Prof. Patricio Mena", role: "teacher" },
-      { cedula: "1700000000", pin: await bcrypt.hash("0000", 10), fullName: "Administrador", role: "admin" as any },
+      { cedula: "1723456789", pin: await bcrypt.hash("1234", 10), fullName: "Maria Elena Guaman", role: "student" as const },
+      { cedula: "1700000001", pin: await bcrypt.hash("1234", 10), fullName: "Jose Luis Quishpe", role: "student" as const },
+      { cedula: "1700000002", pin: await bcrypt.hash("1234", 10), fullName: "Ana Lucia Paredes", role: "student" as const },
+      { cedula: "1799999999", pin: await bcrypt.hash("5678", 10), fullName: "Prof. Patricio Mena", role: "teacher" as const },
+      { cedula: "1700000000", pin: await bcrypt.hash("0000", 10), fullName: "Administrador", role: "admin" as const },
     ])
     .returning();
   console.log("👤 5 usuarios creados: 3 estudiantes + 1 docente + 1 admin");
 
-  const subjects = await db
+  await db
     .insert(schema.subjects)
     .values([
       { slug: "matematicas", name: "Matemáticas", emoji: "🔢", color: "#3B82F6" },

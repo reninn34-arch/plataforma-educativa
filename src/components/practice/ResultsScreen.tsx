@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trophy, Star, Flame, Target, RefreshCw, BookOpen, ChevronRight, Zap } from "lucide-react";
+import { Trophy, Star, Flame, Target, RefreshCw, BookOpen, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 import { sounds } from "@/lib/sounds";

@@ -33,7 +33,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentQuestions, subjects, users, cursos } from "@/lib/db/schema";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 
 export async function GET(

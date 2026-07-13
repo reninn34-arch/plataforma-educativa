@@ -82,7 +82,7 @@ export async function PUT(
       await db.update(periodosLectivos).set({ activo: false }).where(eq(periodosLectivos.activo, true));
     }
 
-    const updateData: Record<string, any> = {};
+    const updateData: Record<string, unknown> = {};
     if (nombre) updateData.nombre = nombre;
     if (fechaInicio !== undefined) updateData.fechaInicio = fechaInicio ? new Date(fechaInicio) : null;
     if (fechaFin !== undefined) updateData.fechaFin = fechaFin ? new Date(fechaFin) : null;
@@ -90,7 +90,7 @@ export async function PUT(
 
     await db.update(periodosLectivos).set(updateData).where(eq(periodosLectivos.id, periodoId));
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Error al actualizar" }, { status: 500 });
   }
 }
@@ -119,7 +119,7 @@ export async function DELETE(
 
     await db.delete(periodosLectivos).where(eq(periodosLectivos.id, periodoId));
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Error al eliminar" }, { status: 500 });
   }
 }

@@ -60,18 +60,6 @@ function isRelevant(title: string, keywords: string[]): boolean {
   return matches >= 1;
 }
 
-function extractVideoId(url: string): string | null {
-  const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
-    /^([a-zA-Z0-9_-]{11})$/,
-  ];
-  for (const p of patterns) {
-    const m = url.match(p);
-    if (m) return m[1];
-  }
-  return null;
-}
-
 async function checkEmbeddable(id: string): Promise<boolean> {
   try {
     const res = await fetch(

@@ -199,6 +199,7 @@ export async function PUT(
       .set({
         title: title.trim(),
         description: description?.trim() || null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any)
       .where(eq(cuestionarios.id, parseInt(id)));
 
@@ -219,6 +220,7 @@ export async function PUT(
           explanation: q.explanation || "",
           points: q.points || 1,
           orderIndex: i,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
       }
     }

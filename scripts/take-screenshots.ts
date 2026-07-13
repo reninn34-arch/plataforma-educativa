@@ -11,7 +11,7 @@ async function ensureDir() {
   }
 }
 
-async function login(page: any, cedula: string, pin: string) {
+async function login(page: import("puppeteer").Page, cedula: string, pin: string) {
   await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle0' });
   await page.type('#cedula', cedula);
   await page.type('#pin', pin);
@@ -19,14 +19,14 @@ async function login(page: any, cedula: string, pin: string) {
   await page.waitForNavigation({ waitUntil: 'networkidle0' });
 }
 
-async function logout(page: any) {
+async function logout(page: import("puppeteer").Page) {
   // Simple hack to clear cookies/localstorage
   const client = await page.target().createCDPSession();
   await client.send('Network.clearBrowserCookies');
   await page.evaluate(() => localStorage.clear());
 }
 
-async function takeScreenshot(page: any, pathName: string, url: string, preAction?: (page: any) => Promise<void>) {
+async function takeScreenshot(page: import("puppeteer").Page, pathName: string, url: string, preAction?: (page: import("puppeteer").Page) => Promise<void>) {
   console.log(`Navigating to ${url} for ${pathName}...`);
   await page.goto(`${BASE_URL}${url}`, { waitUntil: 'networkidle0' });
   

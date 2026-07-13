@@ -10,8 +10,8 @@ import { apiFetch } from "@/lib/fetch-utils";
 
 declare global {
   interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
+    SpeechRecognition: typeof SpeechRecognition;
+    webkitSpeechRecognition: typeof SpeechRecognition;
   }
 }
 
@@ -114,7 +114,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
     recognition.lang = "es-ES";
     recognition.interimResults = false;
     recognition.onstart = () => setIsRecording(true);
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       setInputText((prev) => prev ? `${prev} ${event.results[0][0].transcript}` : event.results[0][0].transcript);
     };
     recognition.onerror = () => setIsRecording(false);
@@ -133,17 +133,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
     setInputText("");
     setAttachedFile(null);
     setTimeout(() => { sendingRef.current = false; }, 500);
-  }, [inputText, attachedFile, loading, sendMessage]);
-
-  const clearFlow = useCallback(() => {
-    setFlow("none");
-    setFlowLoading(false);
-    setFlowError(null);
-    setSelectedCourse(null);
-    setSelectedSubject(null);
-    setCuestionarioData(null);
-    setCreatedCuestionarioId(null);
-  }, []);
+  }, [inputText, attachedFile, loading, sendMessage, flow]);
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -158,7 +148,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
   const [cuestionarioTopic, setCuestionarioTopic] = useState("");
   const [cuestionarioCount, setCuestionarioCount] = useState(5);
   const [cuestionarioTypes, setCuestionarioTypes] = useState<string[]>(["mcq", "completar"]);
-  const [cuestionarioData, setCuestionarioData] = useState<any>(null);
+  const [cuestionarioData, setCuestionarioData] = useState<GeneratedData | null>(null);
   const [creatingCuestionario, setCreatingCuestionario] = useState(false);
   const [createdCuestionarioId, setCreatedCuestionarioId] = useState<number | null>(null);
   const [myCoursesData, setMyCoursesData] = useState<Course[] | null>(null);
@@ -166,6 +156,16 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
   const [messageCourse, setMessageCourse] = useState<Course | null>(null);
   const [messageText, setMessageText] = useState("");
   const [messageSent, setMessageSent] = useState(false);
+
+  const clearFlow = useCallback(() => {
+    setFlow("none");
+    setFlowLoading(false);
+    setFlowError(null);
+    setSelectedCourse(null);
+    setSelectedSubject(null);
+    setCuestionarioData(null);
+    setCreatedCuestionarioId(null);
+  }, []);
 
   useEffect(() => {
     requestAnimationFrame(() => endRef.current?.scrollIntoView({ behavior: "smooth" }));
@@ -201,8 +201,8 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Error");
         setMyCoursesData(data.cursos || []);
-      } catch (e: any) {
-        setFlowError(e.message || "Error al cargar cursos");
+      } catch (e: unknown) {
+setFlowError(e instanceof Error ? e.message : "Error al cargar cursos");
       } finally {
         setFlowLoading(false);
       }
@@ -214,8 +214,8 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Error");
         setRiskData(data.estudiantes || []);
-      } catch (e: any) {
-        setFlowError(e.message || "Error al cargar estudiantes en riesgo");
+      } catch (e: unknown) {
+        setFlowError(e instanceof Error ? e.message : "Error al cargar estudiantes en riesgo");
       } finally {
         setFlowLoading(false);
       }
@@ -232,8 +232,8 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error");
       setCourses(data.cursos || []);
-    } catch (e: any) {
-      setFlowError(e.message || "Error al cargar cursos");
+    } catch (e: unknown) {
+      setFlowError(e instanceof Error ? e.message : "Error al cargar cursos");
     } finally {
       setFlowLoading(false);
     }
@@ -251,8 +251,8 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al generar");
       setGeneratedData(data.data);
-    } catch (e: any) {
-      setFlowError(e.message || "Error al generar tarea");
+    } catch (e: unknown) {
+      setFlowError(e instanceof Error ? e.message : "Error al generar tarea");
     } finally {
       setFlowLoading(false);
     }
@@ -286,8 +286,8 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al crear");
       setCreatedId(data.assignment?.id || data.id);
-    } catch (e: any) {
-      setFlowError(e.message || "Error al crear tarea");
+    } catch (e: unknown) {
+      setFlowError(e instanceof Error ? e.message : "Error al crear tarea");
     } finally {
       setCreating(false);
     }
@@ -311,8 +311,8 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al generar");
       setCuestionarioData(data);
-    } catch (e: any) {
-      setFlowError(e.message || "Error al generar cuestionario");
+    } catch (e: unknown) {
+      setFlowError(e instanceof Error ? e.message : "Error al generar cuestionario");
     } finally {
       setFlowLoading(false);
     }
@@ -330,7 +330,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
           subjectId: selectedSubject.subjectId,
           title: cuestionarioData.title,
           description: cuestionarioData.description,
-          questions: cuestionarioData.questions.map((q: any, i: number) => ({
+          questions: cuestionarioData.questions.map((q: { virtualType: string; question: string; options?: string[]; correctIndex?: number; explanation?: string; points?: number }, i: number) => ({
             virtualType: q.virtualType,
             question: q.question,
             options: q.options,
@@ -344,8 +344,8 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al crear");
       setCreatedCuestionarioId(data.cuestionarioId);
-    } catch (e: any) {
-      setFlowError(e.message || "Error al crear cuestionario");
+    } catch (e: unknown) {
+      setFlowError(e instanceof Error ? e.message : "Error al crear cuestionario");
     } finally {
       setCreatingCuestionario(false);
     }
@@ -366,8 +366,8 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al enviar mensaje");
       setMessageSent(true);
-    } catch (e: any) {
-      setFlowError(e.message || "Error al enviar mensaje");
+    } catch (e: unknown) {
+      setFlowError(e instanceof Error ? e.message : "Error al enviar mensaje");
     } finally {
       setFlowLoading(false);
     }
@@ -569,7 +569,7 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
             <p className="font-semibold text-sm">{cuestionarioData.title}</p>
             <p className="text-xs text-muted-foreground line-clamp-3">{cuestionarioData.description}</p>
             <div className="max-h-48 overflow-y-auto space-y-1.5">
-              {cuestionarioData.questions.map((q: any, i: number) => (
+              {cuestionarioData.questions.map((q: { virtualType: string; question: string; options: string[]; correctIndex: number }, i: number) => (
                 <div key={i} className="rounded-lg bg-gray-50 p-2 text-xs">
                   <span className="rounded bg-primary/10 text-primary px-1 py-0.5 text-[10px] mr-1">{q.virtualType === "completar" ? "Completar" : "MCQ"}</span>
                   <span className="font-medium">{i + 1}. {q.question}</span>
@@ -1004,8 +1004,8 @@ export function AiAssistant({ showFab = true }: { showFab?: boolean }) {
                               ? "bg-primary text-white rounded-br-sm"
                               : "bg-muted text-foreground rounded-bl-sm"
                           )}>
-                            {m.parts?.map((part: any, j: number) => {
-                              if (part.type === "text") return <span key={j}>{stripMarkdown(part.text)}</span>;
+                            {m.parts?.map((part: { type: string; text?: string; toolName?: string }, j: number) => {
+                              if (part.type === "text") return <span key={j}>{stripMarkdown(part.text ?? "")}</span>;
                               if (part.type === "tool-call" || part.type === "tool-result") {
                                 return (
                                   <div key={j} className={cn(

@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { ArrowLeft, Upload, FileText, CheckCircle, Loader2, User, Download, AlertTriangle, ListChecks, FileUp, GraduationCap } from "lucide-react";
+import { ArrowLeft, Upload, FileText, CheckCircle, Loader2, User, Download, AlertTriangle, ListChecks, FileUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DueTimer } from "@/components/DueTimer";
@@ -59,8 +59,9 @@ export default function AssignmentSubmitPage() {
   const fileQuestions = questions.filter(q => q.type === "file_upload");
   const hasMcq = mcqQuestions.length > 0;
   const hasFile = fileQuestions.length > 0 || questions.length === 0;
+  const [now] = useState(() => Date.now());
   const isSubmitted = submission?.status === "submitted" || submission?.status === "graded";
-  const isExpired = assignment?.dueDate ? new Date(assignment.dueDate).getTime() < Date.now() : false;
+  const isExpired = assignment?.dueDate ? new Date(assignment.dueDate).getTime() < now : false;
 
   useEffect(() => {
     apiFetch(`/api/assignments/${assignmentId}`)

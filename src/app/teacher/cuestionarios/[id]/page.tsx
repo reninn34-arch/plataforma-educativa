@@ -2,11 +2,10 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, BookOpen, CheckCircle, Loader2, AlertTriangle, GraduationCap, User, Trash2, Pencil, Download, FileText, Type, ListChecks } from "lucide-react";
+import { ArrowLeft, BookOpen, CheckCircle, Loader2, AlertTriangle, GraduationCap, Trash2, Pencil, Download, FileText, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/fetch-utils";
-import { subjectTheme } from "@/lib/subject-theme";
 
 interface CuestionarioDetail {
   id: number;
@@ -109,8 +108,6 @@ export default function TeacherCuestionarioDetailPage() {
       <Button variant="outline" onClick={() => router.push("/teacher/cuestionarios")} className="rounded-xl border-slate-200">Volver</Button>
     </div>
   );
-
-  const theme = subjectTheme(cuestionario.subjectSlug);
 
   return (
     <div className="flex-1 w-full animate-fade-in-up">

@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { notificaciones } from "@/lib/db/schema";
 import { cursoEstudiantes } from "@/lib/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 type NotificationType = "assignment" | "message" | "deadline" | "grade" | "system" | "study_material";
 

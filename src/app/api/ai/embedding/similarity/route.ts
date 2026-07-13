@@ -121,8 +121,8 @@ export async function POST(request: NextRequest) {
       topK: take,
       matches: topMatches,
     });
-  } catch (error: any) {
-    const message = String(error?.message || "Error al calcular similitud");
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Error al calcular similitud";
     if (message.includes("no permitido") || message.includes("formato invalido") || message.includes("debe ser")) {
       return Response.json({ error: message }, { status: 400 });
     }

@@ -112,11 +112,13 @@ const ASSIGNMENT_KEY_MAP: Record<string, string> = {
   points: "points",
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeAssignmentKeys(obj: any): any {
   if (!obj || typeof obj !== "object") return obj;
   if (Array.isArray(obj)) {
     return obj.map(normalizeAssignmentKeys);
   }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result: any = {};
   for (const key of Object.keys(obj)) {
     const cleanKey = key
@@ -131,9 +133,10 @@ function normalizeAssignmentKeys(obj: any): any {
   return result;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const questionItemSchema = z.preprocess((val: any) => {
   if (val && typeof val === "object") {
-    let typeVal = String(val.type ?? "").toLowerCase();
+    const typeVal = String(val.type ?? "").toLowerCase();
     if (typeVal.includes("opcion") || typeVal.includes("multiple") || typeVal.includes("mcq")) {
       val.type = "mcq";
     } else if (typeVal.includes("upload") || typeVal.includes("archivo") || typeVal.includes("subir")) {
@@ -159,6 +162,7 @@ const questionItemSchema = z.preprocess((val: any) => {
   return val;
 }, z.discriminatedUnion("type", [mcqQuestionSchema, fileUploadQuestionSchema]));
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const generateResponseSchema = z.preprocess((val: any) => {
   const normalized = normalizeAssignmentKeys(val);
   if (normalized && typeof normalized === "object") {
@@ -351,7 +355,7 @@ Debes responder UNICAMENTE con un objeto JSON valido que coincida exactamente co
             modelUsed: candidate.modelId,
           });
         }
-      } catch (aiError: any) {
+      } catch (aiError: unknown) {
         clearTimeout(timeoutId);
         const msg = String(aiError?.message || aiError || "");
         const wasAborted = aiError?.name === "AbortError" || msg.includes("abort");
@@ -401,17 +405,17 @@ Debes responder UNICAMENTE con un objeto JSON valido que coincida exactamente co
                 data: validated,
                 modelUsed: candidate.modelId,
               });
-            } catch (parseError: any) {
+            } catch (parseError: unknown) {
               lastError = parseError;
               logAiCall({
                 route: "teacher/ai/generate-assignment",
                 model: candidate.modelId,
                 durationMs: Date.now() - start,
-                error: `generateText fallback parse error: ${parseError.message || "unknown"}`,
+                error: `generateText fallback parse error: ${parseError instanceof Error ? parseError.message : "unknown"}`,
               });
               continue;
             }
-          } catch (textModelError: any) {
+          } catch (textModelError: unknown) {
             lastError = textModelError;
             logAiCall({
               route: "teacher/ai/generate-assignment",
@@ -448,7 +452,7 @@ Debes responder UNICAMENTE con un objeto JSON valido que coincida exactamente co
     }
 
     if (lastError) {
-      const msg = String((lastError as any)?.message || "");
+      const msg = String(lastError instanceof Error ? lastError.message : "");
       if (msg.includes("abort") || msg.includes("Timeout")) {
         return NextResponse.json(
           { error: "La generacion excedio el tiempo limite con todos los modelos. Intenta con menos preguntas." },

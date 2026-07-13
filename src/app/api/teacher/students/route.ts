@@ -136,6 +136,7 @@ export async function GET(request: NextRequest) {
       .where(and(
         inArray(cursoEstudiantes.cursoId, targetCursoIds),
         eq(users.activo, true),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         eq(users.role, "student" as any),
       ));
 

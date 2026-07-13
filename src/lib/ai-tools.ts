@@ -3,13 +3,13 @@ import { z } from "zod/v4";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import {
-  users, subjects, progress, cursos, cursoEstudiantes,
+  users, subjects, cursos, cursoEstudiantes,
   cursoProfesores, assignments, assignmentSubmissions,
   assignmentQuestions, practiceSessions, asistencia,
   periodosLectivos, directMessages, modules,
   cuestionarios, cuestionarioPreguntas, studyMaterials,
 } from "@/lib/db/schema";
-import { eq, and, sql, desc, inArray } from "drizzle-orm";
+import { eq, and, sql, desc, inArray, type SQL } from "drizzle-orm";
 import { opencodeGoModel, logAiCall, DEFAULT_MODEL_ID, tryParseJson } from "@/lib/ai";
 import { generateText } from "ai";
 import { getSmtpConfig } from "@/lib/smtp-config";
@@ -36,13 +36,14 @@ const ASSIGNMENT_KEY_MAP: Record<string, string> = {
   points: "points",
 };
 
-function normalizeAssignmentKeys(obj: any): any {
+function normalizeAssignmentKeys(obj: unknown): unknown {
   if (!obj || typeof obj !== "object") return obj;
   if (Array.isArray(obj)) {
     return obj.map(normalizeAssignmentKeys);
   }
-  const result: any = {};
-  for (const key of Object.keys(obj)) {
+  const record = obj as Record<string, unknown>;
+  const result: Record<string, unknown> = {};
+  for (const key of Object.keys(record)) {
     const cleanKey = key
       .toLowerCase()
       .normalize("NFD")
@@ -50,37 +51,37 @@ function normalizeAssignmentKeys(obj: any): any {
       .replace(/_/g, "")
       .replace(/\s+/g, "");
     const targetKey = ASSIGNMENT_KEY_MAP[cleanKey] || cleanKey;
-    result[targetKey] = normalizeAssignmentKeys(obj[key]);
+    result[targetKey] = normalizeAssignmentKeys(record[key]);
   }
   return result;
 }
 
-function normalizeQuestionItem(val: any): any {
-  if (!val || typeof val !== "object") return val;
-  let typeVal = String(val.type ?? "").toLowerCase();
+function normalizeQuestionItem(val: unknown): Record<string, unknown> {
+  if (!val || typeof val !== "object") return val as Record<string, unknown>;
+  const obj = val as Record<string, unknown>;
+  const typeVal = String(obj.type ?? "").toLowerCase();
   if (typeVal.includes("complet") || typeVal.includes("blanco") || typeVal.includes("llenar")) {
-    val.type = "completar";
+    obj.type = "completar";
   } else if (typeVal.includes("opcion") || typeVal.includes("multiple") || typeVal.includes("mcq")) {
-    val.type = "mcq";
+    obj.type = "mcq";
   } else if (typeVal.includes("upload") || typeVal.includes("archivo") || typeVal.includes("subir")) {
-    val.type = "file_upload";
+    obj.type = "file_upload";
   }
   
-  if (val.pregunta && !val.question) val.question = val.pregunta;
-  if (val.opciones && !val.options) val.options = val.opciones;
-  if ((val.indicecorrecto || val.correctindex) && val.correctIndex === undefined) {
-    val.correctIndex = val.indicecorrecto ?? val.correctindex;
+  if (obj.pregunta && !obj.question) obj.question = obj.pregunta;
+  if (obj.opciones && !obj.options) obj.options = obj.opciones;
+  if ((obj.indicecorrecto || obj.correctindex) && obj.correctIndex === undefined) {
+    obj.correctIndex = obj.indicecorrecto ?? obj.correctindex;
   }
-  if ((val.puntos || val.points) && val.points === undefined) {
-    val.points = val.puntos ?? val.points;
+  if ((obj.puntos || obj.points) && obj.points === undefined) {
+    obj.points = obj.puntos ?? obj.points;
   }
-  if (val.points !== undefined && val.points !== null) {
-    val.points = Number(val.points);
+  if (obj.points !== undefined && obj.points !== null) {
+    obj.points = Number(obj.points);
   }
-  if (val.correctIndex !== undefined && val.correctIndex !== null) {
-    val.correctIndex = Number(val.correctIndex);
+  if (obj.correctIndex !== undefined && obj.correctIndex !== null) {
+    obj.correctIndex = Number(obj.correctIndex);
   }
-  return val;
 }
 
 const checkAcademicLoadTool = tool({
@@ -193,7 +194,7 @@ function recordPhysicalGradesTool(executorUserId: number) {
           trimester: trimester || 1,
           puntos,
           periodoLectivoId: activePeriodId,
-        } as any).returning();
+        } as Record<string, unknown>).returning();
         assignmentId = created.id;
       }
 
@@ -232,7 +233,7 @@ function recordPhysicalGradesTool(executorUserId: number) {
               grade: Math.round(g.grade),
               feedback: g.feedback || "Nota registrada presencialmente.",
               submittedAt: new Date(),
-            } as any)
+            } as Record<string, unknown>)
             .where(eq(assignmentSubmissions.id, existingSub.id));
         } else {
           await db.insert(assignmentSubmissions).values({
@@ -242,7 +243,7 @@ function recordPhysicalGradesTool(executorUserId: number) {
             grade: Math.round(g.grade),
             feedback: g.feedback || "Nota registrada presencialmente.",
             submittedAt: new Date(),
-          } as any);
+          } as Record<string, unknown>);
         }
         
         successCount++;
@@ -261,7 +262,7 @@ function recordPhysicalGradesTool(executorUserId: number) {
   });
 }
 
-function createGetFeatureGuideTool(description: string, features: string[], guides: Record<string, any>) {
+function createGetFeatureGuideTool(description: string, features: string[], guides: Record<string, unknown>) {
   return tool({
     description,
     inputSchema: z.object({
@@ -445,7 +446,7 @@ function createTeacherTools(userId: number, userFullName: string) {
       limit: z.number().optional().default(5).describe("Cuantas tareas"),
     }),
     execute: async ({ cursoId, limit }) => {
-      const conds: any[] = [eq(assignments.teacherId, userId)];
+      const conds: SQL[] = [eq(assignments.teacherId, userId)];
       if (cursoId) conds.push(eq(assignments.cursoId, cursoId));
       const tareas = await db
         .select({ id: assignments.id, title: assignments.title, dueDate: assignments.dueDate, trimester: assignments.trimester, puntos: assignments.puntos, subjectName: subjects.name, subjectEmoji: subjects.emoji, cursoNombre: cursos.nombre })
@@ -475,7 +476,7 @@ function createTeacherTools(userId: number, userFullName: string) {
     execute: async ({ cursoId }) => {
       let studentIds: number[] = [];
       if (cursoId) { const enrolled = await db.select({ estudianteId: cursoEstudiantes.estudianteId }).from(cursoEstudiantes).where(eq(cursoEstudiantes.cursoId, cursoId)); studentIds = enrolled.map(e => e.estudianteId); }
-      const conds: any[] = [];
+      const conds: SQL[] = [];
       if (studentIds.length > 0) conds.push(inArray(practiceSessions.userId, studentIds));
       const sessions = await db
         .select({ userId: practiceSessions.userId, studentName: users.fullName, subjectName: subjects.name, subjectEmoji: subjects.emoji, correctCount: practiceSessions.correctCount, totalCount: practiceSessions.totalCount, score: practiceSessions.score, maxCombo: practiceSessions.maxCombo, createdAt: practiceSessions.createdAt })
@@ -494,7 +495,7 @@ function createTeacherTools(userId: number, userFullName: string) {
       limit: z.number().optional().default(10).describe("Maximo de resultados (default 10)"),
     }),
     execute: async ({ query, cursoId, limit }) => {
-      const conds: any[] = [eq(assignments.teacherId, userId)];
+      const conds: SQL[] = [eq(assignments.teacherId, userId)];
       
       if (cursoId) {
         conds.push(eq(assignments.cursoId, cursoId));
@@ -544,7 +545,7 @@ function createTeacherTools(userId: number, userFullName: string) {
         studentIds = enrolled.map(e => e.estudianteId);
       }
 
-      const conds: any[] = [eq(users.role, "student"), eq(users.activo, true)];
+      const conds: SQL[] = [eq(users.role, "student"), eq(users.activo, true)];
       if (studentIds.length > 0) {
         conds.push(inArray(users.id, studentIds));
       }
@@ -567,7 +568,7 @@ function createTeacherTools(userId: number, userFullName: string) {
         .where(and(...conds))
         .limit(limit || 20);
 
-      let coursesInfo: any[] = [];
+      let coursesInfo: { id: number; cursos: { nombre: string; nivel: string }[] }[] = [];
       if (results.length > 0) {
         const userIds = results.map(r => r.id);
         const enrollments = await db
@@ -600,7 +601,7 @@ function createTeacherTools(userId: number, userFullName: string) {
       cursoId: z.number().optional().describe("Filtrar por curso especifico"),
     }),
     execute: async ({ cursoId }) => {
-      const conds: any[] = [eq(assignments.teacherId, userId)];
+      const conds: SQL[] = [eq(assignments.teacherId, userId)];
       if (cursoId) conds.push(eq(assignments.cursoId, cursoId));
 
       const teacherAssignments = await db
@@ -968,9 +969,9 @@ FORMATO:
       const aiResult = await generateText({ model: opencodeGoModel, prompt: aiPrompt, temperature: 0.6, maxOutputTokens: 8000 });
       logAiCall({ route: "ai-tool/generate-assignment", model: DEFAULT_MODEL_ID, durationMs: Date.now() - start, usage: aiResult.usage ? { inputTokens: aiResult.usage.inputTokens, outputTokens: aiResult.usage.outputTokens, totalTokens: (aiResult.usage.inputTokens ?? 0) + (aiResult.usage.outputTokens ?? 0) } : undefined });
 
-      let text = aiResult.text || "";
+      const text = aiResult.text || "";
       let data = tryParseJson(text);
-      data = normalizeAssignmentKeys(data);
+      data = normalizeAssignmentKeys(data) as Record<string, unknown>;
 
       if (!data || typeof data !== "object") {
         data = { title: topic, description: `Tarea sobre ${topic}`, questions: [] };
@@ -985,7 +986,7 @@ FORMATO:
         trimester: trimester || 1,
         puntos: puntos || 10,
         dueDate: dueDate ? new Date(dueDate) : undefined,
-      } as any).returning();
+      } as Record<string, unknown>).returning();
 
       const rawQuestions = (data.questions || []).slice(0, 15);
       const questions = [];
@@ -1000,7 +1001,7 @@ FORMATO:
           correctIndex: q.type === "file_upload" ? undefined : (q.correctIndex ?? 0),
           points: q.points || 1,
           orderIndex: i,
-        } as any);
+        } as Record<string, unknown>);
         questions.push(q);
       }
 
@@ -1026,7 +1027,6 @@ FORMATO:
     execute: async ({ cursoId, subjectId, topic, questionCount, useStudyMaterial }) => {
       const subjectData = await db.select({ name: subjects.name, slug: subjects.slug, emoji: subjects.emoji }).from(subjects).where(eq(subjects.id, subjectId)).limit(1);
       const subjectName = subjectData[0]?.name || "materia";
-      const subjectEmoji = subjectData[0]?.emoji || "📚";
 
       const courseData = await db.select({ nombre: cursos.nombre, nivel: cursos.nivel }).from(cursos).where(eq(cursos.id, cursoId)).limit(1);
       const courseName = courseData[0]?.nombre || "";
@@ -1098,9 +1098,9 @@ FORMATO JSON:
       const aiResult = await generateText({ model: opencodeGoModel, prompt: aiPrompt, temperature: 0.4, maxOutputTokens: 8000 });
       logAiCall({ route: "ai-tool/generate-cuestionario", model: DEFAULT_MODEL_ID, durationMs: Date.now() - start, usage: aiResult.usage ? { inputTokens: aiResult.usage.inputTokens, outputTokens: aiResult.usage.outputTokens, totalTokens: (aiResult.usage.inputTokens ?? 0) + (aiResult.usage.outputTokens ?? 0) } : undefined });
 
-      let text = aiResult.text || "";
+      const text = aiResult.text || "";
       let data = tryParseJson(text);
-      data = normalizeAssignmentKeys(data);
+      data = normalizeAssignmentKeys(data) as Record<string, unknown>;
 
       if (!data || typeof data !== "object" || !data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
         const rawPreview = (text || "").slice(0, 300);
@@ -1117,7 +1117,7 @@ FORMATO JSON:
         title: data.title?.slice(0, 200) || `Cuestionario: ${topic}`,
         description: data.description || `Cuestionario de estudio sobre ${topic}`,
         trimester: 1,
-      } as any).returning();
+      } as Record<string, unknown>).returning();
 
       const rawQuestions = (data.questions || []).slice(0, 30);
       const questions = [];
@@ -1134,7 +1134,7 @@ FORMATO JSON:
           explanation: q.explanation || "",
           points: q.points || 1,
           orderIndex: i,
-        } as any);
+        } as Record<string, unknown>);
         questions.push(q);
       }
 
@@ -1182,7 +1182,7 @@ FORMATO JSON:
           senderId: userId,
           receiverId: s.id,
           content: message,
-        } as any);
+        } as Record<string, unknown>);
         sent++;
       }
 
@@ -1223,7 +1223,7 @@ FORMATO JSON:
         senderId: userId,
         receiverId: student.id,
         content: message,
-      } as any);
+      } as Record<string, unknown>);
 
       await notifyUser({
         userId: student.id,
@@ -1246,7 +1246,7 @@ FORMATO JSON:
       assignmentId: z.number().describe("ID de la tarea desde la cual verificar quienes no entregaron"),
       motivo: z.string().optional().default("No entrego la tarea").describe("Motivo opcional"),
     }),
-    execute: async ({ assignmentId, motivo }) => {
+    execute: async ({ assignmentId }) => {
       const [tarea] = await db.select({ cursoId: assignments.cursoId, title: assignments.title }).from(assignments).where(eq(assignments.id, assignmentId)).limit(1);
       if (!tarea || !tarea.cursoId) return { error: "Tarea no encontrada o no tiene curso asignado" };
 
@@ -1270,9 +1270,9 @@ FORMATO JSON:
           studentId: s.id,
           fecha: new Date(today),
           estado: "ausente",
-        } as any).onConflictDoUpdate({
+        } as Record<string, unknown>).onConflictDoUpdate({
           target: [asistencia.cursoId, asistencia.studentId, asistencia.fecha],
-          set: { estado: "ausente" } as any,
+          set: { estado: "ausente" } as Record<string, unknown>,
         });
       }
 
@@ -1361,7 +1361,7 @@ FORMATO JSON:
         }
       }
 
-      const results: any[] = [];
+      const results: Record<string, unknown>[] = [];
       let updatedCount = 0;
       let createdCount = 0;
 
@@ -1383,7 +1383,7 @@ FORMATO JSON:
               feedback: feedback || null,
               status: "graded",
               submittedAt: new Date(),
-            } as any)
+            } as Record<string, unknown>)
             .where(eq(assignmentSubmissions.id, existing.id));
           updatedCount++;
           results.push({ name: student.fullName, action: "actualizado", grade: targetGrade });
@@ -1395,7 +1395,7 @@ FORMATO JSON:
             feedback: feedback || null,
             status: "graded",
             submittedAt: new Date(),
-          } as any);
+          } as Record<string, unknown>);
           createdCount++;
           results.push({ name: student.fullName, action: "creado", grade: targetGrade });
         }
@@ -1442,7 +1442,7 @@ FORMATO JSON:
 
 // ═══════════════════ ADMIN TOOLS ═══════════════════
 
-function createAdminTools(userId: number, userFullName: string = "") {
+function createAdminTools(userId: number) {
 
   // ─── Consulta ───
 
@@ -1466,7 +1466,7 @@ function createAdminTools(userId: number, userFullName: string = "") {
       activo: z.boolean().optional().default(true).describe("Solo activos"),
     }),
     execute: async ({ role, activo }) => {
-      const conds: any[] = [eq(users.role, role)];
+      const conds: SQL[] = [eq(users.role, role)];
       if (activo !== undefined) conds.push(eq(users.activo, activo));
       const result = await db.select({ id: users.id, fullName: users.fullName, cedula: users.cedula, email: users.email, activo: users.activo, createdAt: users.createdAt }).from(users).where(and(...conds)).orderBy(users.fullName).limit(50);
       return { usuarios: result, total: result.length };
@@ -1506,7 +1506,7 @@ function createAdminTools(userId: number, userFullName: string = "") {
       })).min(1).max(30).describe("Lista de estudiantes a crear"),
     }),
     execute: async ({ students }) => {
-      const results: any[] = [];
+      const results: Record<string, unknown>[] = [];
       const cedulas = students.map(s => s.cedula);
       const existingUsers = cedulas.length > 0
         ? await db.select({ id: users.id, cedula: users.cedula, activo: users.activo }).from(users).where(inArray(users.cedula, cedulas))
@@ -1516,9 +1516,8 @@ function createAdminTools(userId: number, userFullName: string = "") {
       const pins = students.map(() => generatePin());
       const hashedPins = await Promise.all(pins.map(p => bcrypt.hash(p, 10)));
 
-      const toInsert: any[] = [];
+      const toInsert: Record<string, unknown>[] = [];
       const toReactivate: { id: number; fullName: string; email: string | null; pin: string }[] = [];
-      const errors: any[] = [];
 
       for (let i = 0; i < students.length; i++) {
         const s = students[i];
@@ -1544,7 +1543,7 @@ function createAdminTools(userId: number, userFullName: string = "") {
         db.update(users).set({ activo: true, fullName: r.fullName, email: r.email, pin: r.pin }).where(eq(users.id, r.id))
       ));
 
-      const creados = results.filter((r: any) => r.creado || r.reactivado).length;
+      const creados = results.filter((r) => r.creado || r.reactivado).length;
       return { resultados: results, total_creados: creados, mensaje: `Se procesaron ${students.length} estudiantes: ${creados} creados/reactivados.` };
     },
   });
@@ -1562,7 +1561,7 @@ function createAdminTools(userId: number, userFullName: string = "") {
         nivel,
         profesorId: profesorId || null,
         activo: true,
-      } as any).returning();
+      } as Record<string, unknown>).returning();
       return { curso, mensaje: `Curso '${nombre}' (${nivel}) creado exitosamente con ID ${curso.id}.` };
     },
   });
@@ -1583,9 +1582,9 @@ function createAdminTools(userId: number, userFullName: string = "") {
       let enrolled = 0;
       for (const s of students) {
         try {
-          await db.insert(cursoEstudiantes).values({ cursoId: curso.id, estudianteId: s.id } as any).onConflictDoNothing();
+          await db.insert(cursoEstudiantes).values({ cursoId: curso.id, estudianteId: s.id } as Record<string, unknown>).onConflictDoNothing();
           enrolled++;
-        } catch (e) {}
+        } catch {}
       }
 
       return {
@@ -1715,11 +1714,11 @@ FORMATO JSON:
       const aiResult = await generateText({ model: opencodeGoModel, prompt: aiPrompt, temperature: 0.5, maxOutputTokens: 8000 });
       logAiCall({ route: "ai-tool/generate-exam-template", model: DEFAULT_MODEL_ID, durationMs: Date.now() - start, usage: aiResult.usage ? { inputTokens: aiResult.usage.inputTokens, outputTokens: aiResult.usage.outputTokens, totalTokens: (aiResult.usage.inputTokens ?? 0) + (aiResult.usage.outputTokens ?? 0) } : undefined });
 
-      let text = aiResult.text || "";
-      let data: any;
+      const text = aiResult.text || "";
+      let data: Record<string, unknown>;
       try {
         data = tryParseJson(text);
-        data = normalizeAssignmentKeys(data);
+        data = normalizeAssignmentKeys(data) as Record<string, unknown>;
       } catch {
         return { error: "La IA no pudo generar el examen en formato válido. Intenta nuevamente o ajusta los parámetros." };
       }
@@ -1765,7 +1764,7 @@ FORMATO JSON:
           trimester,
           puntos,
           periodoLectivoId: activePeriodId,
-        } as any).returning();
+        } as Record<string, unknown>).returning();
 
         const rawQuestions = (data.questions || []).slice(0, 20);
         const questions = [];
@@ -1780,7 +1779,7 @@ FORMATO JSON:
             correctIndex: q.type === "file_upload" ? undefined : (q.correctIndex ?? 0),
             points: q.points || 1,
             orderIndex: i,
-          } as any);
+          } as Record<string, unknown>);
           questions.push(q);
         }
 
@@ -2061,6 +2060,6 @@ Solo dime qué necesitas. 😊`
 // ═══════════════════ EXPORT ═══════════════════
 
 export function getToolsForRole(role: string, userId: number, userFullName: string = "") {
-  if (role === "admin") return createAdminTools(userId, userFullName);
+  if (role === "admin") return createAdminTools(userId);
   return createTeacherTools(userId, userFullName);
 }

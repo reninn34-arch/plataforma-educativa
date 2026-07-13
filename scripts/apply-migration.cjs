@@ -1,6 +1,8 @@
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { config } = require("dotenv");
 config({ path: ".env.local" });
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const postgres = require("postgres");
 
 async function main() {

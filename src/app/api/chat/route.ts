@@ -120,6 +120,7 @@ export async function POST(request: NextRequest) {
     }
     const candidates = getChatModelCandidates(model);
     let selectedModel: ResolvedModel = resolved;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let modelInstance: any;
     let initError: unknown;
     for (const candidate of candidates) {
@@ -135,7 +136,7 @@ export async function POST(request: NextRequest) {
       }
     }
     if (!modelInstance) {
-      return Response.json({ error: String((initError as any)?.message ?? "No hay modelos IA disponibles") }, { status: 502 });
+      return Response.json({ error: String(initError instanceof Error ? initError.message : "No hay modelos IA disponibles") }, { status: 502 });
     }
 
     const startTime = performance.now();
@@ -162,6 +163,7 @@ export async function POST(request: NextRequest) {
       try {
         const session = await getOrCreateSession(user.id, subject);
         if (!session) return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
         if (lastUserMsg) {
           await db.insert(chatMessages).values({ sessionId: session.id, role: "user", content: typeof lastUserMsg.parts?.[0]?.text === "string" ? lastUserMsg.parts[0].text : "" });

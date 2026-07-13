@@ -33,7 +33,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import {
   cuestionarios, cuestionarioPreguntas, subjects, cursos,
-  cursoEstudiantes, users,
+  users,
 } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";

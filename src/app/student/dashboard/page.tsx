@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -16,18 +17,29 @@ import {
 import { DueTimer } from "@/components/DueTimer";
 import { apiFetch } from "@/lib/fetch-utils";
 
+interface AssignmentItem {
+  id: number;
+  title: string;
+  status: string;
+  dueDate: string | null;
+  grade: number | null;
+  subjectName: string;
+  subjectEmoji: string;
+}
+
 interface DashboardData {
   profile: { id: number; fullName: string; cedula: string; role: string; email?: string } | null;
   progress: Record<string, { percentage: number; completedNodes: number; totalNodes: number; totalStars: number }>;
   metrics: {
     totalSessions: number; totalQuestions: number; totalCorrect: number; totalScore: number;
     bestScore: number; avgScore: number; accuracy: number; streakDays: number;
-    gradeAverage: number | null; gradedCount: number; recentSessions: any[];
+    gradeAverage: number | null; gradedCount: number; recentSessions: unknown[];
   };
-  assignments: any[];
+  assignments: AssignmentItem[];
 }
 
 export default function StudentDashboard() {
+  const [now] = useState(() => Date.now());
   const { data, isLoading } = useQuery<DashboardData, Error>({
     queryKey: ["student-dashboard"],
     queryFn: async () => {
@@ -62,9 +74,9 @@ export default function StudentDashboard() {
   const { profile, progress: rawProgress, metrics, assignments: rawAssignments } = data;
   const progress = rawProgress || {};
   const assignments = rawAssignments || [];
-  const pendingAssignments = assignments.filter((a: any) => {
+  const pendingAssignments = assignments.filter((a: AssignmentItem) => {
     if (a.status === "graded" || a.status === "submitted") return false;
-    if (a.dueDate && new Date(a.dueDate).getTime() < Date.now()) return false;
+    if (a.dueDate && new Date(a.dueDate).getTime() < now) return false;
     return true;
   });
   const totalSessions = metrics?.totalSessions || 0;
@@ -199,7 +211,7 @@ export default function StudentDashboard() {
               </div>
               <div className="divide-y divide-slate-50">
                 {pendingAssignments.length > 0 ? (
-                  pendingAssignments.slice(0, 5).map((a: any) => (
+                  pendingAssignments.slice(0, 5).map((a: AssignmentItem) => (
                     <Link
                       key={a.id}
                       href={`/student/assignments/${a.id}`}

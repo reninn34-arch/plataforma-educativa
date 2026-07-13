@@ -10,12 +10,12 @@ export function apiSuccess<T>(data: T, status: number = 200) {
   if (Array.isArray(data)) {
     return NextResponse.json({ success: true, data }, { status });
   }
-  return NextResponse.json({ success: true, ...data as any }, { status });
+  return NextResponse.json({ success: true, ...data as Record<string, unknown> }, { status });
 }
 
 export async function requireAuth(request: Request) {
   const token = request.headers.get("cookie")?.match(/atlas-edu-token=([^;]+)/)?.[1]
-    ?? (request as any).cookies?.get?.("atlas-edu-token")?.value;
+    ?? (request as unknown as { cookies?: { get?: (name: string) => { value: string } | undefined } }).cookies?.get?.("atlas-edu-token")?.value;
 
   if (!token) return { user: null, error: apiError("No autorizado", 401) };
   const user = await verifyToken(token);

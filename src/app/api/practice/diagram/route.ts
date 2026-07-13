@@ -48,7 +48,7 @@
  *         description: Error interno
  */
 import { NextRequest, NextResponse } from "next/server";
-import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, resolveModel, tryParseJson } from "@/lib/ai";
+import { getChatModel, getChatModelCandidates, isRetryableModelError, logAiCall, tryParseJson } from "@/lib/ai";
 import { isValidMermaid, sanitizeMermaid } from "@/lib/mermaid-validate";
 import { db } from "@/lib/db";
 import { studentExercises } from "@/lib/db/schema";
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
               caption: r.object.caption,
             };
           } catch (err) {
-            const msg = String((err as any)?.message ?? err ?? "");
+            const msg = String(err instanceof Error ? err.message : err ?? "");
             if (msg.includes("response_format") || msg.includes("unavailable")) {
               console.log("[diagram-regen] response_format not supported, falling back to generateText");
               const r = await generateText({
@@ -243,11 +243,13 @@ export async function POST(request: NextRequest) {
         .limit(1);
 
       if (studentRecord.length > 0 && studentRecord[0].data) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const raw = studentRecord[0].data as any;
         if (raw.data?.lesson) {
           raw.data.lesson.diagram = diagram;
           await db
             .update(studentExercises)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .set({ data: raw as any, updatedAt: new Date() })
             .where(eq(studentExercises.id, studentRecord[0].id));
         }

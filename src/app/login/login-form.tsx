@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { Button } from "@/components/ui/button";
-import { Loader2, Eye, EyeOff, Shield, ArrowLeft, Sparkles, GraduationCap } from "lucide-react";
+import { Loader2, Eye, EyeOff, Shield, ArrowLeft, GraduationCap } from "lucide-react";
 import { apiFetch, clearCache } from "@/lib/fetch-utils";
 
 type Props = { redirect?: string };

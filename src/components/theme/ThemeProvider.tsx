@@ -93,11 +93,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
     const stored = localStorage.getItem("theme") as Theme | null;
     if (stored === "dark" || stored === "light") {
-      setThemeState(stored);
+      const t = setTimeout(() => setThemeState(stored), 0);
+      return () => clearTimeout(t);
     }
-    setMounted(true);
   }, []);
 
   useEffect(() => {

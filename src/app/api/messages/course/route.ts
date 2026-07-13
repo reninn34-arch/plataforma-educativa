@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
         senderId: user.id,
         receiverId: s.id,
         content: message.trim(),
-      } as any);
+      });
       sent++;
     }
 

@@ -41,20 +41,15 @@ export function QuestionCard({
   const [textAnswer, setTextAnswer] = useState("");
   const [boolAnswer, setBoolAnswer] = useState<boolean | null>(null);
   const [answered, setAnswered] = useState(false);
-  const [entered, setEntered] = useState(false);
-
   useEffect(() => {
-    setSelected(null);
-    setTextAnswer("");
-    setBoolAnswer(null);
-    setAnswered(false);
-    setEntered(false);
-  }, [exercise.id]);
-
-  useEffect(() => {
-    const t = setTimeout(() => setEntered(true), 50);
+    const t = setTimeout(() => {
+      setSelected(null);
+      setTextAnswer("");
+      setBoolAnswer(null);
+      setAnswered(false);
+    }, 0);
     return () => clearTimeout(t);
-  }, []);
+  }, [exercise.id]);
 
   useEffect(() => {
     if (answered && feedback) {
@@ -93,7 +88,6 @@ export function QuestionCard({
   };
 
   const isCorrect = feedback?.isCorrect ?? false;
-  const showCorrectMCQ = answered && exercise.type === "mcq";
 
   return (
     <div className="flex flex-col w-full">
@@ -126,7 +120,6 @@ export function QuestionCard({
               const isSelected = selected === i;
               const isCorrectOpt = i === exercise.correctIndex;
               let bgColor = KAHOOT_COLORS[i];
-              let hoverColor = KAHOOT_COLORS_HOVER[i];
               let classes = "";
               let disabled = false;
 
@@ -134,11 +127,9 @@ export function QuestionCard({
                 disabled = true;
                 if (isCorrectOpt) {
                   bgColor = "#22C55E";
-                  hoverColor = "#22C55E";
                   classes = "ring-2 ring-white/50 shadow-[0_0_20px_rgba(34,197,94,0.5)] scale-[1.02]";
                 } else if (isSelected && !isCorrectOpt) {
                   bgColor = "#DC2626";
-                  hoverColor = "#DC2626";
                   classes = "opacity-50 scale-95";
                 } else {
                   classes = "opacity-30";

@@ -2,10 +2,19 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, BookOpen, CheckCircle, Loader2, AlertTriangle, Plus, Trash2, Save, Sparkles, ListChecks } from "lucide-react";
+import { ArrowLeft, CheckCircle, Loader2, AlertTriangle, Plus, Trash2, Save, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/fetch-utils";
+
+interface PreguntaData {
+  type: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+  points: number;
+}
 
 interface Question {
   id: string;
@@ -49,7 +58,7 @@ export default function TeacherCuestionarioEditPage() {
       .then(d => {
         setTitle(d.cuestionario.title || "");
         setDescription(d.cuestionario.description || "");
-        const mapped = (d.preguntas || []).map((p: any) => ({
+        const mapped = (d.preguntas || []).map((p: PreguntaData) => ({
           id: `q_${++qCounter}`,
           virtualType: p.type === "completar" ? "completar" : "mcq",
           question: p.question || "",
@@ -72,7 +81,7 @@ export default function TeacherCuestionarioEditPage() {
     setQuestions(q => q.filter(qq => qq.id !== qId));
   };
 
-  const updateQuestion = (qId: string, field: string, value: any) => {
+  const updateQuestion = (qId: string, field: string, value: string | number | boolean) => {
     setQuestions(q => q.map(qq => (qq.id === qId ? { ...qq, [field]: value } : qq)));
   };
 

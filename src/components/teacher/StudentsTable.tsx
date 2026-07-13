@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/fetch-utils";
 import {
@@ -40,7 +39,7 @@ interface StatsData {
 }
 
 interface StudentsResponse { students: StudentData[]; }
-interface StatsResponse extends StatsData {}
+type StatsResponse = StatsData;
 
 function getInitials(name: string) {
   return name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
@@ -62,8 +61,14 @@ function daysAgo(dateStr: string | null): string {
   return `${diff} dias`;
 }
 
+function SortIcon({ column, sortKey, sortDir }: { column: string; sortKey: string; sortDir: "asc" | "desc" }) {
+  if (sortKey !== column) return <ArrowDownUp className="ml-1 h-3 w-3 text-muted-foreground/40" />;
+  return sortDir === "asc"
+    ? <ChevronUp className="ml-1 h-3.5 w-3.5 text-indigo-600" />
+    : <ChevronDown className="ml-1 h-3.5 w-3.5 text-indigo-600" />;
+}
+
 export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
-  const router = useRouter();
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<string>("fullName");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -123,13 +128,6 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
     if (typeof aVal === "string" && typeof bVal === "string") return aVal.localeCompare(bVal) * dir;
     return ((aVal as number) - (bVal as number)) * dir;
   });
-
-  const SortIcon = ({ column }: { column: string }) => {
-    if (sortKey !== column) return <ArrowDownUp className="ml-1 h-3 w-3 text-muted-foreground/40" />;
-    return sortDir === "asc"
-      ? <ChevronUp className="ml-1 h-3.5 w-3.5 text-indigo-600" />
-      : <ChevronDown className="ml-1 h-3.5 w-3.5 text-indigo-600" />;
-  };
 
   if (loading) {
     return (
@@ -265,12 +263,12 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
               <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="cursor-pointer select-none" onClick={() => handleSort("fullName")}>
                   <span className="inline-flex items-center text-xs font-semibold uppercase tracking-wider">
-                    Estudiante <SortIcon column="fullName" />
+                    Estudiante <SortIcon column="fullName" sortKey={sortKey} sortDir={sortDir} />
                   </span>
                 </TableHead>
                 <TableHead className="cursor-pointer select-none" onClick={() => handleSort("cedula")}>
                   <span className="inline-flex items-center text-xs font-semibold uppercase tracking-wider">
-                    Cedula <SortIcon column="cedula" />
+                    Cedula <SortIcon column="cedula" sortKey={sortKey} sortDir={sortDir} />
                   </span>
                 </TableHead>
                 {!cursoId && (
@@ -278,12 +276,12 @@ export function StudentsTable({ cursoId }: { cursoId?: number | null }) {
                 )}
                 <TableHead className="cursor-pointer select-none" onClick={() => handleSort("average")}>
                   <span className="inline-flex items-center text-xs font-semibold uppercase tracking-wider">
-                    Nota <SortIcon column="average" />
+                    Nota <SortIcon column="average" sortKey={sortKey} sortDir={sortDir} />
                   </span>
                 </TableHead>
                 <TableHead className="cursor-pointer select-none" onClick={() => handleSort("pending")}>
                   <span className="inline-flex items-center text-xs font-semibold uppercase tracking-wider">
-                    Pend. <SortIcon column="pending" />
+                    Pend. <SortIcon column="pending" sortKey={sortKey} sortDir={sortDir} />
                   </span>
                 </TableHead>
                 <TableHead><span className="text-xs font-semibold uppercase tracking-wider">WhatsApp</span></TableHead>

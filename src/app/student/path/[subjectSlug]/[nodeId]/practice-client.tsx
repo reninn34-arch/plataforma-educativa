@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { ArrowLeft, Loader2, Sparkles, MessageCircle, X } from "lucide-react";
+import { ArrowLeft, Loader2, MessageCircle, X } from "lucide-react";
 import { Countdown } from "@/components/practice/Countdown";
 import { QuestionCard } from "@/components/practice/QuestionCard";
 import { TimerRing } from "@/components/practice/TimerRing";
@@ -98,7 +98,8 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
   const [maxCombo, setMaxCombo] = useState(0);
   const [feedback, setFeedback] = useState<{ isCorrect: boolean; feedback: string } | null>(null);
   const [xpEarned, setXpEarned] = useState(0);
-  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const timerSeconds = currentExercise?.timeLimit ? currentExercise.timeLimit - elapsedSeconds : 0;
 
   // Coach state
   const [showCoach, setShowCoach] = useState(false);
@@ -229,33 +230,33 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     }
   }, [gameState, subjectId, nodeId, correctCount, exercises.length, xpEarned, maxCombo]);
 
-  // Timer logic
+  // Timer interval
   useEffect(() => {
     if (!currentExercise || gameState !== "playing" || feedback) return;
-
     const timeLimit = currentExercise.timeLimit;
     if (!timeLimit) return;
 
-    setTimerSeconds(timeLimit);
+    setElapsedSeconds(0);
 
     timerIntervalRef.current = setInterval(() => {
-      setTimerSeconds((prev) => {
-        if (prev <= 1) {
+      setElapsedSeconds((prev) => {
+        const next = prev + 1;
+        if (next >= timeLimit) {
           if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
           handleTimeout();
-          return 0;
+          return timeLimit;
         }
-        return prev - 1;
+        return next;
       });
     }, 1000);
 
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
-  }, [currentIndex, gameState, feedback]);
+  }, [currentIndex, gameState, feedback, currentExercise, handleTimeout]);
 
 
-  async function triggerCoach(question: string, studentAnswer: string, wasTimeout: boolean) {
+  const triggerCoach = useCallback(async (question: string, studentAnswer: string, wasTimeout: boolean) => {
     setShowCoach(true);
     setCoachLoading(true);
     setCoachMessage("Analizando tu respuesta...");
@@ -278,9 +279,9 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
     } finally {
       setCoachLoading(false);
     }
-  }
+  }, [aiPromptContext, nodeTitle]);
 
-  function handleTimeout() {
+  const handleTimeout = useCallback(() => {
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     console.log("[DEBUG] handleTimeout | question:", currentIndex, "| timerSeconds:", timerSeconds);
     setLives((l) => {
@@ -294,7 +295,7 @@ export function PracticeClient({ subjectSlug, nodeId, nodeTitle, aiPromptContext
       feedback: "Se acabó el tiempo. No te preocupes, en la siguiente pregunta lo harás mejor.",
     });
     triggerCoach(currentExercise.question, "", true);
-  }
+  }, [currentIndex, timerSeconds, currentExercise, triggerCoach]);
 
   const handleAnswer = async (answer: string | number | boolean) => {
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);

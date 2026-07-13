@@ -51,7 +51,7 @@ export function TutorChatSVG({ className = "" }: { className?: string }) {
       <rect x="50" y="140" width="210" height="44" rx="14" fill="#F1F5F9" className="tutor-msg-3" />
       <rect x="50" y="140" width="210" height="44" rx="14" stroke="#E2E8F0" strokeWidth="1" />
       <text x="62" y="156" fill="#334155" fontSize="9.5" fontFamily="sans-serif">Buena pregunta. Primero, ¿qué</text>
-      <text x="62" y="170" fill="#334155" fontSize="9.5" fontFamily="sans-serif">operación está sumando a "2x"? 💡</text>
+      <text x="62" y="170" fill="#334155" fontSize="9.5" fontFamily="sans-serif">operación está sumando a &ldquo;2x&rdquo;? 💡</text>
 
       <circle cx="30" cy="200" r="14" fill="#EEF2FF" />
       <text x="24" y="205" fill="#4F46E5" fontSize="12">🧠</text>

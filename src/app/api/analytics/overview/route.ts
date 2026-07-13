@@ -47,7 +47,7 @@ import { NextRequest, NextResponse } from "next/server";
  */
 import { db } from "@/lib/db";
 import { practiceSessions, practiceAnswers, users, subjects, cursoEstudiantes, cursoProfesores, cursos } from "@/lib/db/schema";
-import { eq, sql, desc, inArray, and } from "drizzle-orm";
+import { eq, sql, desc, inArray, and, type SQL } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 import { getTeacherCourseIds } from "@/lib/course-helpers";
 
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const buildWhere = (baseConditions: any[]) => {
+    const buildWhere = (baseConditions: SQL[]) => {
       if (subjectFilter && subjectFilter.length > 0) {
         baseConditions.push(inArray(practiceAnswers.subjectId, subjectFilter));
       }

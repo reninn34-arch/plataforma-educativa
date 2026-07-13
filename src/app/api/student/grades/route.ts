@@ -56,7 +56,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { assignments, assignmentSubmissions, subjects } from "@/lib/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
     return Math.round((grades.reduce((sum, g, i) => sum + g * puntos[i], 0) / totalPts) * 100) / 100;
   };
 
-  const summary = Array.from(subjectMap.entries()).map(([_, s]) => ({
+  const summary = Array.from(subjectMap.entries()).map(([, s]) => ({
     subjectName: s.name,
     subjectEmoji: s.emoji,
     t1Avg: weightedAvg(s.t1.grades, s.t1.puntos),

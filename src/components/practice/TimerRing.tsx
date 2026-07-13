@@ -5,12 +5,10 @@ import { cn } from "@/lib/utils";
 export function TimerRing({
   seconds,
   total,
-  paused,
 }: {
   seconds: number;
   total: number;
   onTimeout?: () => void;
-  paused?: boolean;
 }) {
   const progress = Math.max(seconds / total, 0);
   const isCritical = seconds <= 3;

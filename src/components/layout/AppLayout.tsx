@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Menu, X, Sparkles } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiFetch, clearCache } from "@/lib/fetch-utils";
@@ -14,7 +14,7 @@ import { UserProvider, useUserProfile } from "@/lib/contexts";
 interface AppLayoutProps {
   children: React.ReactNode;
   role: "student" | "teacher" | "admin";
-  links: { href: string; label: string; icon: any }[];
+  links: { href: string; label: string; icon: React.ComponentType<{ size?: number }> }[];
   title: string;
   isFullScreen?: boolean;
 }
@@ -22,7 +22,9 @@ interface AppLayoutProps {
 export function AppLayout({ children, role, links, title, isFullScreen }: AppLayoutProps) {
   return (
     <UserProvider>
-      <AppLayoutInner children={children} role={role} links={links} title={title} isFullScreen={isFullScreen} />
+      <AppLayoutInner role={role} links={links} title={title} isFullScreen={isFullScreen}>
+        {children}
+      </AppLayoutInner>
     </UserProvider>
   );
 }
@@ -35,7 +37,8 @@ function AppLayoutInner({ children, role, links, title, isFullScreen }: AppLayou
   const { profile } = useUserProfile();
 
   useEffect(() => {
-    setMobileMenuOpen(false);
+    const t = setTimeout(() => setMobileMenuOpen(false), 0);
+    return () => clearTimeout(t);
   }, [pathname]);
 
   const handleLogout = async () => {

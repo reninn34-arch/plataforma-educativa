@@ -39,7 +39,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { cuestionarios, cuestionarioPreguntas, subjects, cursos, cursoEstudiantes } from "@/lib/db/schema";
-import { eq, and, inArray, desc, sql } from "drizzle-orm";
+import { eq, inArray, desc, sql } from "drizzle-orm";
 import { verifyToken, getVerifiedUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {

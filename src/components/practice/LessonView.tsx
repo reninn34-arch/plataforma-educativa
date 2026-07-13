@@ -4,9 +4,10 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { cn, formatNotation } from "@/lib/utils";
 import { subjectTheme } from "@/lib/subject-theme";
 import { sanitizeMermaid } from "@/lib/mermaid-validate";
+import NextImage from "next/image";
 import {
   BookOpen, Lightbulb, AlertTriangle,
-  Check, X, ArrowRight, ArrowLeft, Target, Image, Loader2, Maximize2,
+  Check, X, ArrowRight, ArrowLeft, Target, Image as ImageIcon, Loader2, Maximize2,
   ZoomIn, ZoomOut, RotateCcw, Play, ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -69,8 +70,6 @@ function MermaidDiagram({ code, large, onRetry }: { code: string; large?: boolea
 
   useEffect(() => {
     let cancelled = false;
-    setSvg(null);
-    setError(false);
 
     async function renderDiagram(codeToRender: string) {
       const mermaid = await import("mermaid");
@@ -127,7 +126,8 @@ function VideoSlide({ videos, videoSearchUrl }: { videos: VideoData[]; videoSear
   const active = videos[activeIndex];
 
   useEffect(() => {
-    setEmbedError(false);
+    const t = setTimeout(() => setEmbedError(false), 0);
+    return () => clearTimeout(t);
   }, [activeIndex]);
 
   return (
@@ -192,11 +192,14 @@ function VideoSlide({ videos, videoSearchUrl }: { videos: VideoData[]; videoSear
               }`}
             >
               <div className="relative aspect-video bg-black">
-                {v.thumbnailUrl && (
-                  <img
+                  {v.thumbnailUrl && (
+                  <NextImage
                     src={v.thumbnailUrl}
                     alt={v.title}
+                    width={160}
+                    height={90}
                     className="w-full h-full object-cover"
+                    unoptimized
                   />
                 )}
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -237,7 +240,10 @@ function DiagramView({ diagram, onRetry }: { diagram: NonNullable<LessonData["di
   const [retrying, setRetrying] = useState(false);
   const [currentDiagram, setCurrentDiagram] = useState(diagram);
 
-  useEffect(() => { setCurrentDiagram(diagram); }, [diagram]);
+  useEffect(() => {
+    const t = setTimeout(() => setCurrentDiagram(diagram), 0);
+    return () => clearTimeout(t);
+  }, [diagram]);
 
   const handleRetry: () => Promise<{ mermaid: string; caption: string } | null> = async () => {
     if (!onRetry || retrying) return null;
@@ -276,7 +282,7 @@ function DiagramView({ diagram, onRetry }: { diagram: NonNullable<LessonData["di
       <div className="rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white overflow-hidden shadow-sm">
         <div className="flex items-center justify-between px-5 py-3 bg-blue-50/80">
           <div className="flex items-center gap-2">
-            <Image className="h-4 w-4 text-blue-600" aria-hidden="true" />
+            <ImageIcon className="h-4 w-4 text-blue-600" aria-hidden="true" />
             <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">{currentDiagram.caption}</span>
           </div>
           <span
@@ -311,7 +317,7 @@ function DiagramView({ diagram, onRetry }: { diagram: NonNullable<LessonData["di
           <DialogHeader>
             <div className="flex items-center justify-between gap-4">
               <DialogTitle className="text-base font-bold text-blue-800 flex items-center gap-2 shrink-0">
-                <Image className="h-4 w-4 text-blue-600" />
+                <ImageIcon className="h-4 w-4 text-blue-600" />
                 {currentDiagram.caption}
               </DialogTitle>
               <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5">
